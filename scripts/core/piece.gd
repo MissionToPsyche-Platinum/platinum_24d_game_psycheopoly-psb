@@ -27,19 +27,29 @@ func move_to(x: int, y: int) -> void:
 # Convert (x, y) coordinates to board space number (0-39)
 # Monopoly layout: 40 spaces total, 11 per side (corners shared)
 func get_space_from_coords(x: int, y: int) -> int:
-	# Right edge: spaces 0-10 (top to bottom, x=10, y=0 to 10)
-	if x == 10:
+	# Handle corners explicitly
+	if x == 10 and y == 0:
+		return 0  # Go (top-right corner)
+	if x == 10 and y == 10:
+		return 10  # Jail (bottom-right corner)
+	if x == 0 and y == 10:
+		return 20  # Free Parking (bottom-left corner)
+	if x == 0 and y == 0:
+		return 30  # Go to Jail (top-left corner)
+	# Right edge: spaces 1-9 (x=10, y=1 to 9)
+	if x == 10 and y > 0 and y < 10:
 		return y
-	# Bottom edge: spaces 10-20 (right to left, y=10, x=10 to 0)
-	if y == 10:
+	# Bottom edge: spaces 11-19 (y=10, x=9 to 1)
+	if y == 10 and x > 0 and x < 10:
 		return 10 + (10 - x)
-	# Left edge: spaces 20-30 (bottom to top, x=0, y=10 to 0)
-	if x == 0:
+	# Left edge: spaces 21-29 (x=0, y=9 to 1)
+	if x == 0 and y > 0 and y < 10:
 		return 20 + (10 - y)
-	# Top edge: spaces 30-39 (left to right, y=0, x=0 to 9)
-	if y == 0 and x < 10:
+	# Top edge: spaces 31-39 (y=0, x=1 to 9)
+	if y == 0 and x > 0 and x < 10:
 		return 30 + x
-	return 0
+	# Not a valid board space
+	return -1
 
 
 # Convert board space number to (x, y) coordinates
