@@ -1,0 +1,58 @@
+[gd_scene load_steps=3 format=3 uid="uid://bmvl3imlm0w2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aq5sm"]
+bg_color = Color(0, 0.48235294, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bx376"]
+bg_color = Color(0, 0.48235294, 1, 1)
+
+[node name="StartMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05490196, 0.0627451, 0.08627451, 1)
+
+[node name="CenterBox" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Menu" type="VBoxContainer" parent="CenterBox"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Title" type="Label" parent="CenterBox/Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Psyche-opoly
+"
+horizontal_alignment = 1
+
+[node name="Start" type="Button" parent="CenterBox/Menu"]
+custom_minimum_size = Vector2(260, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_aq5sm")
+text = "Start"
+
+[node name="Exit" type="Button" parent="CenterBox/Menu"]
+custom_minimum_size = Vector2(260, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_bx376")
+text = "Exit Game"
