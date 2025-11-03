@@ -28,18 +28,18 @@ func move_to(x: int, y: int) -> void:
 
 # Convert (x, y) coordinates to board space number (0-39)
 func get_space_from_coords(x: int, y: int) -> int:
-	# Bottom edge: spaces 0-9 (right to left, y=9, x=8 to -1)
-	if y == 9:
-		return 8 - x
-	# Left edge: spaces 10-19 (bottom to top, x=-1, y=8 to -1)
-	if x == -1:
-		return 10 + (8 - y)
-	# Top edge: spaces 20-29 (left to right, y=0, x=-1 to 8)
-	if y == 0:
-		return 20 + (x + 1)
-	# Right edge: spaces 30-39 (top to bottom, x=8, y=0 to 9)
+	# Right edge: spaces 0-9 (top to bottom, x=8, y=0 to 9)
 	if x == 8:
-		return 30 + y
+		return y
+	# Bottom edge: spaces 10-19 (right to left, y=9, x=7 to -1)
+	if y == 9:
+		return 10 + (7 - x)
+	# Left edge: spaces 20-29 (bottom to top, x=-1, y=8 to -1)
+	if x == -1:
+		return 20 + (8 - y)
+	# Top edge: spaces 30-39 (left to right, y=0, x=-1 to 7)
+	if y == 0:
+		return 30 + (x + 1)
 	return 0
 
 
@@ -47,18 +47,18 @@ func get_space_from_coords(x: int, y: int) -> int:
 func get_coords_from_space(space: int) -> Vector2i:
 	space = space % 40  # Wrap around the board
 	
-	# Bottom edge: spaces 0-9
+	# Right edge: spaces 0-9 (x=8, y=0 to 9)
 	if space <= 9:
-		return Vector2i(8 - space, 9)
-	# Left edge: spaces 10-19
+		return Vector2i(8, space)
+	# Bottom edge: spaces 10-19 (y=9, x=7 to -1)
 	elif space <= 19:
-		return Vector2i(-1, 8 - (space - 10))
-	# Top edge: spaces 20-29
+		return Vector2i(7 - (space - 10), 9)
+	# Left edge: spaces 20-29 (x=-1, y=8 to -1)
 	elif space <= 29:
-		return Vector2i((space - 20) - 1, 0)
-	# Right edge: spaces 30-39
+		return Vector2i(-1, 8 - (space - 20))
+	# Top edge: spaces 30-39 (y=0, x=-1 to 7)
 	else:
-		return Vector2i(8, space - 30)
+		return Vector2i((space - 30) - 1, 0)
 
 
 # Roll dice and move (for testing, generates random 2-12)
