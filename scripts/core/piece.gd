@@ -4,6 +4,9 @@ extends Node2D
 var board_x: int = 0
 var board_y: int = 0
 
+# Current position on the board (0-39 like Monopoly)
+var board_space: int = 0
+
 # Reference to the TileMapLayer
 var tile_map: TileMapLayer = null
 
@@ -19,7 +22,63 @@ func _ready() -> void:
 func move_to(x: int, y: int) -> void:
 	board_x = x
 	board_y = y
+	board_space = get_space_from_coords(x, y)
 	update_position()
+
+
+# Convert (x, y) coordinates to board space number (0-39)
+func get_space_from_coords(x: int, y: int) -> int:
+	# Bottom edge: spaces 0-9 (right to left, y=9, x=8 to -1)
+	if y == 9:
+		return 8 - x
+	# Left edge: spaces 10-19 (bottom to top, x=-1, y=8 to -1)
+	if x == -1:
+		return 10 + (8 - y)
+	# Top edge: spaces 20-29 (left to right, y=0, x=-1 to 8)
+	if y == 0:
+		return 20 + (x + 1)
+	# Right edge: spaces 30-39 (top to bottom, x=8, y=0 to 9)
+	if x == 8:
+		return 30 + y
+	return 0
+
+
+# Convert board space number to (x, y) coordinates
+func get_coords_from_space(space: int) -> Vector2i:
+	space = space % 40  # Wrap around the board
+	
+	# Bottom edge: spaces 0-9
+	if space <= 9:
+		return Vector2i(8 - space, 9)
+	# Left edge: spaces 10-19
+	elif space <= 19:
+		return Vector2i(-1, 8 - (space - 10))
+	# Top edge: spaces 20-29
+	elif space <= 29:
+		return Vector2i((space - 20) - 1, 0)
+	# Right edge: spaces 30-39
+	else:
+		return Vector2i(8, space - 30)
+
+
+# Roll dice and move (for testing, generates random 2-12)
+# TODO: Replace with proper dice rolling mechanism later 
+func roll_and_move() -> void:
+	var dice1 := randi() % 6 + 1
+	var dice2 := randi() % 6 + 1
+	var total := dice1 + dice2
+	print("Rolled: ", dice1, " + ", dice2, " = ", total)
+	move_forward(total)
+
+
+# Move forward by a number of spaces (clockwise only)
+func move_forward(spaces: int) -> void:
+	board_space = (board_space + spaces) % 40
+	var new_coords := get_coords_from_space(board_space)
+	board_x = new_coords.x
+	board_y = new_coords.y
+	update_position()
+	print("Moved to space ", board_space, " at (", board_x, ", ", board_y, ")")
 
 
 # Convert grid position to world position and update
@@ -47,23 +106,14 @@ func is_valid_position(x: int, y: int) -> bool:
 
 
 # Simple keyboard controls for testing
-# TODO: Replace this with movement based on game logic
+# TODO: Remove or replace with proper input handling later
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		var new_x := board_x
-		var new_y := board_y
-		
-		if event.keycode == KEY_UP or event.keycode == KEY_W:
-			new_y -= 1
-		elif event.keycode == KEY_DOWN or event.keycode == KEY_S:
-			new_y += 1
-		elif event.keycode == KEY_LEFT or event.keycode == KEY_A:
-			new_x -= 1
+		# Press SPACE to roll dice and move
+		if event.keycode == KEY_SPACE:
+			roll_and_move()
+		# Arrow keys to move forward manually (1 space at a time, clockwise only)
 		elif event.keycode == KEY_RIGHT or event.keycode == KEY_D:
-			new_x += 1
-		
-		# Only move if the new position is valid
-		if is_valid_position(new_x, new_y):
-			board_x = new_x
-			board_y = new_y
-			update_position()
+			move_forward(1)
+		elif event.keycode == KEY_LEFT or event.keycode == KEY_A:
+			move_forward(-1)  # Move backward one space (for testing)
