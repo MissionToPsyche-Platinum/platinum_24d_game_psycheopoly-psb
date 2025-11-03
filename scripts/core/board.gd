@@ -10,5 +10,5 @@ func _ready() -> void:
 	piece = piece_scene.instantiate()
 	add_child(piece)
 
-	# Start the piece at position (8, 0) on the board
-	piece.move_to(8, 0)
+	# Start the piece at position (10, 0) on the board (space 0 - GO)
+	piece.move_to(10, 0)

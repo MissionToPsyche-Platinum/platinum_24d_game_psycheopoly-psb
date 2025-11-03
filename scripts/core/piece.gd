@@ -27,38 +27,42 @@ func move_to(x: int, y: int) -> void:
 
 
 # Convert (x, y) coordinates to board space number (0-39)
+# Monopoly layout: 40 spaces total, 11 per side (corners shared)
 func get_space_from_coords(x: int, y: int) -> int:
-	# Right edge: spaces 0-9 (top to bottom, x=8, y=0 to 9)
-	if x == 8:
+	# Right edge: spaces 0-10 (top to bottom, x=10, y=0 to 10)
+	if x == 10:
 		return y
-	# Bottom edge: spaces 10-19 (right to left, y=9, x=7 to -1)
-	if y == 9:
-		return 10 + (7 - x)
-	# Left edge: spaces 20-29 (bottom to top, x=-1, y=8 to -1)
-	if x == -1:
-		return 20 + (8 - y)
-	# Top edge: spaces 30-39 (left to right, y=0, x=-1 to 7)
-	if y == 0:
-		return 30 + (x + 1)
+	# Bottom edge: spaces 10-20 (right to left, y=10, x=10 to 0)
+	if y == 10:
+		return 10 + (10 - x)
+	# Left edge: spaces 20-30 (bottom to top, x=0, y=10 to 0)
+	if x == 0:
+		return 20 + (10 - y)
+	# Top edge: spaces 30-39 (left to right, y=0, x=0 to 9)
+	if y == 0 and x < 10:
+		return 30 + x
 	return 0
 
 
 # Convert board space number to (x, y) coordinates
+# Space layout (Monopoly-style):
+# 0 = (10,0) top-right corner, 10 = (10,10) bottom-right corner
+# 20 = (0,10) bottom-left corner, 30 = (0,0) top-left corner
 func get_coords_from_space(space: int) -> Vector2i:
 	space = space % 40  # Wrap around the board
 	
-	# Right edge: spaces 0-9 (x=8, y=0 to 9)
-	if space <= 9:
-		return Vector2i(8, space)
-	# Bottom edge: spaces 10-19 (y=9, x=7 to -1)
+	# Right edge: spaces 0-10 (x=10, y=0 to 10)
+	if space <= 10:
+		return Vector2i(10, space)
+	# Bottom edge: spaces 11-19 (y=10, x=9 to 1)
 	elif space <= 19:
-		return Vector2i(7 - (space - 10), 9)
-	# Left edge: spaces 20-29 (x=-1, y=8 to -1)
-	elif space <= 29:
-		return Vector2i(-1, 8 - (space - 20))
-	# Top edge: spaces 30-39 (y=0, x=-1 to 7)
+		return Vector2i(10 - (space - 10), 10)
+	# Left edge: spaces 20-30 (x=0, y=10 to 0)
+	elif space <= 30:
+		return Vector2i(0, 10 - (space - 20))
+	# Top edge: spaces 31-39 (y=0, x=1 to 9)
 	else:
-		return Vector2i((space - 30) - 1, 0)
+		return Vector2i(space - 30, 0)
 
 
 # Roll dice and move (for testing, generates random 2-12)
@@ -88,19 +92,19 @@ func update_position() -> void:
 		position = world_pos
 
 
-# Check if position is on the board edge
+# Check if position is on the board edge (Monopoly-style: 11 spaces per side = 40 total)
 func is_valid_position(x: int, y: int) -> bool:
 	# Bottom edge
-	if y == 9 and x >= -1 and x <= 8:
+	if y == 10 and x >= 0 and x <= 10:
 		return true
 	# Right edge
-	if x == 8 and y >= 0 and y <= 9:
+	if x == 10 and y >= 0 and y <= 10:
 		return true
 	# Top edge
-	if y == 0 and x >= -1 and x <= 8:
+	if y == 0 and x >= 0 and x <= 10:
 		return true
 	# Left edge
-	if x == -1 and y >= 0 and y <= 9:
+	if x == 0 and y >= 0 and y <= 10:
 		return true
 	return false
 
