@@ -77,7 +77,7 @@ func roll_and_move() -> void:
 
 # Move forward by a number of spaces (clockwise only)
 func move_forward(spaces: int) -> void:
-	board_space = (board_space + spaces) % 40
+	board_space = ((board_space + spaces) % 40 + 40) % 40
 	var new_coords := get_coords_from_space(board_space)
 	board_x = new_coords.x
 	board_y = new_coords.y
