@@ -8,12 +8,10 @@ var board_y: int = 0
 var board_space: int = 0
 
 # Reference to the TileMapLayer
-var tile_map: TileMapLayer = null
+@export var tile_map: TileMapLayer
 
 
 func _ready() -> void:
-	# Find the TileMapLayer in the scene
-	tile_map = get_tree().root.find_child("TileMapLayer", true, false)
 	if tile_map:
 		update_position()
 
