@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://e8tcke1rnehg"]
+
+[node name="PropertyCard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -3.0
+offset_bottom = -3.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Psyche" type="Window" parent="."]
+oversampling_override = 1.0
+initial_position = 1
+size = Vector2i(500, 500)
+
+[node name="PsycheDisplay" type="Camera2D" parent="Psyche"]
+
+[node name="ColorRect" type="ColorRect" parent="Psyche/PsycheDisplay"]
+offset_right = 497.0
+offset_bottom = 490.0
+
+[node name="ColorRect2" type="ColorRect" parent="Psyche/PsycheDisplay"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 486.0
+offset_bottom = 94.0
+color = Color(0.27602002, 0.74, 0.2516, 1)
+
+[node name="Label" type="Label" parent="Psyche/PsycheDisplay"]
+offset_left = 14.0
+offset_top = 108.0
+offset_right = 486.0
+offset_bottom = 182.0
+text = "Psyche"
+horizontal_alignment = 1
+vertical_alignment = 1
+justification_flags = 3
+uppercase = true

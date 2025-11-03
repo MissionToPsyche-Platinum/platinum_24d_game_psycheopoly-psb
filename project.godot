@@ -13,3 +13,10 @@ config_version=5
 config/name="capstone"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1024
+window/size/viewport_height=768
+window/subwindows/embed_subwindows=false
+window/stretch/mode="canvas_items"
