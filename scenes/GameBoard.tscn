@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=4 uid="uid://bo41dopsfrh24"]
+[gd_scene load_steps=6 format=4 uid="uid://bo41dopsfrh24"]
 
 [ext_resource type="Script" uid="uid://c21xp0e8s4yfb" path="res://scripts/core/board.gd" id="1_12345"]
 [ext_resource type="Texture2D" uid="uid://bdi3pyhwge4l6" path="res://assets/images/tileset.png" id="2_v0kx6"]
+[ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="3_fbkij"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fbkij"]
 texture = ExtResource("2_v0kx6")
@@ -82,3 +83,8 @@ tile_set = SubResource("TileSet_17g6i")
 position = Vector2(16, 8)
 offset = Vector2(0, 80)
 zoom = Vector2(2.5, 2.5)
+
+[node name="PsycheLogo" type="Sprite2D" parent="."]
+position = Vector2(16.999998, 87.99999)
+scale = Vector2(0.044, 0.022)
+texture = ExtResource("3_fbkij")
