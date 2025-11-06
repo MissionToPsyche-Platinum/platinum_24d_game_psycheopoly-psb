@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dniv1hxldqw3j"
-path="res://.godot/imported/isometric-sandbox-sheet.png-5003854adb54021a18f9834515539183.ctex"
+uid="uid://cd5ekuf2nxpwb"
+path="res://.godot/imported/tileset.png-e670481cb02481353cc7929941c410a5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/isometric-sandbox-sheet.png"
-dest_files=["res://.godot/imported/isometric-sandbox-sheet.png-5003854adb54021a18f9834515539183.ctex"]
+source_file="res://assets/images/sprites/tileset.png"
+dest_files=["res://.godot/imported/tileset.png-e670481cb02481353cc7929941c410a5.ctex"]
 
 [params]
 
