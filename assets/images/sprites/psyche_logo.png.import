@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cd5ekuf2nxpwb"
-path="res://.godot/imported/tileset.png-e670481cb02481353cc7929941c410a5.ctex"
+uid="uid://bdbtglxjaliah"
+path="res://.godot/imported/psyche_logo.png-9d8f35bb4867b358051ff464eb4706b9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/sprites/tileset.png"
-dest_files=["res://.godot/imported/tileset.png-e670481cb02481353cc7929941c410a5.ctex"]
+source_file="res://assets/images/sprites/psyche_logo.png"
+dest_files=["res://.godot/imported/psyche_logo.png-9d8f35bb4867b358051ff464eb4706b9.ctex"]
 
 [params]
 
