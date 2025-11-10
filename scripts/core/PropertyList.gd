@@ -1,9 +1,9 @@
-extends Node
+extends Resource
 
-class_name PlayerState
+var TESTPROPERTY1 : BaseProperty = BaseProperty.new("Test Property 1", 5, 10, 20, 25, 30, 5, 10)
 
-var board_space: int = 0
-var balance: int = 0
+
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:

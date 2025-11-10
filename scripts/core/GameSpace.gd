@@ -1,9 +1,6 @@
 extends Node
 
-class_name PlayerState
-
-var board_space: int = 0
-var balance: int = 0
+class_name GameSpace
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
