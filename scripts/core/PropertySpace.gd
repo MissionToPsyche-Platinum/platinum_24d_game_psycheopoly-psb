@@ -1,9 +1,8 @@
-extends Node
+extends GameSpace
 
-class_name PlayerState
+class_name PropertySpace
 
-var board_space: int = 0
-var balance: int = 0
+var player_owner : int # holds which player owns the property, 0 for unowned
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
