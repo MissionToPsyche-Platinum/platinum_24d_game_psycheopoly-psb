@@ -1,8 +1,6 @@
-extends GameSpace
+extends Ownable
 
 class_name PropertySpace
-
-var player_owner : int # holds which player owns the property, 0 for unowned
 
 var _property_name : String
 
