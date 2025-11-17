@@ -1,0 +1,14 @@
+extends GameSpace
+
+class_name Ownable
+
+var player_owner : int # holds which player owns the property, 0 for unowned
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
