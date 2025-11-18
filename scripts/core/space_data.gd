@@ -1,308 +1,286 @@
 extends Node
 
 # Space data for all 40 spaces on the board
-# Space types: "property", "corner", "railroad", "utility", "tax", "card"
+# Space types: "property", "corner", "instrument", "planet", "expense", "card"
 
 const SPACE_INFO = [
-	# Space 0 - GO (top-right corner)
+	# Space 0 - GO (bottom-right corner)
 	{
 		"name": "GO",
 		"type": "corner",
-		"description": "Collect $200 when you pass GO",
+		"description": "Collect a $200 grant as you pass",
 		"color": Color.WHITE
 	},
-	# Spaces 1-9 (right edge)
+	# Spaces 1-9 (bottom edge, moving left)
 	{
-		"name": "Ceres",
+		"name": "Hebe",
 		"type": "property",
-		"description": "Largest asteroid in the asteroid belt",
+		"description": "SCIENTIFIC DATA - Research Funding $2",
 		"price": 60,
-		"rent": 2,
-		"color": Color(0.6, 0.4, 0.2)  # Brown
+		"color": Color(1.0, 1.0, 0.0)  # Yellow
 	},
 	{
-		"name": "Community Chest",
+		"name": "Silicate",
 		"type": "card",
-		"description": "Draw a Community Chest card",
+		"description": "Draw a Silicate card",
+		"color": Color.LIGHT_BLUE
+	},
+	{
+		"name": "Elektra",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $4",
+		"price": 60,
+		"color": Color(1.0, 1.0, 0.0)  # Yellow
+	},
+	{
+		"name": "Consult Subject Matter Expert",
+		"type": "expense",
+		"description": "Pay $200",
+		"amount": 200,
+		"color": Color.WHITE
+	},
+	{
+		"name": "Multispectral Imager",
+		"type": "instrument",
+		"description": "Research Funding $25",
+		"price": 200,
+		"color": Color.GRAY
+	},
+	{
+		"name": "Iris",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $6",
+		"price": 100,
+		"color": Color(1.0, 0.65, 0.0)  # Orange
+	},
+	{
+		"name": "Metal",
+		"type": "card",
+		"description": "Draw a Metal card",
+		"color": Color.ORANGE
+	},
+	{
+		"name": "Egeria",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $6",
+		"price": 100,
+		"color": Color(1.0, 0.65, 0.0)  # Orange
+	},
+	{
+		"name": "Amphitrite",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $8",
+		"price": 120,
+		"color": Color(1.0, 0.65, 0.0)  # Orange
+	},
+	# Space 10 - Launch Pad (bottom-left corner)
+	{
+		"name": "Launch Pad",
+		"type": "corner",
+		"description": "Just watching or launching",
+		"color": Color.WHITE
+	},
+	# Spaces 11-19 (left edge, moving up)
+	{
+		"name": "Themis",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $10",
+		"price": 140,
+		"color": Color(1.0, 0.4, 0.0)  # Dark orange
+	},
+	{
+		"name": "Mars",
+		"type": "planet",
+		"description": "If one Planet is being studied, research funding is 4 times amount shown on dice.",
+		"price": 150,
+		"color": Color(0.8, 0.3, 0.2)  # Mars red
+	},
+	{
+		"name": "Fortuna",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $10",
+		"price": 140,
+		"color": Color(1.0, 0.4, 0.0)  # Dark orange
+	},
+	{
+		"name": "Doris",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $12",
+		"price": 160,
+		"color": Color(1.0, 0.4, 0.0)  # Dark orange
+	},
+	{
+		"name": "Gamma-Ray/Neutron Spectrometer",
+		"type": "instrument",
+		"description": "Research Funding $25",
+		"price": 200,
+		"color": Color.GRAY
+	},
+	{
+		"name": "Thisbe",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $14",
+		"price": 180,
+		"color": Color(0.95, 0.5, 0.6)  # Pink
+	},
+	{
+		"name": "Silicate",
+		"type": "card",
+		"description": "Draw a Silicate card",
+		"color": Color.LIGHT_BLUE
+	},
+	{
+		"name": "Psyche",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $14",
+		"price": 180,
+		"color": Color(0.95, 0.5, 0.6)  # Pink
+	},
+	{
+		"name": "Bamberga",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $16",
+		"price": 200,
+		"color": Color(0.95, 0.5, 0.6)  # Pink
+	},
+	# Space 20 - Gravity Assist (top-left corner)
+	{
+		"name": "Gravity Assist",
+		"type": "corner",
+		"description": "Free boost from planetary alignment",
+		"color": Color.WHITE
+	},
+	# Spaces 21-29 (top edge, moving right)
+	{
+		"name": "Juno",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $18",
+		"price": 220,
+		"color": Color(0.8, 0.2, 0.3)  # Dark red
+	},
+	{
+		"name": "Metal",
+		"type": "card",
+		"description": "Draw a Metal card",
+		"color": Color.ORANGE
+	},
+	{
+		"name": "Euphrosyne",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $18",
+		"price": 220,
+		"color": Color(0.8, 0.2, 0.3)  # Dark red
+	},
+	{
+		"name": "Eunomia",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $20",
+		"price": 240,
+		"color": Color(0.8, 0.2, 0.3)  # Dark red
+	},
+	{
+		"name": "Sylvia",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $22",
+		"price": 260,
+		"color": Color(0.7, 0.3, 0.7)  # Purple
+	},
+	{
+		"name": "Magnetometer",
+		"type": "instrument",
+		"description": "Research Funding $25",
+		"price": 200,
+		"color": Color.GRAY
+	},
+	{
+		"name": "Europa",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $24",
+		"price": 280,
+		"color": Color(0.7, 0.3, 0.7)  # Purple
+	},
+	{
+		"name": "Jupiter",
+		"type": "planet",
+		"description": "If one Planet is being studied, research funding is 4 times amount shown on dice.",
+		"price": 150,
+		"color": Color(0.9, 0.6, 0.3)  # Jupiter orange
+	},
+	{
+		"name": "Sylvia",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $22",
+		"price": 260,
+		"color": Color(0.7, 0.3, 0.7)  # Purple
+	},
+	# Space 30 - Solar Storm (top-right corner)
+	{
+		"name": "Solar Storm",
+		"type": "corner",
+		"description": "Go directly to Launch Pad",
+		"color": Color.WHITE
+	},
+	# Spaces 31-39 (right edge, moving down)
+	{
+		"name": "Interamnia",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $26",
+		"price": 300,
+		"color": Color(0.5, 0.2, 0.7)  # Dark purple
+	},
+	{
+		"name": "Hygiea",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $26",
+		"price": 300,
+		"color": Color(0.5, 0.2, 0.7)  # Dark purple
+	},
+	{
+		"name": "Silicate",
+		"type": "card",
+		"description": "Draw a Silicate card",
 		"color": Color.LIGHT_BLUE
 	},
 	{
 		"name": "Pallas",
 		"type": "property",
-		"description": "Second-largest asteroid",
-		"price": 60,
-		"rent": 4,
-		"color": Color(0.6, 0.4, 0.2)  # Brown
+		"description": "SCIENTIFIC DATA - Research Funding $28",
+		"price": 320,
+		"color": Color(0.5, 0.2, 0.7)  # Dark purple
 	},
 	{
-		"name": "Mission Tax",
-		"type": "tax",
-		"description": "Pay $200 mission tax",
-		"amount": 200,
-		"color": Color.WHITE
-	},
-	{
-		"name": "Solar Panel Array",
-		"type": "railroad",
-		"description": "Power generation system",
+		"name": "X-Band Radio Telecomms System",
+		"type": "instrument",
+		"description": "Research Funding $25",
 		"price": 200,
 		"color": Color.GRAY
+	},
+	{
+		"name": "Metal",
+		"type": "card",
+		"description": "Draw a Metal card",
+		"color": Color.ORANGE
 	},
 	{
 		"name": "Vesta",
 		"type": "property",
-		"description": "Third-largest asteroid",
-		"price": 100,
-		"rent": 6,
-		"color": Color(0.4, 0.7, 1.0)  # Light blue
-	},
-	{
-		"name": "Chance",
-		"type": "card",
-		"description": "Draw a Chance card",
-		"color": Color.ORANGE
-	},
-	{
-		"name": "Juno",
-		"type": "property",
-		"description": "Fourth asteroid discovered",
-		"price": 100,
-		"rent": 6,
-		"color": Color(0.4, 0.7, 1.0)  # Light blue
-	},
-	{
-		"name": "Hygiea",
-		"type": "property",
-		"description": "Fourth-largest asteroid",
-		"price": 120,
-		"rent": 8,
-		"color": Color(0.4, 0.7, 1.0)  # Light blue
-	},
-	# Space 10 - Jail/Just Visiting (bottom-right corner)
-	{
-		"name": "Orbital Quarantine",
-		"type": "corner",
-		"description": "Just visiting or in quarantine",
-		"color": Color.WHITE
-	},
-	# Spaces 11-19 (bottom edge)
-	{
-		"name": "Europa",
-		"type": "property",
-		"description": "Jupiter's icy moon",
-		"price": 140,
-		"rent": 10,
-		"color": Color(0.8, 0.2, 0.8)  # Magenta
-	},
-	{
-		"name": "Ion Thruster",
-		"type": "utility",
-		"description": "Spacecraft propulsion system",
-		"price": 150,
-		"color": Color.WHITE
-	},
-	{
-		"name": "Titan",
-		"type": "property",
-		"description": "Saturn's largest moon",
-		"price": 140,
-		"rent": 10,
-		"color": Color(0.8, 0.2, 0.8)  # Magenta
-	},
-	{
-		"name": "Enceladus",
-		"type": "property",
-		"description": "Saturn's geyser moon",
-		"price": 160,
-		"rent": 12,
-		"color": Color(0.8, 0.2, 0.8)  # Magenta
-	},
-	{
-		"name": "Deep Space Network",
-		"type": "railroad",
-		"description": "Communication system",
-		"price": 200,
-		"color": Color.GRAY
-	},
-	{
-		"name": "16 Psyche",
-		"type": "property",
-		"description": "Metal-rich asteroid - NASA mission target!",
-		"price": 180,
-		"rent": 14,
-		"color": Color(1.0, 0.6, 0.0)  # Orange
-	},
-	{
-		"name": "Community Chest",
-		"type": "card",
-		"description": "Draw a Community Chest card",
-		"color": Color.LIGHT_BLUE
-	},
-	{
-		"name": "Bennu",
-		"type": "property",
-		"description": "Carbon-rich asteroid visited by OSIRIS-REx",
-		"price": 180,
-		"rent": 14,
-		"color": Color(1.0, 0.6, 0.0)  # Orange
-	},
-	{
-		"name": "Ryugu",
-		"type": "property",
-		"description": "Asteroid visited by Hayabusa2",
-		"price": 200,
-		"rent": 16,
-		"color": Color(1.0, 0.6, 0.0)  # Orange
-	},
-	# Space 20 - Free Parking (bottom-left corner)
-	{
-		"name": "Lagrange Point",
-		"type": "corner",
-		"description": "Stable orbital position - free parking",
-		"color": Color.WHITE
-	},
-	# Spaces 21-29 (left edge)
-	{
-		"name": "Phobos",
-		"type": "property",
-		"description": "Mars' largest moon",
-		"price": 220,
-		"rent": 18,
-		"color": Color(1.0, 0.0, 0.0)  # Red
-	},
-	{
-		"name": "Chance",
-		"type": "card",
-		"description": "Draw a Chance card",
-		"color": Color.ORANGE
-	},
-	{
-		"name": "Deimos",
-		"type": "property",
-		"description": "Mars' smaller moon",
-		"price": 220,
-		"rent": 18,
-		"color": Color(1.0, 0.0, 0.0)  # Red
-	},
-	{
-		"name": "Ida",
-		"type": "property",
-		"description": "Asteroid with moon Dactyl",
-		"price": 240,
-		"rent": 20,
-		"color": Color(1.0, 0.0, 0.0)  # Red
-	},
-	{
-		"name": "Hubble Telescope",
-		"type": "railroad",
-		"description": "Observation system",
-		"price": 200,
-		"color": Color.GRAY
-	},
-	{
-		"name": "Eros",
-		"type": "property",
-		"description": "Near-Earth asteroid visited by NEAR Shoemaker",
-		"price": 260,
-		"rent": 22,
-		"color": Color(1.0, 1.0, 0.0)  # Yellow
-	},
-	{
-		"name": "Itokawa",
-		"type": "property",
-		"description": "Asteroid visited by Hayabusa",
-		"price": 260,
-		"rent": 22,
-		"color": Color(1.0, 1.0, 0.0)  # Yellow
-	},
-	{
-		"name": "Spectrometer",
-		"type": "utility",
-		"description": "Scientific analysis instrument",
-		"price": 150,
-		"color": Color.WHITE
-	},
-	{
-		"name": "Apophis",
-		"type": "property",
-		"description": "Near-Earth asteroid",
-		"price": 280,
-		"rent": 24,
-		"color": Color(1.0, 1.0, 0.0)  # Yellow
-	},
-	# Space 30 - Go to Jail (top-left corner)
-	{
-		"name": "Solar Storm",
-		"type": "corner",
-		"description": "Go directly to Orbital Quarantine",
-		"color": Color.WHITE
-	},
-	# Spaces 31-39 (top edge)
-	{
-		"name": "Ganymede",
-		"type": "property",
-		"description": "Jupiter's largest moon",
-		"price": 300,
-		"rent": 26,
-		"color": Color(0.0, 0.8, 0.2)  # Green
-	},
-	{
-		"name": "Callisto",
-		"type": "property",
-		"description": "Jupiter's ancient moon",
-		"price": 300,
-		"rent": 26,
-		"color": Color(0.0, 0.8, 0.2)  # Green
-	},
-	{
-		"name": "Community Chest",
-		"type": "card",
-		"description": "Draw a Community Chest card",
-		"color": Color.LIGHT_BLUE
-	},
-	{
-		"name": "Io",
-		"type": "property",
-		"description": "Jupiter's volcanic moon",
-		"price": 320,
-		"rent": 28,
-		"color": Color(0.0, 0.8, 0.2)  # Green
-	},
-	{
-		"name": "James Webb Telescope",
-		"type": "railroad",
-		"description": "Advanced observation system",
-		"price": 200,
-		"color": Color.GRAY
-	},
-	{
-		"name": "Chance",
-		"type": "card",
-		"description": "Draw a Chance card",
-		"color": Color.ORANGE
-	},
-	{
-		"name": "Pluto",
-		"type": "property",
-		"description": "Dwarf planet in the Kuiper Belt",
+		"description": "SCIENTIFIC DATA - Research Funding $35",
 		"price": 350,
-		"rent": 35,
-		"color": Color(0.0, 0.2, 0.6)  # Dark blue
+		"color": Color(0.7, 0.6, 0.9)  # Light purple
 	},
 	{
 		"name": "Funding Cut",
-		"type": "tax",
+		"type": "expense",
 		"description": "Pay $100 budget reduction",
 		"amount": 100,
 		"color": Color.WHITE
 	},
 	{
-		"name": "Arrokoth",
+		"name": "Ceres",
 		"type": "property",
-		"description": "Most distant object visited by spacecraft",
+		"description": "SCIENTIFIC DATA - Research Funding $50",
 		"price": 400,
-		"rent": 50,
-		"color": Color(0.0, 0.2, 0.6)  # Dark blue
+		"color": Color(0.7, 0.6, 0.9)  # Light purple
 	}
 ]
 
@@ -317,4 +295,4 @@ static func get_space_info(space_num: int) -> Dictionary:
 # Check if a space is purchasable
 static func is_purchasable(space_num: int) -> bool:
 	var info = get_space_info(space_num)
-	return info.has("type") and (info.type == "property" or info.type == "railroad" or info.type == "utility")
+	return info.has("type") and (info.type == "property" or info.type == "instrument")
