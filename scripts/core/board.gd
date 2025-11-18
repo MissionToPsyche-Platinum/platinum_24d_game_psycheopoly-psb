@@ -13,6 +13,13 @@ func _ready() -> void:
 	# Get reference to the TileMapLayer
 	var tile_map_layer = $TileMap/TileMapLayer
 	piece.tile_map = tile_map_layer
+	
+	# Get reference to the space info panel (now in the scene tree)
+	var space_info_panel = $SpaceInfoPanel
+	
+	# Connect piece's space_changed signal to update the panel
+	if space_info_panel:
+		piece.space_changed.connect(space_info_panel.update_space_display)
 
 	# Start the piece at position (10, 0) on the board (space 0 - GO)
 	piece.move_to(10, 0)
