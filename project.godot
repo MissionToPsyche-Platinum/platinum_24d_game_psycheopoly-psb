@@ -11,5 +11,13 @@ config_version=5
 [application]
 
 config/name="capstone"
+run/main_scene="uid://bo41dopsfrh24"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1024
+window/size/viewport_height=768
+window/subwindows/embed_subwindows=false
+window/stretch/mode="canvas_items"
