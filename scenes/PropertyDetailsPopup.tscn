@@ -1,0 +1,278 @@
+[gd_scene load_steps=5 format=3 uid="uid://dagj7g6588uep"]
+
+[ext_resource type="Script" uid="uid://b81bc8f8xyv8y" path="res://scripts/ui/property_details_popup.gd" id="1_details_script"]
+[ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
+[ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_font_bold"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="PropertyDetailsPopup" type="Control"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_details_script")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="Panel" parent="CenterContainer"]
+custom_minimum_size = Vector2(240, 300)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="PanelContainer" type="MarginContainer" parent="CenterContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ColorBar" type="ColorRect" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+color = Color(0.4, 0.7, 1, 1)
+
+[node name="PropertyName" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "Property Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PropertyType" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "Property Type"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "Description"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "Property description goes here with details about the space."
+autowrap_mode = 3
+
+[node name="HSeparator2" type="HSeparator" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DetailsContainer" type="VBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PriceContainer" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "Purchase Price:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.8, 0.2, 1)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "$200"
+
+[node name="RentContainer" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentContainer"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "Research Funding:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "$2"
+
+[node name="Rent1Container" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "With 1 Discovery:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "$10"
+
+[node name="Rent2Container" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "With 2 Discoveries:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "$30"
+
+[node name="Rent3Container" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "With 3 Discoveries:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "$90"
+
+[node name="Rent4Container" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "With 4 Discoveries:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "$160"
+
+[node name="RentFullContainer" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "With Observatory:"
+
+[node name="Value" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.8, 0.2, 1)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "$250"
+
+[node name="HSeparator3" type="HSeparator" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="OwnerContainer" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/OwnerContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "Owner:"
+
+[node name="OwnerLabel" type="Label" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/OwnerContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0, 1)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "Unowned"
+
+[node name="Spacer" type="Control" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="CloseButton" type="Button" parent="CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(70, 18)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 8
+text = "Close"
