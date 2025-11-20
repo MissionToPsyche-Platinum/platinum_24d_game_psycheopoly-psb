@@ -131,6 +131,6 @@ func _input(event: InputEvent) -> void:
 			roll_and_move()
 		# Arrow keys to move forward manually (1 space at a time, clockwise only)
 		elif event.keycode == KEY_RIGHT or event.keycode == KEY_D:
-			move_forward(1)
+			move_forward(-1)
 		elif event.keycode == KEY_LEFT or event.keycode == KEY_A:
-			move_forward(-1)  # Move backward one space (for testing)
+			move_forward(1)  # Move backward one space (for testing)
