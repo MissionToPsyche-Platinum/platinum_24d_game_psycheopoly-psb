@@ -1,18 +1,18 @@
-extends Control
+extends CanvasLayer
 
 # Load space data
 const SpaceData = preload("res://scripts/core/space_data.gd")
 const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 
 # References to UI elements
-@onready var panel_container: PanelContainer = $PanelContainer
-@onready var space_name_label: Label = $PanelContainer/MarginContainer/VBoxContainer/SpaceName
-@onready var space_type_label: Label = $PanelContainer/MarginContainer/VBoxContainer/SpaceType
-@onready var description_label: Label = $PanelContainer/MarginContainer/VBoxContainer/Description
-@onready var price_label: Label = $PanelContainer/MarginContainer/VBoxContainer/PriceLabel
-@onready var color_bar: ColorRect = $PanelContainer/MarginContainer/VBoxContainer/ColorBar
-@onready var details_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
-@onready var purchase_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/PurchaseButton
+@onready var panel_container: Panel = $Control/PanelContainer
+@onready var space_name_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/SpaceName
+@onready var space_type_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/SpaceType
+@onready var description_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/Description
+@onready var price_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/PriceLabel
+@onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
+@onready var details_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
+@onready var purchase_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/PurchaseButton
 
 # Current space being displayed
 var current_space: int = 0
@@ -35,6 +35,10 @@ func _ready() -> void:
 
 # Update the display with information about a space
 func update_space_display(space_num: int) -> void:
+	# Check if nodes are ready
+	if not is_node_ready():
+		return
+	
 	current_space = space_num
 	var space_info = SpaceData.get_space_info(space_num)
 	

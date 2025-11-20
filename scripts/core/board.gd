@@ -7,8 +7,9 @@ var piece: Node2D = null
 var tile_map_layer: TileMapLayer = null
 var highlight_layer: TileMapLayer = null
 
-# Space info panel reference
-var space_info_panel: Control = null
+# Space info panel reference and scene
+const SpaceInfoPanelScene = preload("res://scenes/SpaceInfoPanel.tscn")
+var space_info_panel: CanvasLayer = null
 
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
@@ -33,8 +34,10 @@ func _ready() -> void:
 	# Get reference to highlight layer
 	highlight_layer = $TileMap/HighlightLayer
 	
-	# Get reference to the space info panel (now in the scene tree)
-	space_info_panel = $SpaceInfoPanel
+	# Instantiate the space info panel
+	space_info_panel = SpaceInfoPanelScene.instantiate()
+	# CanvasLayers must be added to the SceneTree directly
+	get_tree().root.call_deferred("add_child", space_info_panel)
 	
 	# Connect piece's space_changed signal to update the panel (only when no tile selected)
 	if space_info_panel:
@@ -42,6 +45,14 @@ func _ready() -> void:
 
 	# Start the piece at position (10, 0) on the board (space 0 - GO)
 	piece.move_to(10, 0)
+	
+	# Update panel after everything is ready
+	call_deferred("_initial_panel_update")
+
+
+func _initial_panel_update() -> void:
+	if space_info_panel and piece:
+		space_info_panel.update_space_display(piece.board_space)
 
 
 func _on_piece_space_changed(space_num: int) -> void:
