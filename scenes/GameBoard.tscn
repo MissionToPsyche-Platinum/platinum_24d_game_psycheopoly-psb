@@ -83,7 +83,7 @@ tile_set = SubResource("TileSet_17g6i")
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(16, 8)
 offset = Vector2(0, 35)
-zoom = Vector2(2, 2)
+zoom = Vector2(2.2, 2.2)
 
 [node name="PsycheLogo" type="Sprite2D" parent="."]
 position = Vector2(16.999998, 87.99999)
@@ -91,7 +91,7 @@ scale = Vector2(0.044, 0.022)
 texture = ExtResource("3_fbkij")
 
 [node name="SpaceInfoPanel" parent="." instance=ExtResource("4_space_info")]
-offset_left = 88.0
-offset_top = -136.0
-offset_right = 260.0
-offset_bottom = 4.0
+offset_left = 71.0
+offset_top = -126.0
+offset_right = 243.0
+offset_bottom = 14.0
