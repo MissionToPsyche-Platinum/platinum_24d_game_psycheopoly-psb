@@ -18,7 +18,7 @@ const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 var current_space: int = 0
 
 # Popup instance
-var _details_popup: Control = null
+var _details_popup: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -98,21 +98,13 @@ func _on_details_pressed() -> void:
 	# Create popup if it doesn't exist
 	if _details_popup == null:
 		_details_popup = PropertyDetailsPopup.instantiate()
-		# Add to GameBoard scene (go up to find the root scene)
-		var game_board = get_tree().root.get_node("GameBoard")
-		if game_board:
-			game_board.add_child(_details_popup)
-			print("Popup added to GameBoard")
-		else:
-			get_tree().root.add_child(_details_popup)
-			print("Popup added to root")
-		print("Popup node path: ", _details_popup.get_path())
+		# CanvasLayers must be added to the SceneTree directly
+		get_tree().root.add_child(_details_popup)
+		print("Popup created and will be added to scene tree")
 	
 	# Show the popup with current space details
 	print("Showing details for space: ", current_space)
-	print("Popup visible before show: ", _details_popup.visible)
 	_details_popup.show_space_details(current_space, "Unowned")  # TODO: Get actual owner
-	print("Popup visible after show: ", _details_popup.visible)
 
 
 # Called when the Purchase button is pressed

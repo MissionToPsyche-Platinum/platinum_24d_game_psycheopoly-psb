@@ -1,36 +1,39 @@
-extends Control
+extends CanvasLayer
 
 # Load space data
 const SpaceData = preload("res://scripts/core/space_data.gd")
 
 # References to UI elements
-@onready var color_bar: ColorRect = $CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
-@onready var property_name: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/PropertyName
-@onready var property_type: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/PropertyType
-@onready var description: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/Description
-@onready var details_container: VBoxContainer = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer
-@onready var owner_label: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/OwnerContainer/OwnerLabel
-@onready var close_button: Button = $CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer/CloseButton
+@onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
+@onready var property_name: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/PropertyName
+@onready var property_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/PropertyType
+@onready var description: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/Description
+@onready var details_container: VBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer
+@onready var owner_label: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/OwnerContainer/OwnerLabel
+@onready var close_button: Button = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer/CloseButton
 
 # Detail row references
-@onready var price_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer/Value
-@onready var rent_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentContainer/Value
-@onready var rent1_container: HBoxContainer = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container
-@onready var rent1_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container/Value
-@onready var rent2_container: HBoxContainer = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container
-@onready var rent2_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container/Value
-@onready var rent3_container: HBoxContainer = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container
-@onready var rent3_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container/Value
-@onready var rent4_container: HBoxContainer = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container
-@onready var rent4_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container/Value
-@onready var rent_full_container: HBoxContainer = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer
-@onready var rent_full_value: Label = $CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer/Value
+@onready var price_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer/Value
+@onready var rent_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentContainer/Value
+@onready var rent1_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container
+@onready var rent1_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container/Value
+@onready var rent2_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container
+@onready var rent2_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container/Value
+@onready var rent3_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container
+@onready var rent3_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container/Value
+@onready var rent4_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container
+@onready var rent4_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container/Value
+@onready var rent_full_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer
+@onready var rent_full_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer/Value
 
 # Current space being displayed
 var current_space: int = 0
 
 
 func _ready() -> void:
+	# Ensure the popup stays fixed on screen (HUD mode)
+	follow_viewport_enabled = false
+	
 	# Connect button signals
 	close_button.pressed.connect(_on_close_pressed)
 	
