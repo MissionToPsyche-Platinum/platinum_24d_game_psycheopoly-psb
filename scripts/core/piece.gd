@@ -1,5 +1,8 @@
 extends Node2D
 
+# Signal emitted when the piece moves to a new space
+signal space_changed(space_num: int)
+
 # Current board position (grid coordinates)
 var board_x: int = 0
 var board_y: int = 0
@@ -22,6 +25,7 @@ func move_to(x: int, y: int) -> void:
 	board_y = y
 	board_space = get_space_from_coords(x, y)
 	update_position()
+	space_changed.emit(board_space)
 
 
 # Convert (x, y) coordinates to board space number (0-39)
@@ -90,6 +94,7 @@ func move_forward(spaces: int) -> void:
 	board_x = new_coords.x
 	board_y = new_coords.y
 	update_position()
+	space_changed.emit(board_space)
 	print("Moved to space ", board_space, " at (", board_x, ", ", board_y, ")")
 
 
@@ -126,6 +131,6 @@ func _input(event: InputEvent) -> void:
 			roll_and_move()
 		# Arrow keys to move forward manually (1 space at a time, clockwise only)
 		elif event.keycode == KEY_RIGHT or event.keycode == KEY_D:
-			move_forward(1)
+			move_forward(-1)
 		elif event.keycode == KEY_LEFT or event.keycode == KEY_A:
-			move_forward(-1)  # Move backward one space (for testing)
+			move_forward(1)  # Move backward one space (for testing)
