@@ -85,6 +85,10 @@ func update_space_display(space_num: int) -> void:
 		price_label.visible = false
 		purchase_button.visible = false
 	
+	# Show details button only for properties (property, instrument, planet)
+	var has_details: bool = space_info.type in ["property", "instrument", "planet"]
+	details_button.visible = has_details
+	
 	# Set color bar
 	if space_info.has("color"):
 		color_bar.color = space_info.color
