@@ -1,7 +1,7 @@
 extends Node
 
 # Space data for all 40 spaces on the board
-# Space types: "property", "corner", "instrument", "planet", "expense", "card"
+# Space types: "property", "corner", "instrument", "planet", "cost", "card"
 
 const SPACE_INFO = [
 	# Space 0 - GO (bottom-right corner)
@@ -9,7 +9,7 @@ const SPACE_INFO = [
 		"name": "GO",
 		"type": "corner",
 		"description": "Collect a $200 grant as you pass",
-		"color": Color.WHITE
+		"color": Color.GRAY
 	},
 	# Spaces 1-9 (bottom edge, moving left)
 	{
@@ -34,10 +34,10 @@ const SPACE_INFO = [
 	},
 	{
 		"name": "Consult Subject Matter Expert",
-		"type": "expense",
+		"type": "cost",
 		"description": "Pay $200",
 		"amount": 200,
-		"color": Color.WHITE
+		"color": Color.GRAY
 	},
 	{
 		"name": "Multispectral Imager",
@@ -78,7 +78,7 @@ const SPACE_INFO = [
 		"name": "Launch Pad",
 		"type": "corner",
 		"description": "Just watching or launching",
-		"color": Color.WHITE
+		"color": Color.GRAY
 	},
 	# Spaces 11-19 (left edge, moving up)
 	{
@@ -148,7 +148,7 @@ const SPACE_INFO = [
 		"name": "Gravity Assist",
 		"type": "corner",
 		"description": "Free boost from planetary alignment",
-		"color": Color.WHITE
+		"color": Color.GRAY
 	},
 	# Spaces 21-29 (top edge, moving right)
 	{
@@ -218,7 +218,7 @@ const SPACE_INFO = [
 		"name": "Solar Storm",
 		"type": "corner",
 		"description": "Go directly to Launch Pad",
-		"color": Color.WHITE
+		"color": Color.GRAY
 	},
 	# Spaces 31-39 (right edge, moving down)
 	{
@@ -270,10 +270,10 @@ const SPACE_INFO = [
 	},
 	{
 		"name": "Funding Cut",
-		"type": "expense",
+		"type": "cost",
 		"description": "Pay $100 budget reduction",
 		"amount": 100,
-		"color": Color.WHITE
+		"color": Color.GRAY
 	},
 	{
 		"name": "Ceres",

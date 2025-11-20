@@ -60,12 +60,12 @@ func update_space_display(space_num: int) -> void:
 			space_type_label.text = "Property"
 		"corner":
 			space_type_label.text = "Special Space"
-		"railroad":
-			space_type_label.text = "Infrastructure"
-		"utility":
-			space_type_label.text = "Utility"
-		"tax":
-			space_type_label.text = "Tax"
+		"instrument":
+			space_type_label.text = "Scientific Instrument"
+		"planet":
+			space_type_label.text = "Planet"
+		"cost":
+			space_type_label.text = "Cost"
 		"card":
 			space_type_label.text = "Draw Card"
 		_:
@@ -80,7 +80,7 @@ func update_space_display(space_num: int) -> void:
 		price_label.visible = true
 		purchase_button.visible = true
 		purchase_button.disabled = false  # TODO: Check if player can afford and doesn't own it
-	elif space_info.has("amount"):  # For tax spaces
+	elif space_info.has("amount"):  # For cost spaces
 		price_label.text = "Amount: $" + str(space_info.amount)
 		price_label.visible = true
 		purchase_button.visible = false
