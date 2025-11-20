@@ -49,7 +49,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="Panel" parent="Control/CenterContainer"]
-custom_minimum_size = Vector2(400, 450)
+custom_minimum_size = Vector2(500, 350)
 layout_mode = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -111,7 +111,6 @@ text = "Description"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_font")
