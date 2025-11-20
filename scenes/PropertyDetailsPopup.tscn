@@ -49,7 +49,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="Panel" parent="Control/CenterContainer"]
-custom_minimum_size = Vector2(500, 350)
+custom_minimum_size = Vector2(500, 310)
 layout_mode = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -102,46 +102,9 @@ horizontal_alignment = 1
 [node name="HSeparator" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="DescriptionLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 16
-text = "Description"
-horizontal_alignment = 1
-
-[node name="Description" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
-theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 16
-text = "Property description goes here with details about the space."
-autowrap_mode = 3
-
-[node name="HSeparator2" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-layout_mode = 2
-
 [node name="DetailsContainer" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 2
-
-[node name="PriceContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("3_font_bold")
-theme_override_font_sizes/font_size = 16
-text = "Purchase Price:"
-
-[node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.8, 0.2, 1)
-theme_override_fonts/font = ExtResource("3_font_bold")
-theme_override_font_sizes/font_size = 16
-text = "$200"
 
 [node name="RentContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer"]
 layout_mode = 2
@@ -170,7 +133,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
-text = "With 1 Discovery:"
+text = "With 1 Data Point:"
 
 [node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container"]
 layout_mode = 2
@@ -188,7 +151,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
-text = "With 2 Discoveries:"
+text = "With 2 Data Points:"
 
 [node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent2Container"]
 layout_mode = 2
@@ -206,7 +169,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
-text = "With 3 Discoveries:"
+text = "With 3 Data Points:"
 
 [node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent3Container"]
 layout_mode = 2
@@ -224,7 +187,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
-text = "With 4 Discoveries:"
+text = "With 4 Data Points:"
 
 [node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container"]
 layout_mode = 2
@@ -242,7 +205,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("3_font_bold")
 theme_override_font_sizes/font_size = 16
-text = "With Observatory:"
+text = "With Discovery:"
 
 [node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer"]
 layout_mode = 2
@@ -252,6 +215,67 @@ theme_override_font_sizes/font_size = 16
 text = "$250"
 
 [node name="HSeparator3" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AdditionalInfoContainer" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CollaborationContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/CollaborationContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = "Collaboration Value"
+
+[node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/CollaborationContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = " $200"
+
+[node name="DataPointCostContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DataPointCostContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = "Data Points cost"
+
+[node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DataPointCostContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = " $200 each"
+
+[node name="DiscoveryCostContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DiscoveryCostContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = "DISCOVERY,"
+
+[node name="Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DiscoveryCostContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = " $200 plus 4 Data Pts"
+
+[node name="HSeparator4" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="OwnerContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]

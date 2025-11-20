@@ -7,13 +7,11 @@ const SpaceData = preload("res://scripts/core/space_data.gd")
 @onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
 @onready var property_name: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/PropertyName
 @onready var property_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/PropertyType
-@onready var description: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/Description
 @onready var details_container: VBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer
 @onready var owner_label: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/OwnerContainer/OwnerLabel
 @onready var close_button: Button = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer/CloseButton
 
 # Detail row references
-@onready var price_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/PriceContainer/Value
 @onready var rent_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentContainer/Value
 @onready var rent1_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container
 @onready var rent1_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent1Container/Value
@@ -25,6 +23,12 @@ const SpaceData = preload("res://scripts/core/space_data.gd")
 @onready var rent4_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/Rent4Container/Value
 @onready var rent_full_container: HBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer
 @onready var rent_full_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentFullContainer/Value
+
+# Additional info references
+@onready var additional_info_container: VBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer
+@onready var collaboration_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/CollaborationContainer/Value
+@onready var data_point_cost: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DataPointCostContainer/Value
+@onready var discovery_cost: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DiscoveryCostContainer/Value
 
 # Current space being displayed
 var current_space: int = 0
@@ -72,9 +76,6 @@ func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
 		_:
 			property_type.text = "SPACE"
 	
-	# Set description
-	description.text = space_info.description if space_info.has("description") else "No description available."
-	
 	# Configure details based on space type
 	if space_info.type == "property":
 		_show_property_details(space_info)
@@ -101,10 +102,6 @@ func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
 func _show_property_details(space_info: Dictionary) -> void:
 	details_container.visible = true
 	
-	# Show price
-	if space_info.has("price"):
-		price_value.text = "$" + str(space_info.price)
-	
 	# Parse rent from description (e.g., "Research Funding $2")
 	var base_rent := 2
 	if space_info.has("description"):
@@ -128,15 +125,25 @@ func _show_property_details(space_info: Dictionary) -> void:
 	rent3_container.visible = true
 	rent4_container.visible = true
 	rent_full_container.visible = true
+	
+	# Show additional property info
+	additional_info_container.visible = true
+	if space_info.has("price"):
+		# Collaboration value is half the property price (mortgage value in Monopoly)
+		var collab_value: int = space_info.price / 2
+		collaboration_value.text = " $" + str(collab_value)
+		
+		# Data point cost is half the property price
+		var dp_cost: int = space_info.price / 2
+		data_point_cost.text = " $" + str(dp_cost) + " each"
+		
+		# Discovery cost is the data point cost plus 4 data points
+		discovery_cost.text = " $" + str(dp_cost) + " plus 4 Data Pts"
 
 
 # Display instrument (railroad equivalent) details
-func _show_instrument_details(space_info: Dictionary) -> void:
+func _show_instrument_details(_space_info: Dictionary) -> void:
 	details_container.visible = true
-	
-	# Show price
-	if space_info.has("price"):
-		price_value.text = "$" + str(space_info.price)
 	
 	# Instruments have fixed rent based on how many you own
 	rent_value.text = "$25 (1 owned)"
@@ -155,15 +162,14 @@ func _show_instrument_details(space_info: Dictionary) -> void:
 	rent3_container.visible = true
 	rent4_container.visible = false
 	rent_full_container.visible = false
+	
+	# Hide additional info for instruments
+	additional_info_container.visible = false
 
 
 # Display planet (utility equivalent) details
-func _show_planet_details(space_info: Dictionary) -> void:
+func _show_planet_details(_space_info: Dictionary) -> void:
 	details_container.visible = true
-	
-	# Show price
-	if space_info.has("price"):
-		price_value.text = "$" + str(space_info.price)
 	
 	# Planets use dice multiplier
 	rent_value.text = "4× dice roll (1 planet)"
@@ -178,11 +184,15 @@ func _show_planet_details(space_info: Dictionary) -> void:
 	rent3_container.visible = false
 	rent4_container.visible = false
 	rent_full_container.visible = false
+	
+	# Hide additional info for planets
+	additional_info_container.visible = false
 
 
 # Hide all detail rows
 func _hide_all_details() -> void:
 	details_container.visible = false
+	additional_info_container.visible = false
 
 
 # Called when close button is pressed
