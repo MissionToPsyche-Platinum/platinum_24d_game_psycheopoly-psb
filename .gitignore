@@ -3,3 +3,4 @@
 /android/
 .github/copilot-instructions.md
 .vscode/
+assets/.DS_Store

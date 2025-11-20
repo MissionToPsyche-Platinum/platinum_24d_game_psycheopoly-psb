@@ -21,3 +21,11 @@ window/size/viewport_width=1024
 window/size/viewport_height=768
 window/subwindows/embed_subwindows=false
 window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom_font="uid://bsp5euc03804b"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
