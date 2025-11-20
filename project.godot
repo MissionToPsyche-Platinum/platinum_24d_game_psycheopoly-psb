@@ -11,15 +11,21 @@ config_version=5
 [application]
 
 config/name="capstone"
+run/main_scene="uid://bo41dopsfrh24"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
-[autoload]
-
-GameState="*res://scripts/game_state.gd"
-
 [display]
 
-window/size/viewport_width=1920
-window/size/viewport_height=1080
+window/size/viewport_width=1024
+window/size/viewport_height=768
+window/subwindows/embed_subwindows=false
 window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom_font="uid://bsp5euc03804b"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
