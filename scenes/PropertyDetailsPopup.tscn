@@ -49,7 +49,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="Panel" parent="Control/CenterContainer"]
-custom_minimum_size = Vector2(500, 310)
+custom_minimum_size = Vector2(520, 310)
 layout_mode = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
