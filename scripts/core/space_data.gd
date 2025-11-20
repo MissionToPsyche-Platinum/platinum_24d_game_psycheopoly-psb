@@ -179,13 +179,6 @@ const SPACE_INFO = [
 		"color": Color(0.8, 0.2, 0.3)  # Dark red
 	},
 	{
-		"name": "Sylvia",
-		"type": "property",
-		"description": "SCIENTIFIC DATA - Research Funding $22",
-		"price": 260,
-		"color": Color(0.7, 0.3, 0.7)  # Purple
-	},
-	{
 		"name": "Magnetometer",
 		"type": "instrument",
 		"description": "Research Funding $25",
@@ -193,10 +186,10 @@ const SPACE_INFO = [
 		"color": Color.GRAY
 	},
 	{
-		"name": "Europa",
+		"name": "Sylvia",
 		"type": "property",
-		"description": "SCIENTIFIC DATA - Research Funding $24",
-		"price": 280,
+		"description": "SCIENTIFIC DATA - Research Funding $22",
+		"price": 260,
 		"color": Color(0.7, 0.3, 0.7)  # Purple
 	},
 	{
@@ -205,6 +198,13 @@ const SPACE_INFO = [
 		"description": "If one Planet is being studied, research funding is 4 times amount shown on dice.",
 		"price": 150,
 		"color": Color(0.9, 0.6, 0.3)  # Jupiter orange
+	},
+	{
+		"name": "Europa",
+		"type": "property",
+		"description": "SCIENTIFIC DATA - Research Funding $24",
+		"price": 280,
+		"color": Color(0.7, 0.3, 0.7)  # Purple
 	},
 	{
 		"name": "Sylvia",
@@ -229,17 +229,17 @@ const SPACE_INFO = [
 		"color": Color(0.5, 0.2, 0.7)  # Dark purple
 	},
 	{
+		"name": "Silicate",
+		"type": "card",
+		"description": "Draw a Silicate card",
+		"color": Color.LIGHT_BLUE
+	},
+		{
 		"name": "Hygiea",
 		"type": "property",
 		"description": "SCIENTIFIC DATA - Research Funding $26",
 		"price": 300,
 		"color": Color(0.5, 0.2, 0.7)  # Dark purple
-	},
-	{
-		"name": "Silicate",
-		"type": "card",
-		"description": "Draw a Silicate card",
-		"color": Color.LIGHT_BLUE
 	},
 	{
 		"name": "Pallas",
