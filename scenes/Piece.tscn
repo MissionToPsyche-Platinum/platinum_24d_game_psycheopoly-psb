@@ -1,19 +1,11 @@
 [gd_scene load_steps=3 format=3 uid="uid://dow8cthtuw840"]
 
 [ext_resource type="Script" uid="uid://bhhg7mtk48h7f" path="res://scripts/core/piece.gd" id="1_abcde"]
-[ext_resource type="Texture2D" uid="uid://x528cg12s68l" path="res://assets/images/sprites/PsycheProbe_Red.png" id="2_tk1p6"]
+[ext_resource type="Texture2D" uid="uid://bno5a28b2flol" path="res://assets/images/sprites/game_piece.png" id="2_tk1p6"]
 
 [node name="Piece" type="Node2D"]
 script = ExtResource("1_abcde")
 
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_left = -6.0
-offset_top = -6.0
-offset_right = 6.0
-offset_bottom = 6.0
-color = Color(1, 1, 1, 0)
-
-[node name="PsycheProbeRed" type="Sprite2D" parent="."]
-position = Vector2(1.0728836e-06, 1.0728836e-06)
-scale = Vector2(0.25, 0.25)
+[node name="Sprite" type="Sprite2D" parent="."]
+position = Vector2(0, -11)
 texture = ExtResource("2_tk1p6")
