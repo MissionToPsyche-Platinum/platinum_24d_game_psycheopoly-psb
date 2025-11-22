@@ -1,6 +1,14 @@
 extends Node
 
-var difficulty: String = "Normal"
+# ============================
+#   GAME STATE
+# ============================
 
-func set_difficulty(value: String) -> void:
-	difficulty = value
+const DIFFICULTY_EASY := "Easy"
+const DIFFICULTY_NORMAL := "Normal"
+const DIFFICULTY_HARD := "Hard"
+
+var difficulty: String = DIFFICULTY_NORMAL
+
+func set_difficulty(new_difficulty: String) -> void:
+	difficulty = new_difficulty
