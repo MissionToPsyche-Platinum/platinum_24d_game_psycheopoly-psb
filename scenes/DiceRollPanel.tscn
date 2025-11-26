@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bg4e1oscnyeqv"]
 
-[ext_resource type="Script" uid="uid://bwctfc01kpqyv" path="res://ui/roll_dice_ui.gd" id="1_k7wc7"]
+[ext_resource type="Script" uid="uid://bwctfc01kpqyv" path="res://scripts/ui/roll_dice_ui.gd" id="1_k7wc7"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cx1am"]
 bg_color = Color(0.6, 0.6, 0.6, 0.3529412)

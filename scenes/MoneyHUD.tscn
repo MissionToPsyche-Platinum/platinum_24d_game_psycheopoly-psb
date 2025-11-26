@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://u207psoy1isi"]
 
-[ext_resource type="Script" uid="uid://pnxc7poxvgwo" path="res://ui/money_hud.gd" id="1_k0qt1"]
-[ext_resource type="Texture2D" uid="uid://c3v6tx1u1ba6y" path="res://ui/money-check-dollar-svgrepo-com.svg" id="1_o252t"]
+[ext_resource type="Script" uid="uid://pnxc7poxvgwo" path="res://scripts/ui/money_hud.gd" id="1_k0qt1"]
+[ext_resource type="Texture2D" uid="uid://c3v6tx1u1ba6y" path="res://assets/images/sprites/money-check-dollar.svg" id="1_o252t"]
 [ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_6hkma"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k0qt1"]
