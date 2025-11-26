@@ -3,7 +3,7 @@ extends Control
 @onready var roll_button: Button = $RollPanel/VBox/RollButton
 @onready var die1_label: Label = $RollPanel/VBox/DiceRow/Die1Label
 @onready var die2_label: Label = $RollPanel/VBox/DiceRow/Die2Label
-@onready var result_label: Label = $RollPanel/VBox/ResultLabel
+@onready var result_label: Label = $RollPanel/VBox/ResultLabel	
 
 var rng := RandomNumberGenerator.new()
 
@@ -30,4 +30,4 @@ func _on_roll_pressed() -> void:
 	result_label.text = "Total: %d%s" % [total, ("  (Doubles!)" if doubles else "")]
 
 
-	emit_signal("dice_rolled", d1, d2, total, doubles)
+	dice_rolled.emit("dice_rolled", d1, d2, total, doubles)

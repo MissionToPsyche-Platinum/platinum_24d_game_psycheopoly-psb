@@ -2,20 +2,19 @@ extends Node
 ##
 ## game_state.gd  (An autoload singleton)
 ## ============================================================================
-##  PURPOSE (at least, for now):
+##  PURPOSE (for now):
 ##    - Provide the signals and the functions that MoneyHUD expects.
-##    - Allow the HUD to connect and run without errors.
-##    - not define any real game logic yet.
+##    - Provide a simple global difficulty setting for the Start Menu.
+##    - Allow the HUD and UI to run without errors.
 ##
-##  General note for us
-##    Everything here is safe to change or replace later.
-##    Think of this file as a small bridge so the HUD can exist while the
-##    real GameState design is still in progress.
+##  NOTE:
+##    This is still a placeholder / bridge. We can refactor later as the
+##    real GameState design is implemented.
 ## ============================================================================
 
 
 # ------------------------------------------------------------------------------
-# The Signlas expected by MoneyHUD.gd
+# Signals expected by MoneyHUD.gd
 # ------------------------------------------------------------------------------
 ## Emitted when the active player changes (MoneyHUD should listen to this).
 signal current_player_changed(player)
@@ -24,14 +23,26 @@ signal current_player_changed(player)
 signal player_money_updated(player)
 
 
+# ------------------------------------------------------------------------------
+# Global difficulty (used by StartMenu.gd)
+# ------------------------------------------------------------------------------
+## Valid values (for now): "Easy", "Normal", "Hard"
+## Default to "Normal" so Start Menu can initialize its OptionButton.
+var difficulty: String = "Normal"
+
+
+func set_difficulty(new_difficulty: String) -> void:
+	## Simple setter used by StartMenu.gd
+	## You can add validation or mapping here later if needed.
+	difficulty = new_difficulty
+	print("GameState difficulty set to: ", difficulty)
+
 
 # ------------------------------------------------------------------------------
-# Placeholder Section
+# Placeholder for the MoneyHud
 # ------------------------------------------------------------------------------
-## These functions exist ONLY so other code in money HUD can compile and call them.
-## We can change their implementation or signatures to what we all agree on is best
-## as long as MoneyHUD still gets usable data via the signals above, things should
-## work as expected.
+## These functions exist only so other code (like MoneyHUD) can compile and call
+## them. We can change implementations later, no big deal.
 
 
 func get_current_player():
@@ -61,11 +72,10 @@ func next_player() -> void:
 
 func change_player_cash(player, delta: int) -> void:
 	## PLACEHOLDER:
-	##   - Intended to adjust a player's cash by `delta`.
-	##   - Currently does nothing to `player` and only emits a signal.
-	##
+	##   - Intended to adjust a player's cash 
+	##   - Currently does nothing to player and only emits a signal.
 	##   - When the real Player model is ready, this function is a good place
 	##     to:
-	##         • modify player.cash (or whatever field you use)
+	##         • modify player.cash (or whatever field we use)
 	##         • then emit player_money_updated(player)
 	emit_signal("player_money_updated", player)

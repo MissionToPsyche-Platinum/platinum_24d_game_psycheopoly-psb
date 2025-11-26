@@ -49,6 +49,8 @@ alignment = 1
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
 text = "Psyche-opoly
+
+
 "
 horizontal_alignment = 1
 
@@ -91,6 +93,7 @@ theme_override_constants/separation = 12
 [node name="DifficultyLabel" type="Label" parent="SettingsPopUp/Center/Box/DifficultyRow"]
 layout_mode = 2
 text = "Computer Difficulty
+
 "
 horizontal_alignment = 2
 

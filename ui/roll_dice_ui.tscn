@@ -77,11 +77,10 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(180, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
-text = "Roll
-"
+text = "Roll Dice"
 
 [node name="ResultLabel" type="Label" parent="RollPanel/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Total : "
+text = "Total: "
 horizontal_alignment = 1
