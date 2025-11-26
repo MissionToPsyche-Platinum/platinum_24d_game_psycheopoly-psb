@@ -1,0 +1,108 @@
+[gd_scene load_steps=5 format=3 uid="uid://u207psoy1isi"]
+
+[ext_resource type="Script" uid="uid://pnxc7poxvgwo" path="res://scripts/ui/money_hud.gd" id="1_k0qt1"]
+[ext_resource type="Texture2D" uid="uid://c3v6tx1u1ba6y" path="res://assets/images/sprites/money-check-dollar.svg" id="1_o252t"]
+[ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_6hkma"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k0qt1"]
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 0.33333334)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.827451, 0.827451, 0.827451, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="HUDRoot" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_k0qt1")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_bottom = 110.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_k0qt1")
+
+[node name="ContentMargin" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -12.5
+offset_bottom = 12.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/ContentMargin"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 2
+
+[node name="MoneyBox" type="VBoxContainer" parent="Panel/ContentMargin/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Panel/ContentMargin/HBoxContainer/MoneyBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("1_o252t")
+expand_mode = 5
+stretch_mode = 4
+
+[node name="MoneyTitleLabel" type="Label" parent="Panel/ContentMargin/HBoxContainer/MoneyBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Cash"
+
+[node name="MoneyLabel" type="Label" parent="Panel/ContentMargin/HBoxContainer/MoneyBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_constants/line_spacing = 3
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 16
+text = "$0"
+vertical_alignment = 1
+
+[node name="AssetBox" type="VBoxContainer" parent="Panel/ContentMargin/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="AssetIcon" type="TextureRect" parent="Panel/ContentMargin/HBoxContainer/AssetBox"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("2_6hkma")
+expand_mode = 5
+
+[node name="AssetTitleLabel" type="Label" parent="Panel/ContentMargin/HBoxContainer/AssetBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Assets"
+
+[node name="AssetLabel" type="Label" parent="Panel/ContentMargin/HBoxContainer/AssetBox"]
+layout_mode = 2
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 16
+text = "0"
+horizontal_alignment = 1
