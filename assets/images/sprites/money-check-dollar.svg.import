@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cd5ekuf2nxpwb"
-path="res://.godot/imported/tileset.png-e670481cb02481353cc7929941c410a5.ctex"
+uid="uid://c3v6tx1u1ba6y"
+path="res://.godot/imported/money-check-dollar.svg-324127ceff9bdc6e0ff53004741d787d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/sprites/tileset.png"
-dest_files=["res://.godot/imported/tileset.png-e670481cb02481353cc7929941c410a5.ctex"]
+source_file="res://assets/images/sprites/money-check-dollar.svg"
+dest_files=["res://.godot/imported/money-check-dollar.svg-324127ceff9bdc6e0ff53004741d787d.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false
