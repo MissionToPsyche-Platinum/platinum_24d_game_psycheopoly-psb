@@ -153,17 +153,3 @@ func is_valid_position(x: int, y: int) -> bool:
 	if x == 0 and y >= 0 and y <= 10:
 		return true
 	return false
-
-
-# Simple keyboard controls for testing
-# TODO: Remove or replace with proper input handling later
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		# Press SPACE to roll dice and move
-		if event.keycode == KEY_SPACE:
-			roll_and_move()
-		# Arrow keys to move forward manually (1 space at a time, clockwise only)
-		elif event.keycode == KEY_RIGHT or event.keycode == KEY_D:
-			move_forward(-1)
-		elif event.keycode == KEY_LEFT or event.keycode == KEY_A:
-			move_forward(1)  # Move backward one space (for testing)
