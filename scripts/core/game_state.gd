@@ -70,7 +70,7 @@ func next_player() -> void:
 	emit_signal("current_player_changed", get_current_player())
 
 
-func change_player_cash(player, delta: int) -> void:
+func change_player_cash(player, _delta: int) -> void:
 	## PLACEHOLDER:
 	##   - Intended to adjust a player's cash 
 	##   - Currently does nothing to player and only emits a signal.

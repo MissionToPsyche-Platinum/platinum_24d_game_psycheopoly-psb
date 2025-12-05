@@ -57,8 +57,7 @@ func _connect_signals() -> void:
 # ============================
 
 func _on_start_pressed() -> void:
-	# Change this to match your game scene path
-	get_tree().change_scene_to_file("res://ui/main_test.tscn")
+	get_tree().change_scene_to_file("res://scenes/GameBoard.tscn")
 
 
 func _on_settings_pressed() -> void:
