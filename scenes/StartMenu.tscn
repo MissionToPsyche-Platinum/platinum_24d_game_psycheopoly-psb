@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://bmvl3imlm0w2"]
+[gd_scene load_steps=7 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
+[ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_logo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aq5sm"]
 bg_color = Color(0, 0.48235294, 1, 1)
@@ -48,11 +49,14 @@ alignment = 1
 [node name="Title" type="Label" parent="CenterBox/Menu"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
-text = "Psyche-opoly
-
-
-"
+text = "Psyche-opoly"
 horizontal_alignment = 1
+
+[node name="Logo" type="TextureRect" parent="CenterBox/Menu"]
+layout_mode = 2
+texture = ExtResource("2_logo")
+expand_mode = 5
+stretch_mode = 5
 
 [node name="Start" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
@@ -64,6 +68,7 @@ text = "Start"
 [node name="Settings" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_xrvln")
 text = "Settings"
 
