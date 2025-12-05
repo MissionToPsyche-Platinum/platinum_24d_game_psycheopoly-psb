@@ -30,6 +30,55 @@ signal player_money_updated(player)
 ## Default to "Normal" so Start Menu can initialize its OptionButton.
 var difficulty: String = "Normal"
 
+# Contains the board data model
+var board: Array[GameSpace] = []
+
+# Holds the list of board spaces
+var _spaces_list := BoardSpaceList.new()
+
+# TODO: Eventually we want to be able to set this before a game starts
+var player_count: int = 4
+
+# Holds the player state data models
+var players: Array[PlayerState] = []
+
+
+func _ready() -> void:
+	_setup_board()
+	_setup_players()
+
+
+func _setup_board() -> void:
+	board = _spaces_list.board
+
+
+func _setup_players() -> void:
+	for i in range(player_count):
+		players.append(PlayerState.new())
+		add_child(players[i])
+		players[i].balance = 1500  # TODO: Change to constant
+
+
+## Changes the ownership of an ownable property
+func _transfer_property(property: Ownable, player: int) -> void:
+	if not property._is_owned:
+		property._is_owned = true
+	property._player_owner = player
+
+
+## Purchases an unowned property - deducts balance and transfers ownership
+func _purchase_unowned_property(property: Ownable, player: int, purchase_price: int) -> void:
+	players[player].balance -= purchase_price
+	_transfer_property(property, player)
+
+
+## Purchases an owned property - handles money transfer between players
+func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purchase_price: int) -> void:
+	players[buyer].balance -= purchase_price
+	players[seller].balance += purchase_price
+	_transfer_property(property, buyer)
+
+
 
 func set_difficulty(new_difficulty: String) -> void:
 	## Simple setter used by StartMenu.gd
