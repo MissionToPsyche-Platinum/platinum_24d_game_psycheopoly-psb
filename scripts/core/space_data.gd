@@ -284,3 +284,10 @@ const SPACE_INFO = [
 		"color": Color(0.7, 0.6, 0.9)  # Light purple
 	}
 ]
+
+
+static func get_space_info(index: int) -> Dictionary:
+	if index >= 0 and index < SPACE_INFO.size():
+		return SPACE_INFO[index]
+	return {}
+
