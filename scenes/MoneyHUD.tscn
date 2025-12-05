@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://pnxc7poxvgwo" path="res://scripts/ui/money_hud.gd" id="1_k0qt1"]
 [ext_resource type="Texture2D" uid="uid://c3v6tx1u1ba6y" path="res://assets/images/sprites/money-check-dollar.svg" id="1_o252t"]
-[ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_6hkma"]
+[ext_resource type="Texture2D" uid="uid://fju2sb0ovyil" path="res://icon.svg" id="3_rv30e"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k0qt1"]
 bg_color = Color(0.15, 0.15, 0.2, 0.95)
@@ -94,7 +94,7 @@ size_flags_vertical = 4
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 size_flags_vertical = 4
-texture = ExtResource("2_6hkma")
+texture = ExtResource("3_rv30e")
 expand_mode = 5
 
 [node name="AssetTitleLabel" type="Label" parent="Panel/ContentMargin/HBoxContainer/AssetBox"]
