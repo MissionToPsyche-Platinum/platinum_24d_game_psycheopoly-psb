@@ -38,7 +38,8 @@ func test_dice_range() -> void:
 		var d1: int = r["d1"]
 		var d2: int = r["d2"]
 		var total: int = r["total"]
-
+	
+	# 3 Checks of 500 each, 500 for dice 1, 500 for dice 2, and 500 for total.
 		assert_true(d1 >= 1 and d1 <= 6,
 			"Die 1 in range [1,6] (got %d)" % d1)
 		assert_true(d2 >= 1 and d2 <= 6,
