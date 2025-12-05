@@ -1,9 +1,9 @@
 extends Control
 
-@onready var roll_button: Button = $RollPanel/VBox/RollButton
-@onready var die1_label: Label = $RollPanel/VBox/DiceRow/Die1Label
-@onready var die2_label: Label = $RollPanel/VBox/DiceRow/Die2Label
-@onready var result_label: Label = $RollPanel/VBox/ResultLabel
+@onready var roll_button: Button = $RollPanel/MarginContainer/VBox/RollButton
+@onready var die1_label: Label = $RollPanel/MarginContainer/VBox/DiceRow/Die1Label
+@onready var die2_label: Label = $RollPanel/MarginContainer/VBox/DiceRow/Die2Label
+@onready var result_label: Label = $RollPanel/MarginContainer/VBox/ResultLabel
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
