@@ -15,6 +15,10 @@ var space_info_panel: CanvasLayer = null
 const DiceRollPanelScene = preload("res://scenes/DiceRollPanel.tscn")
 var dice_roll_ui: Control = null
 
+# Money HUD reference and scene
+const MoneyHUDScene = preload("res://scenes/MoneyHUD.tscn")
+var money_hud: Control = null
+
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
 var selected_tile: Vector2i = Vector2i(-1, -1)
@@ -46,6 +50,9 @@ func _ready() -> void:
 	# Instantiate the dice roll UI
 	_setup_dice_roll_ui()
 	
+	# Instantiate the money HUD
+	_setup_money_hud()
+	
 	# Connect piece's space_changed signal to update the panel (only when no tile selected)
 	if space_info_panel:
 		piece.space_changed.connect(_on_piece_space_changed)
@@ -72,6 +79,20 @@ func _setup_dice_roll_ui() -> void:
 	
 	# Connect the dice_rolled signal to move the piece
 	dice_roll_ui.dice_rolled.connect(_on_dice_rolled)
+
+
+func _setup_money_hud() -> void:
+	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "MoneyHUDLayer"
+	canvas_layer.layer = 9  # Just below dice UI layer
+	
+	# Instantiate the money HUD
+	money_hud = MoneyHUDScene.instantiate()
+	canvas_layer.add_child(money_hud)
+	
+	# Add to scene tree
+	get_tree().root.call_deferred("add_child", canvas_layer)
 
 
 func _initial_panel_update() -> void:
