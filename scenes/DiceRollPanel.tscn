@@ -1,9 +1,20 @@
-[gd_scene load_steps=3 format=3 uid="uid://bg4e1oscnyeqv"]
+[gd_scene load_steps=5 format=3 uid="uid://bg4e1oscnyeqv"]
 
 [ext_resource type="Script" uid="uid://bwctfc01kpqyv" path="res://scripts/ui/roll_dice_ui.gd" id="1_k7wc7"]
+[ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
+[ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_font_bold"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cx1am"]
-bg_color = Color(0.6, 0.6, 0.6, 0.3529412)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="RollDiceUI" type="Control"]
 layout_mode = 3
@@ -14,8 +25,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -200.0
 offset_top = -140.0
-offset_right = -10.0
-offset_bottom = -10.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("1_k7wc7")
@@ -25,60 +36,82 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -111.0
+offset_left = -73.999985
+offset_top = -25.0
+offset_right = 1.5258789e-05
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_cx1am")
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="VBox" type="VBoxContainer" parent="RollPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="RollPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -7.0
+offset_bottom = 7.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 4
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="RollPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Label" type="Label" parent="RollPanel/VBox"]
+[node name="Label" type="Label" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 16
 text = "Roll Dice"
 horizontal_alignment = 1
 
-[node name="DiceRow" type="HBoxContainer" parent="RollPanel/VBox"]
+[node name="HSeparator" type="HSeparator" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
-theme_override_constants/separation = 8
+
+[node name="DiceRow" type="HBoxContainer" parent="RollPanel/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Die1Label" type="Label" parent="RollPanel/VBox/DiceRow"]
+[node name="Die1Label" type="Label" parent="RollPanel/MarginContainer/VBox/DiceRow"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 24
 text = "1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Die2Label" type="Label" parent="RollPanel/VBox/DiceRow"]
+[node name="Die2Label" type="Label" parent="RollPanel/MarginContainer/VBox/DiceRow"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 24
 text = "1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RollButton" type="Button" parent="RollPanel/VBox"]
+[node name="RollButton" type="Button" parent="RollPanel/MarginContainer/VBox"]
 custom_minimum_size = Vector2(100, 28)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 14
 text = "Roll"
 
-[node name="Spacer" type="Control" parent="RollPanel/VBox"]
-custom_minimum_size = Vector2(0, 4)
+[node name="HSeparator2" type="HSeparator" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
 
-[node name="ResultLabel" type="Label" parent="RollPanel/VBox"]
+[node name="ResultLabel" type="Label" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
-text = "Total: "
+text = "Total: —"
 horizontal_alignment = 1
