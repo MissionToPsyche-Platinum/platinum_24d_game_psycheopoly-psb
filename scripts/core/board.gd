@@ -11,6 +11,10 @@ var highlight_layer: TileMapLayer = null
 const SpaceInfoPanelScene = preload("res://scenes/SpaceInfoPanel.tscn")
 var space_info_panel: CanvasLayer = null
 
+# Dice roll UI reference and scene
+const DiceRollPanelScene = preload("res://scenes/DiceRollPanel.tscn")
+var dice_roll_ui: Control = null
+
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
 var selected_tile: Vector2i = Vector2i(-1, -1)
@@ -39,6 +43,9 @@ func _ready() -> void:
 	# CanvasLayers must be added to the SceneTree directly
 	get_tree().root.call_deferred("add_child", space_info_panel)
 	
+	# Instantiate the dice roll UI
+	_setup_dice_roll_ui()
+	
 	# Connect piece's space_changed signal to update the panel (only when no tile selected)
 	if space_info_panel:
 		piece.space_changed.connect(_on_piece_space_changed)
@@ -48,6 +55,23 @@ func _ready() -> void:
 	
 	# Update panel after everything is ready
 	call_deferred("_initial_panel_update")
+
+
+func _setup_dice_roll_ui() -> void:
+	# Create a CanvasLayer to hold the dice UI (ensures it's always on top)
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "DiceRollLayer"
+	canvas_layer.layer = 10  # Above other UI elements
+	
+	# Instantiate the dice roll panel
+	dice_roll_ui = DiceRollPanelScene.instantiate()
+	canvas_layer.add_child(dice_roll_ui)
+	
+	# Add to scene tree
+	get_tree().root.call_deferred("add_child", canvas_layer)
+	
+	# Connect the dice_rolled signal to move the piece
+	dice_roll_ui.dice_rolled.connect(_on_dice_rolled)
 
 
 func _initial_panel_update() -> void:
@@ -187,3 +211,10 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 		return 30 + x
 	
 	return -1
+
+
+func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
+	# Move the piece forward by the total dice value
+	if piece:
+		piece.move_forward(total)
+		print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])

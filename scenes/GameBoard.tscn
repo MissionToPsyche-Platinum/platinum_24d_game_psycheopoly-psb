@@ -58,7 +58,7 @@ tile_set = SubResource("TileSet_17g6i")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(16, 8)
-offset = Vector2(0, 45)
+offset = Vector2(0, 60)
 zoom = Vector2(2.85, 2.85)
 
 [node name="PsycheLogo" type="Sprite2D" parent="."]
