@@ -90,7 +90,7 @@ func show_actions(space_num: int) -> void:
             description = "You must pay $%d." % space_info.get("amount", 0)
             can_pay = true
         "card":
-            description = "Draw a card!"
+            description = space_info.description if space_info.has("description") else "Draw a card!"
             can_draw = true
         "corner":
             description = space_info.description if space_info.has("description") else "Welcome to %s." % space_info.name
