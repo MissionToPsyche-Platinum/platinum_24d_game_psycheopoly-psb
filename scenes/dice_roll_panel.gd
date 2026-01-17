@@ -1,6 +1,11 @@
 extends Control
 
 # ---------------------------
+# Signals
+# ---------------------------
+signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
+
+# ---------------------------
 # Visuals (dice faces)
 # ---------------------------
 @export var dice_faces: Array[Texture2D] = []
@@ -228,6 +233,9 @@ func roll_dice() -> void:
 
 	_play_result_sfx()
 	# Play the final result sound (with optional pitch variance).
+
+	# Notify listeners (like GameBoard) that the roll is finished
+	dice_rolled.emit(final1, final2, total, final1 == final2)
 
 	is_rolling = false
 	# Unlock rolling state.
