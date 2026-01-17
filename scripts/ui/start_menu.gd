@@ -8,9 +8,10 @@ extends Control
 @onready var settings_btn: Button     = $CenterBox/Menu/Settings
 @onready var exit_btn: Button         = $CenterBox/Menu/Exit
 
-@onready var settings_popup: PopupPanel = $SettingsPopUp
-@onready var diff_opt: OptionButton = $SettingsPopUp/Center/Box/DifficultyRow/DifficultyOption
-@onready var close_btn: Button = $SettingsPopUp/Center/Box/Close
+# Main menu container (so we can hide/show when SettingsMenu is open)
+@onready var main_menu: Control       = $CenterBox/Menu
+
+@onready var settings_menu: Control   = $SettingsMenu
 
 
 # ============================
@@ -18,38 +19,25 @@ extends Control
 # ============================
 
 func _ready() -> void:
-	_initialize_difficulty()
 	_connect_signals()
 
+	# Ensure settings menu starts hidden
+	if settings_menu:
+		settings_menu.hide()
+
 
 # ============================
-#   INITIALIZE UI
+#   SIGNAL WIRING
 # ============================
-
-func _initialize_difficulty() -> void:
-	# Default: Normal = index 1
-	var index := 1
-
-	match GameState.difficulty:
-		"Easy":
-			index = 0
-		"Normal":
-			index = 1
-		"Hard":
-			index = 2
-
-	if diff_opt and diff_opt.item_count > index:
-		diff_opt.select(index)
-
 
 func _connect_signals() -> void:
 	start_btn.pressed.connect(_on_start_pressed)
 	settings_btn.pressed.connect(_on_settings_pressed)
 	exit_btn.pressed.connect(_on_exit_pressed)
-	close_btn.pressed.connect(_on_close_pressed)
 
-	if diff_opt:
-		diff_opt.item_selected.connect(_on_difficulty_selected)
+	# Listen for SettingsMenu "closed" signal (SettingsMenu.gd must have: signal closed)
+	if settings_menu and settings_menu.has_signal("closed"):
+		settings_menu.closed.connect(_on_settings_closed)
 
 
 # ============================
@@ -57,21 +45,29 @@ func _connect_signals() -> void:
 # ============================
 
 func _on_start_pressed() -> void:
+	# Make sure this matches our game scene path
 	get_tree().change_scene_to_file("res://scenes/GameBoard.tscn")
 
 
 func _on_settings_pressed() -> void:
-	settings_popup.popup_centered()
+	# Hide the start menu buttons and show the settings overlay
+	if main_menu:
+		main_menu.hide()
+
+	if settings_menu:
+		settings_menu.show()
+		settings_menu.grab_focus()
 
 
-func _on_close_pressed() -> void:
-	settings_popup.hide()
+func _on_settings_closed() -> void:
+	# SettingsMenu already hides itself on close, but safe to ensure it hides:
+	if settings_menu:
+		settings_menu.hide()
+
+	if main_menu:
+		main_menu.show()
 
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
 
-
-func _on_difficulty_selected(index: int) -> void:
-	var difficulty_text := diff_opt.get_item_text(index)
-	GameState.set_difficulty(difficulty_text)
