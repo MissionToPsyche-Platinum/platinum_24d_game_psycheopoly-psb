@@ -26,7 +26,7 @@ jobs:
       - name: Export Web
         run: |
           mkdir -v -p build/web
-          godot --headless --editor --quit-after-100ms
+          godot --headless --editor --quit
           godot --headless --export-release "Web" build/web/index.html
 
       - name: Deploy to GitHub Pages
