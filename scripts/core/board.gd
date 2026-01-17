@@ -117,6 +117,7 @@ func _setup_space_action_popup() -> void:
 	space_action_popup.auction_pressed.connect(_on_auction_pressed)
 	space_action_popup.pay_pressed.connect(_on_pay_pressed)
 	space_action_popup.draw_card_pressed.connect(_on_draw_card_pressed)
+	space_action_popup.move_pressed.connect(_on_move_pressed)
 	space_action_popup.close_pressed.connect(_on_close_pressed)
 
 
@@ -127,14 +128,6 @@ func _initial_panel_update() -> void:
 
 func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
-	
-	# Special handling for "Solar Storm" (Go to Jail/Launch Pad)
-	if space_num == 30:
-		print("Solar Storm! Transporting to Launch Pad...")
-		# Teleport to space 10 (Launch Pad)
-		if piece:
-			piece.teleport_to_space(10)
-		return # The teleport will trigger a new movement_finished signal
 	
 	if space_action_popup:
 		space_action_popup.show_actions(space_num)
@@ -147,6 +140,15 @@ func _on_purchase_pressed(space_num: int) -> void:
 func _on_auction_pressed(space_num: int) -> void:
 	print("Auction started for space: ", space_num)
 	# TODO: Implement auction system logic
+
+
+func _on_move_pressed(space_num: int) -> void:
+	# Handling for "Solar Storm" (Go to Jail/Launch Pad)
+	if space_num == 30:
+		print("Solar Storm! Transporting to Launch Pad...")
+		# Teleport to space 10 (Launch Pad)
+		if piece:
+			piece.teleport_to_space(10)
 
 
 func _on_draw_card_pressed(space_num: int) -> void:

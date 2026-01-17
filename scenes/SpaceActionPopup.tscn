@@ -138,6 +138,13 @@ theme_override_fonts/font = ExtResource("3_font_bold")
 theme_override_font_sizes/font_size = 14
 text = "Draw Card"
 
+[node name="MoveButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_font_bold")
+theme_override_font_sizes/font_size = 14
+text = "Move"
+
 [node name="AuctionButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
