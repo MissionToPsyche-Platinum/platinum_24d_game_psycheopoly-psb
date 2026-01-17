@@ -116,6 +116,7 @@ func _setup_space_action_popup() -> void:
 	space_action_popup.purchase_pressed.connect(_on_purchase_pressed)
 	space_action_popup.auction_pressed.connect(_on_auction_pressed)
 	space_action_popup.pay_pressed.connect(_on_pay_pressed)
+	space_action_popup.draw_card_pressed.connect(_on_draw_card_pressed)
 	space_action_popup.close_pressed.connect(_on_close_pressed)
 
 
@@ -146,6 +147,14 @@ func _on_purchase_pressed(space_num: int) -> void:
 func _on_auction_pressed(space_num: int) -> void:
 	print("Auction started for space: ", space_num)
 	# TODO: Implement auction system logic
+
+
+func _on_draw_card_pressed(space_num: int) -> void:
+	print("Player drawing card at space: ", space_num)
+	# TODO: Implement card deck system
+	# Determine if Silicate (blue) or Metal (orange) based on space_num
+	var space_info = SpaceData.get_space_info(space_num)
+	print("Card type: ", space_info.name)
 
 
 func _on_pay_pressed(space_num: int) -> void:

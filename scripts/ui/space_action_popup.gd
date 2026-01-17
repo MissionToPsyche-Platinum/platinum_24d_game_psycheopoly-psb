@@ -3,6 +3,7 @@ extends CanvasLayer
 signal purchase_pressed(space_num: int)
 signal auction_pressed(space_num: int)
 signal pay_pressed(space_num: int)
+signal draw_card_pressed(space_num: int)
 signal close_pressed()
 
 # Load space data
@@ -17,6 +18,7 @@ const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 @onready var details_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
 @onready var purchase_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/PurchaseButton
 @onready var pay_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/PayButton
+@onready var draw_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DrawButton
 @onready var auction_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/AuctionButton
 @onready var close_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/CloseButton
 
@@ -33,6 +35,7 @@ func _ready() -> void:
     details_button.pressed.connect(_on_details_pressed)
     purchase_button.pressed.connect(_on_purchase_pressed)
     pay_button.pressed.connect(_on_pay_pressed)
+    draw_button.pressed.connect(_on_draw_pressed)
     auction_button.pressed.connect(_on_auction_pressed)
     close_button.pressed.connect(_on_close_pressed)
 
@@ -53,6 +56,7 @@ func show_actions(space_num: int) -> void:
     var can_purchase = false
     var can_auction = false
     var can_pay = false
+    var can_draw = false
     var has_details = false
     var description = ""
     
@@ -83,6 +87,7 @@ func show_actions(space_num: int) -> void:
             can_pay = true
         "card":
             description = "Draw a card!"
+            can_draw = true
         "corner":
             description = "Welcome to %s." % space_info.name
         _:
@@ -91,9 +96,10 @@ func show_actions(space_num: int) -> void:
     action_description.text = description
     purchase_button.visible = can_purchase
     pay_button.visible = can_pay
+    draw_button.visible = can_draw
     auction_button.visible = can_auction
     details_button.visible = has_details
-    close_button.visible = not can_auction and not can_pay # Show Close only if no other mandatory action
+    close_button.visible = not can_auction and not can_pay and not can_draw # Show Close only if no other mandatory action
     
     # Show the UI
     self.visible = true
@@ -122,6 +128,10 @@ func _on_purchase_pressed() -> void:
 
 func _on_pay_pressed() -> void:
     pay_pressed.emit(current_space_num)
+    hide_popup()
+
+func _on_draw_pressed() -> void:
+    draw_card_pressed.emit(current_space_num)
     hide_popup()
 
 func _on_auction_pressed() -> void:
