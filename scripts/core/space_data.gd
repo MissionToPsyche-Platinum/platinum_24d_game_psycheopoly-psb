@@ -290,4 +290,3 @@ static func get_space_info(index: int) -> Dictionary:
 	if index >= 0 and index < SPACE_INFO.size():
 		return SPACE_INFO[index]
 	return {}
-

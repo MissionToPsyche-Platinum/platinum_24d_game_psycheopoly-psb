@@ -12,7 +12,6 @@ const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 @onready var price_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/PriceLabel
 @onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
 @onready var details_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
-@onready var purchase_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/PurchaseButton
 
 # Current space being displayed
 var current_space: int = 0
@@ -22,12 +21,8 @@ var _details_popup: CanvasLayer = null
 
 
 func _ready() -> void:
-	# Initially hide purchase button
-	purchase_button.visible = false
-	
 	# Connect button signals
 	details_button.pressed.connect(_on_details_pressed)
-	purchase_button.pressed.connect(_on_purchase_pressed)
 	
 	# Update display with initial space
 	update_space_display(0)
@@ -48,7 +43,6 @@ func update_space_display(space_num: int) -> void:
 		description_label.text = ""
 		price_label.text = ""
 		color_bar.visible = false
-		purchase_button.visible = false
 		return
 	
 	# Set space name
@@ -74,20 +68,17 @@ func update_space_display(space_num: int) -> void:
 	# Set description
 	description_label.text = space_info.description if space_info.has("description") else ""
 	
-	# Set price and purchase button visibility
+	# Set price display
 	if space_info.has("price"):
+		# Show price but no purchase button here
 		price_label.text = "Price: $" + str(space_info.price)
 		price_label.visible = true
-		purchase_button.visible = true
-		purchase_button.disabled = false  # TODO: Check if player can afford and doesn't own it
 	elif space_info.has("amount"):  # For cost spaces
 		price_label.text = "Amount: $" + str(space_info.amount)
 		price_label.visible = true
-		purchase_button.visible = false
 	else:
 		price_label.text = ""
 		price_label.visible = false
-		purchase_button.visible = false
 	
 	# Show details button only for properties (property, instrument, planet)
 	var has_details: bool = space_info.type in ["property", "instrument", "planet"]
@@ -113,17 +104,3 @@ func _on_details_pressed() -> void:
 	# Show the popup with current space details
 	print("Showing details for space: ", current_space)
 	_details_popup.show_space_details(current_space, "Unowned")  # TODO: Get actual owner
-
-
-# Called when the Purchase button is pressed
-func _on_purchase_pressed() -> void:
-	print("Purchase button pressed for space ", current_space)
-	var space_info = SpaceData.get_space_info(current_space)
-	if space_info.has("price"):
-		print("Attempting to purchase ", space_info.name, " for $", space_info.price)
-		# TODO: Implement purchase logic
-		# - Check if player has enough money
-		# - Check if property is already owned
-		# - Deduct money from player
-		# - Add property to player's owned properties
-		# - Update UI to show property is owned
