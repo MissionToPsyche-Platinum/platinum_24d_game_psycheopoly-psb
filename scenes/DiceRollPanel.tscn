@@ -10,92 +10,109 @@
 [ext_resource type="AudioStream" uid="uid://bchcor57o8nuy" path="res://assets/audio/dice_roll.wav" id="8_rxcad"]
 [ext_resource type="AudioStream" uid="uid://dmdskyl0ekcr8" path="res://assets/audio/dicerollresult.wav" id="9_yqaqp"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cx1am"]
-bg_color = Color(0.6, 0.6, 0.6, 0.3529412)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="RollDiceUI" type="Control"]
 layout_mode = 3
-anchors_preset = 7
-anchor_left = 0.5
+anchors_preset = 3
+anchor_left = 1.0
 anchor_top = 1.0
-anchor_right = 0.5
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -180.0
-offset_bottom = -180.0
-grow_horizontal = 2
+offset_left = -200.0
+offset_top = -140.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 4
 script = ExtResource("1_gn10m")
 dice_faces = Array[Texture2D]([ExtResource("2_uv78u"), ExtResource("3_uw5oi"), ExtResource("4_rxcad"), ExtResource("5_yqaqp"), ExtResource("6_2tjk1"), ExtResource("7_kd3ah")])
-die1_path = NodePath("RollPanel/VBox/DiceRow/DieSlot1/Die1")
-die2_path = NodePath("RollPanel/VBox/DiceRow/DieSlot2/Die2")
-roll_button_path = NodePath("RollPanel/VBox/RollButton")
-total_label_path = NodePath("RollPanel/VBox/TotalLabel")
+die1_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/DieSlot1/Die1")
+die2_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/DieSlot2/Die2")
+roll_button_path = NodePath("RollPanel/MarginContainer/VBox/RollButton")
+total_label_path = NodePath("RollPanel/MarginContainer/VBox/ResultLabel")
 
 [node name="RollPanel" type="Panel" parent="."]
-custom_minimum_size = Vector2(520, 160)
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_cx1am")
-
-[node name="VBox" type="VBoxContainer" parent="RollPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = -73.999985
+offset_top = -25.0
+offset_right = 1.5258789e-05
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="RollPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -7.0
+offset_bottom = 7.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="RollPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="RollPanel/VBox"]
+[node name="TitleLabel" type="Label" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "Roll Dice
-"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Roll Dice"
 horizontal_alignment = 1
 
-[node name="DiceRow" type="HBoxContainer" parent="RollPanel/VBox"]
+[node name="HSeparator" type="HSeparator" parent="RollPanel/MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="DiceRow" type="HBoxContainer" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="DieSlot1" type="PanelContainer" parent="RollPanel/VBox/DiceRow"]
+[node name="DieSlot1" type="PanelContainer" parent="RollPanel/MarginContainer/VBox/DiceRow"]
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 
-[node name="Die1" type="TextureRect" parent="RollPanel/VBox/DiceRow/DieSlot1"]
+[node name="Die1" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow/DieSlot1"]
 layout_mode = 2
 stretch_mode = 5
 
-[node name="DieSlot2" type="PanelContainer" parent="RollPanel/VBox/DiceRow"]
+[node name="DieSlot2" type="PanelContainer" parent="RollPanel/MarginContainer/VBox/DiceRow"]
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 
-[node name="Die2" type="TextureRect" parent="RollPanel/VBox/DiceRow/DieSlot2"]
+[node name="Die2" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow/DieSlot2"]
 layout_mode = 2
 stretch_mode = 5
 
-[node name="RollButton" type="Button" parent="RollPanel/VBox"]
-custom_minimum_size = Vector2(180, 44)
+[node name="RollButton" type="Button" parent="RollPanel/MarginContainer/VBox"]
+custom_minimum_size = Vector2(100, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "Roll Dice"
+text = "Roll"
 
-[node name="TotalLabel" type="Label" parent="RollPanel/VBox"]
+[node name="ResultLabel" type="Label" parent="RollPanel/MarginContainer/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "Total: "
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+text = "Total: —"
 horizontal_alignment = 1
 
 [node name="RollSound" type="AudioStreamPlayer2D" parent="."]
@@ -105,3 +122,4 @@ volume_db = -12.0
 [node name="RollResult" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("9_yqaqp")
 volume_db = -6.0
+

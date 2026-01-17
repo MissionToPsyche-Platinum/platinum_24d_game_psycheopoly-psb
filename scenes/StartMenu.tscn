@@ -1,7 +1,8 @@
-[gd_scene load_steps=24 format=3 uid="uid://bmvl3imlm0w2"]
+[gd_scene load_steps=25 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
 [ext_resource type="Texture2D" uid="uid://uw4vt5e63tsg" path="res://scripts/ui/menu_background_gradient.tres" id="2_kmax6"]
+[ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_logo"]
 [ext_resource type="Script" uid="uid://d0ne4ghwtfkp0" path="res://scenes/title.gd" id="3_cp7se"]
 [ext_resource type="Script" uid="uid://daqs1c1xj25h1" path="res://scripts/asteroid_sprite.gd" id="4_frkif"]
 [ext_resource type="Texture2D" uid="uid://boddmgn7a5uod" path="res://assets/images/sprites/psyche_probe_pixel.png" id="4_kcs48"]
@@ -337,10 +338,7 @@ grow_vertical = 2
 pivot_offset = Vector2(100, 100)
 theme_override_colors/font_color = Color(0.35686275, 0.22745098, 0.11764706, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids
-
-
-"
+text = "Acquiring Asteroids\n\n"
 label_settings = SubResource("LabelSettings_kcs48")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -362,10 +360,7 @@ grow_vertical = 2
 pivot_offset = Vector2(80, 80)
 theme_override_colors/font_color = Color(0.60784316, 0.43529412, 0.24705882, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids
-
-
-"
+text = "Acquiring Asteroids\n\n"
 label_settings = SubResource("LabelSettings_cp7se")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -387,10 +382,7 @@ grow_vertical = 2
 pivot_offset = Vector2(60, 60)
 theme_override_colors/font_color = Color(0.7882353, 0.6627451, 0.47843137, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids
-
-
-"
+text = "Acquiring Asteroids\n\n"
 label_settings = SubResource("LabelSettings_aso40")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -411,14 +403,17 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(0.95686275, 0.92941177, 0.89411765, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids
-
-
-"
+text = "Acquiring Asteroids\n\n"
 label_settings = SubResource("LabelSettings_cuvp2")
 horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("3_cp7se")
+
+[node name="Logo" type="TextureRect" parent="CenterBox/Menu"]
+layout_mode = 2
+texture = ExtResource("2_logo")
+expand_mode = 5
+stretch_mode = 5
 
 [node name="Start" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
@@ -476,9 +471,7 @@ theme_override_constants/separation = 12
 
 [node name="DifficultyLabel" type="Label" parent="SettingsPopUp/Center/Box/DifficultyRow"]
 layout_mode = 2
-text = "Computer Difficulty
-
-"
+text = "Computer Difficulty\n\n"
 horizontal_alignment = 2
 
 [node name="DifficultyOption" type="OptionButton" parent="SettingsPopUp/Center/Box/DifficultyRow"]
@@ -500,3 +493,4 @@ visible = false
 layout_mode = 1
 
 [connection signal="screen_entered" from="ProbeSprite/OnScreen" to="ProbeSprite" method="_on_on_screen_screen_entered"]
+

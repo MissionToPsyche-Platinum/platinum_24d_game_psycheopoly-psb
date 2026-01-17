@@ -56,7 +56,7 @@ func _on_settings_pressed() -> void:
 
 	if settings_menu:
 		settings_menu.show()
-		settings_menu.grab_focus() 
+		settings_menu.grab_focus()
 
 
 func _on_settings_closed() -> void:
@@ -70,4 +70,4 @@ func _on_settings_closed() -> void:
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
-	
+

@@ -1,6 +1,7 @@
 extends Node
 
-# Space data for all 40 spaces on the board
+class_name SpaceData
+
 # Space types: "property", "corner", "instrument", "planet", "cost", "card"
 
 const SPACE_INFO = [
@@ -285,14 +286,8 @@ const SPACE_INFO = [
 ]
 
 
-# Get space information by space number
-static func get_space_info(space_num: int) -> Dictionary:
-	if space_num >= 0 and space_num < SPACE_INFO.size():
-		return SPACE_INFO[space_num]
+static func get_space_info(index: int) -> Dictionary:
+	if index >= 0 and index < SPACE_INFO.size():
+		return SPACE_INFO[index]
 	return {}
 
-
-# Check if a space is purchasable
-static func is_purchasable(space_num: int) -> bool:
-	var info = get_space_info(space_num)
-	return info.has("type") and (info.type == "property" or info.type == "instrument")

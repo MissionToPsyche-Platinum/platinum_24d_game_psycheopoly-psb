@@ -2,6 +2,8 @@ extends Node2D
 
 # Signal emitted when the piece moves to a new space
 signal space_changed(space_num: int)
+# Signal emitted when the piece finishes all movement steps
+signal movement_finished(final_space: int)
 
 # Current board position (grid coordinates)
 var board_x: int = 0
@@ -12,6 +14,11 @@ var board_space: int = 0
 
 # Reference to the TileMapLayer
 @export var tile_map: TileMapLayer
+
+# Movement animation settings
+var _is_moving: bool = false
+var _remaining_steps: int = 0
+var _step_delay: float = 0.2  # Time between each step in seconds
 
 
 func _ready() -> void:
@@ -88,14 +95,40 @@ func roll_and_move() -> void:
 
 
 # Move forward by a number of spaces (clockwise only)
+# Now animates one space at a time
 func move_forward(spaces: int) -> void:
-	board_space = ((board_space + spaces) % 40 + 40) % 40
+	if _is_moving:
+		return  # Prevent overlapping movements
+	
+	_is_moving = true
+	_remaining_steps = spaces
+	_move_one_step()
+
+
+# Internal function to move one step at a time
+func _move_one_step() -> void:
+	if _remaining_steps <= 0:
+		_is_moving = false
+		movement_finished.emit(board_space)
+		return
+	
+	# Move one space forward
+	board_space = (board_space + 1) % 40
 	var new_coords := get_coords_from_space(board_space)
 	board_x = new_coords.x
 	board_y = new_coords.y
 	update_position()
 	space_changed.emit(board_space)
-	print("Moved to space ", board_space, " at (", board_x, ", ", board_y, ")")
+	
+	_remaining_steps -= 1
+	
+	# Schedule the next step
+	if _remaining_steps > 0:
+		get_tree().create_timer(_step_delay).timeout.connect(_move_one_step)
+	else:
+		_is_moving = false
+		movement_finished.emit(board_space)
+		print("Moved to space ", board_space, " at (", board_x, ", ", board_y, ")")
 
 
 # Convert grid position to world position and update
@@ -120,17 +153,3 @@ func is_valid_position(x: int, y: int) -> bool:
 	if x == 0 and y >= 0 and y <= 10:
 		return true
 	return false
-
-
-# Simple keyboard controls for testing
-# TODO: Remove or replace with proper input handling later
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		# Press SPACE to roll dice and move
-		if event.keycode == KEY_SPACE:
-			roll_and_move()
-		# Arrow keys to move forward manually (1 space at a time, clockwise only)
-		elif event.keycode == KEY_RIGHT or event.keycode == KEY_D:
-			move_forward(-1)
-		elif event.keycode == KEY_LEFT or event.keycode == KEY_A:
-			move_forward(1)  # Move backward one space (for testing)
