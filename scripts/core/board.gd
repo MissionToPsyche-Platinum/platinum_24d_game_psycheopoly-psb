@@ -1,5 +1,8 @@
 extends Node2D
 
+# Load core classes
+const SpaceData = preload("res://scripts/core/space_data.gd")
+
 # Reference to the piece
 var piece: Node2D = null
 
@@ -18,6 +21,10 @@ var dice_roll_ui: Control = null
 # Money HUD reference and scene
 const MoneyHUDScene = preload("res://scenes/MoneyHUD.tscn")
 var money_hud: Control = null
+
+# Space action popup reference and scene
+const SpaceActionPopupScene = preload("res://scenes/SpaceActionPopup.tscn")
+var space_action_popup: CanvasLayer = null
 
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
@@ -53,9 +60,15 @@ func _ready() -> void:
 	# Instantiate the money HUD
 	_setup_money_hud()
 	
+	# Instantiate space action popup
+	_setup_space_action_popup()
+	
 	# Connect piece's space_changed signal to update the panel (only when no tile selected)
 	if space_info_panel:
 		piece.space_changed.connect(_on_piece_space_changed)
+	
+	# Connect piece's movement_finished signal to show action popup
+	piece.movement_finished.connect(_on_piece_movement_finished)
 
 	# Start the piece at position (10, 0) on the board (space 0 - GO)
 	piece.move_to(10, 0)
@@ -95,9 +108,72 @@ func _setup_money_hud() -> void:
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
 
+func _setup_space_action_popup() -> void:
+	space_action_popup = SpaceActionPopupScene.instantiate()
+	get_tree().root.call_deferred("add_child", space_action_popup)
+	
+	# Connect signals
+	space_action_popup.purchase_pressed.connect(_on_purchase_pressed)
+	space_action_popup.auction_pressed.connect(_on_auction_pressed)
+	space_action_popup.pay_pressed.connect(_on_pay_pressed)
+	space_action_popup.draw_card_pressed.connect(_on_draw_card_pressed)
+	space_action_popup.move_pressed.connect(_on_move_pressed)
+	space_action_popup.close_pressed.connect(_on_close_pressed)
+
+
 func _initial_panel_update() -> void:
 	if space_info_panel and piece:
 		space_info_panel.update_space_display(piece.board_space)
+
+
+func _on_piece_movement_finished(space_num: int) -> void:
+	print("Piece finished moving at space: ", space_num)
+	
+	if space_action_popup:
+		space_action_popup.show_actions(space_num)
+
+
+func _on_purchase_pressed(space_num: int) -> void:
+	print("Player wants to purchase space: ", space_num)
+
+
+func _on_auction_pressed(space_num: int) -> void:
+	print("Auction started for space: ", space_num)
+	# TODO: Implement auction system logic
+
+
+func _on_move_pressed(space_num: int) -> void:
+	# Handling for "Solar Storm" (Go to Jail/Launch Pad)
+	if space_num == 30:
+		print("Solar Storm! Transporting to Launch Pad...")
+		# Teleport to space 10 (Launch Pad)
+		if piece:
+			piece.teleport_to_space(10)
+
+
+func _on_draw_card_pressed(space_num: int) -> void:
+	print("Player drawing card at space: ", space_num)
+	# TODO: Implement card deck system
+	# Determine if Silicate (blue) or Metal (orange) based on space_num
+	var space_info = SpaceData.get_space_info(space_num)
+	print("Card type: ", space_info.name)
+
+
+func _on_pay_pressed(space_num: int) -> void:
+	print("Player paying for space: ", space_num)
+	var space_info = SpaceData.get_space_info(space_num)
+	var amount = space_info.get("amount", 0)
+	
+	if amount > 0:
+		var player_idx = 0 # Assume player 1 for now
+		GameState.players[player_idx].balance -= amount
+		print("Paid $%d for %s" % [amount, space_info.name])
+		# Update HUD
+		GameState.player_money_updated.emit(GameState.players[player_idx])
+
+
+func _on_close_pressed() -> void:
+	print("Player closed the action popup")
 
 
 func _on_piece_space_changed(space_num: int) -> void:

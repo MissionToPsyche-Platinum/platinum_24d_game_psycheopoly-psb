@@ -35,6 +35,20 @@ func move_to(x: int, y: int) -> void:
 	space_changed.emit(board_space)
 
 
+# Move the piece to a specific space number immediately
+func teleport_to_space(space_num: int) -> void:
+	board_space = space_num % 40
+	var new_coords := get_coords_from_space(board_space)
+	board_x = new_coords.x
+	board_y = new_coords.y
+	update_position()
+	space_changed.emit(board_space)
+	# Also emit movement_finished so any landing logic can trigger again if needed
+	# In this case of "Go to Jail", we might want it to NOT trigger again immediately, 
+	# or handle it carefully in board.gd.
+	movement_finished.emit(board_space)
+
+
 # Convert (x, y) coordinates to board space number (0-39)
 # Monopoly layout: 40 spaces total, 11 per side (corners shared)
 func get_space_from_coords(x: int, y: int) -> int:
