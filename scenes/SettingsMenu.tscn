@@ -1,0 +1,302 @@
+[gd_scene load_steps=11 format=3 uid="uid://byeqtctiiqjkl"]
+
+[ext_resource type="Script" uid="uid://cf7wevrjmhi8t" path="res://scenes/settings_menu.gd" id="1_yelko"]
+
+[sub_resource type="Gradient" id="Gradient_yelko"]
+colors = PackedColorArray(0.16862746, 0.05882353, 0.22745098, 1, 0.47843137, 0.18431373, 0.22745098, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1yw23"]
+gradient = SubResource("Gradient_yelko")
+fill_from = Vector2(0.5854701, 0)
+fill_to = Vector2(0.55982906, 0.85897434)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8e5yf"]
+bg_color = Color(0.1882353, 0.1882353, 0.1882353, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yelko"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.8784314, 0.47843137, 0.2901961, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ldnee"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.8784314, 0.47843137, 0.2901961, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1yw23"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.8784314, 0.47843137, 0.2901961, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t7ar5"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.8784314, 0.47843137, 0.2901961, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dd8lr"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.8784314, 0.47843137, 0.2901961, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fl0th"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.8784314, 0.47843137, 0.2901961, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="SettingsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yelko")
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6039216)
+
+[node name="SettingsBackground" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_1yw23")
+
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 420)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8e5yf")
+
+[node name="Padding" type="MarginContainer" parent="Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="Panel/Padding"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 13
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="GameplayHeader" type="Label" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Gameplay"
+
+[node name="GameplayGrid" type="GridContainer" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="DifficultyLabel" type="Label" parent="Panel/Padding/Content/GameplayGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Computer Difficulty"
+
+[node name="DifficultyOption" type="OptionButton" parent="Panel/Padding/Content/GameplayGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+selected = 1
+item_count = 3
+popup/item_0/text = "Easy"
+popup/item_0/id = 0
+popup/item_1/text = "Normal"
+popup/item_1/id = 1
+popup/item_2/text = "Hard"
+popup/item_2/id = 2
+
+[node name="SpeedLabel" type="Label" parent="Panel/Padding/Content/GameplayGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Game Speed"
+
+[node name="SpeedOption" type="OptionButton" parent="Panel/Padding/Content/GameplayGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+selected = 1
+item_count = 3
+popup/item_0/text = "Slow"
+popup/item_0/id = 0
+popup/item_1/text = "Normal"
+popup/item_1/id = 1
+popup/item_2/text = "Fast"
+popup/item_2/id = 2
+
+[node name="AudioHeader" type="Label" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Audio"
+
+[node name="AudioGrid" type="GridContainer" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 3
+
+[node name="MasterLabel" type="Label" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Master Volume"
+
+[node name="MasterSlider" type="HSlider" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_yelko")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_ldnee")
+value = 80.0
+
+[node name="MasterValueLabel" type="Label" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "80"
+horizontal_alignment = 2
+
+[node name="SfxLabel" type="Label" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SFX Volume
+"
+
+[node name="SfxSlider" type="HSlider" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_1yw23")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_t7ar5")
+value = 80.0
+
+[node name="SfxValueLabel" type="Label" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "80"
+horizontal_alignment = 2
+
+[node name="MusicLabel" type="Label" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Music Volume"
+
+[node name="MusicSlider" type="HSlider" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_dd8lr")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_fl0th")
+value = 80.0
+
+[node name="MusicValueLabel" type="Label" parent="Panel/Padding/Content/AudioGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "80"
+horizontal_alignment = 2
+
+[node name="MuteCheck" type="CheckBox" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Mute All"
+
+[node name="AccessibilityHeader" type="Label" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Accessibility"
+
+[node name="AccessibilityBox" type="VBoxContainer" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HighContrastCheck" type="CheckBox" parent="Panel/Padding/Content/AccessibilityBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "High Contrast Mode"
+
+[node name="ColorblindCheck" type="CheckBox" parent="Panel/Padding/Content/AccessibilityBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Colorblind-Friendly Mode"
+
+[node name="ReducedMotionCheck" type="CheckBox" parent="Panel/Padding/Content/AccessibilityBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reduced Motion"
+
+[node name="CloseButton" type="Button" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Close"

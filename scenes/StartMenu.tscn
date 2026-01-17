@@ -1,15 +1,197 @@
-[gd_scene load_steps=6 format=3 uid="uid://bmvl3imlm0w2"]
+[gd_scene load_steps=24 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
+[ext_resource type="Texture2D" uid="uid://uw4vt5e63tsg" path="res://scripts/ui/menu_background_gradient.tres" id="2_kmax6"]
+[ext_resource type="Script" uid="uid://d0ne4ghwtfkp0" path="res://scenes/title.gd" id="3_cp7se"]
+[ext_resource type="Script" uid="uid://daqs1c1xj25h1" path="res://scripts/asteroid_sprite.gd" id="4_frkif"]
+[ext_resource type="Texture2D" uid="uid://boddmgn7a5uod" path="res://assets/images/sprites/psyche_probe_pixel.png" id="4_kcs48"]
+[ext_resource type="Script" uid="uid://dhx6oudn2fwb0" path="res://scenes/probe_sprite.gd" id="5_aso40"]
+[ext_resource type="AudioStream" uid="uid://daer2kjq6kdv0" path="res://assets/audio/probe_whoosh.wav" id="5_cuvp2"]
+[ext_resource type="Texture2D" uid="uid://ddiym42am7ay3" path="res://assets/images/sprites/asteroid_img.png" id="6_cuvp2"]
+[ext_resource type="PackedScene" uid="uid://byeqtctiiqjkl" path="res://scenes/SettingsMenu.tscn" id="9_sf8pk"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_kcs48"]
+line_spacing = 5.0
+font_size = 48
+font_color = Color(0.35686275, 0.22745098, 0.11764706, 1)
+outline_size = 10
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 12
+shadow_color = Color(0, 0, 0, 1)
+shadow_offset = Vector2(4, 4)
+stacked_outline_count = 1
+
+[sub_resource type="LabelSettings" id="LabelSettings_cp7se"]
+line_spacing = 5.0
+font_size = 48
+font_color = Color(0.60784316, 0.43529412, 0.24705882, 1)
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 10
+shadow_color = Color(0, 0, 0, 1)
+shadow_offset = Vector2(3, 3)
+
+[sub_resource type="LabelSettings" id="LabelSettings_aso40"]
+line_spacing = 5.0
+font_size = 48
+font_color = Color(0.7882353, 0.6627451, 0.47843137, 1)
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 8
+shadow_color = Color(0, 0, 0, 1)
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="LabelSettings" id="LabelSettings_cuvp2"]
+line_spacing = 5.0
+font_size = 48
+font_color = Color(0.95686275, 0.92941177, 0.89411765, 1)
+outline_size = 4
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 6
+shadow_color = Color(0, 0, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aq5sm"]
-bg_color = Color(0, 0.48235294, 1, 1)
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.9098039, 0.45490196, 0.29803923, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7882353, 0.2901961, 0.3529412, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xrvln"]
-bg_color = Color(0, 0.48235294, 1, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kmax6"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.7882353, 0.2901961, 0.3529412, 1)
+border_color = Color(0.65882355, 0.22745098, 0.2901961, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cp7se"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.9529412, 0.6039216, 0.41568628, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.972549, 0.6039216, 0.18039216, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fgoeh"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.35686275, 0.13725491, 0.2784314, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5568628, 0.2901961, 0.41960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aso40"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.16862746, 0.05882353, 0.22745098, 1)
+border_color = Color(0.34901962, 0.16470589, 0.34509805, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kcs48"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.47843137, 0.18039216, 0.29803923, 1)
+border_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bx376"]
-bg_color = Color(0, 0.48235294, 1, 1)
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.22745098, 0.078431375, 0.1882353, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35686275, 0.13725491, 0.2784314, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frkif"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.16862746, 0.05882353, 0.22745098, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7254902, 0.29411766, 0.35686275, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cuvp2"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.35686275, 0.13725491, 0.2784314, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g1ph5"]
 bg_color = Color(0, 0, 0, 0.5019608)
@@ -23,14 +205,102 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_bx376")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.05490196, 0.0627451, 0.08627451, 1)
+mouse_filter = 2
+texture = ExtResource("2_kmax6")
+expand_mode = 1
+
+[node name="Asteroids" type="Sprite2D" parent="."]
+
+[node name="AsteroidSprite" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.9, 0.9)
+texture = ExtResource("6_cuvp2")
+script = ExtResource("4_frkif")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="AsteroidSprite2" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("6_cuvp2")
+script = ExtResource("4_frkif")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="AsteroidSprite3" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("6_cuvp2")
+script = ExtResource("4_frkif")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="AsteroidSprite4" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("6_cuvp2")
+script = ExtResource("4_frkif")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="ProbeSprite" type="Sprite2D" parent="."]
+position = Vector2(0, 72)
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("4_kcs48")
+script = ExtResource("5_aso40")
+
+[node name="OnScreen" type="VisibleOnScreenNotifier2D" parent="ProbeSprite"]
+
+[node name="ProbeWhoosh" type="AudioStreamPlayer2D" parent="ProbeSprite"]
+stream = ExtResource("5_cuvp2")
+volume_db = -18.0
 
 [node name="CenterBox" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -45,33 +315,147 @@ layout_mode = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Title" type="Label" parent="CenterBox/Menu"]
+[node name="TitleWrapper" type="Control" parent="CenterBox/Menu"]
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="Title_Back3" type="Label" parent="CenterBox/Menu/TitleWrapper"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -369.0
+offset_top = -103.5
+offset_right = 369.0
+offset_bottom = 103.5
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(100, 100)
+theme_override_colors/font_color = Color(0.35686275, 0.22745098, 0.11764706, 1)
 theme_override_font_sizes/font_size = 36
-text = "Psyche-opoly
+text = "Acquiring Asteroids
 
 
 "
+label_settings = SubResource("LabelSettings_kcs48")
 horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("3_cp7se")
+
+[node name="Title_Back2" type="Label" parent="CenterBox/Menu/TitleWrapper"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -371.0
+offset_top = -105.5
+offset_right = 367.0
+offset_bottom = 101.5
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(80, 80)
+theme_override_colors/font_color = Color(0.60784316, 0.43529412, 0.24705882, 1)
+theme_override_font_sizes/font_size = 36
+text = "Acquiring Asteroids
+
+
+"
+label_settings = SubResource("LabelSettings_cp7se")
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("3_cp7se")
+
+[node name="Title_Back1" type="Label" parent="CenterBox/Menu/TitleWrapper"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -373.0
+offset_top = -107.5
+offset_right = 365.0
+offset_bottom = 99.5
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(60, 60)
+theme_override_colors/font_color = Color(0.7882353, 0.6627451, 0.47843137, 1)
+theme_override_font_sizes/font_size = 36
+text = "Acquiring Asteroids
+
+
+"
+label_settings = SubResource("LabelSettings_aso40")
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("3_cp7se")
+
+[node name="Title_Front" type="Label" parent="CenterBox/Menu/TitleWrapper"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -375.0
+offset_top = -109.5
+offset_right = 363.0
+offset_bottom = 97.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.95686275, 0.92941177, 0.89411765, 1)
+theme_override_font_sizes/font_size = 36
+text = "Acquiring Asteroids
+
+
+"
+label_settings = SubResource("LabelSettings_cuvp2")
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("3_cp7se")
 
 [node name="Start" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.16862746, 0.05882353, 0.22745098, 1)
+theme_override_colors/font_pressed_color = Color(0.91764706, 0.8666667, 0.85882354, 1)
+theme_override_colors/font_hover_color = Color(0.16862746, 0.05882353, 0.22745098, 1)
 theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_aq5sm")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_kmax6")
+theme_override_styles/hover = SubResource("StyleBoxFlat_cp7se")
 text = "Start"
 
 [node name="Settings" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_xrvln")
+focus_mode = 0
+theme_override_colors/font_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
+theme_override_colors/font_pressed_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_fgoeh")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_aso40")
+theme_override_styles/hover = SubResource("StyleBoxFlat_kcs48")
 text = "Settings"
 
 [node name="Exit" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.91764706, 0.8666667, 0.8901961, 1)
+theme_override_colors/font_pressed_color = Color(0.91764706, 0.8666667, 0.8901961, 1)
 theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_bx376")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_frkif")
+theme_override_styles/hover = SubResource("StyleBoxFlat_cuvp2")
 text = "Exit Game"
 
 [node name="SettingsPopUp" type="PopupPanel" parent="."]
@@ -110,3 +494,9 @@ popup/item_2/id = 2
 [node name="Close" type="Button" parent="SettingsPopUp/Center/Box"]
 layout_mode = 2
 text = "Close"
+
+[node name="SettingsMenu" parent="." instance=ExtResource("9_sf8pk")]
+visible = false
+layout_mode = 1
+
+[connection signal="screen_entered" from="ProbeSprite/OnScreen" to="ProbeSprite" method="_on_on_screen_screen_entered"]
