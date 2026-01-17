@@ -38,8 +38,8 @@ grow_vertical = 0
 size_flags_vertical = 4
 script = ExtResource("1_gn10m")
 dice_faces = Array[Texture2D]([ExtResource("2_uv78u"), ExtResource("3_uw5oi"), ExtResource("4_rxcad"), ExtResource("5_yqaqp"), ExtResource("6_2tjk1"), ExtResource("7_kd3ah")])
-die1_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/DieSlot1/Die1")
-die2_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/DieSlot2/Die2")
+die1_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/Die1")
+die2_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/Die2")
 roll_button_path = NodePath("RollPanel/MarginContainer/VBox/RollButton")
 total_label_path = NodePath("RollPanel/MarginContainer/VBox/ResultLabel")
 
@@ -48,8 +48,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -73.999985
-offset_top = -25.0
+offset_left = -75.999985
+offset_top = -75.0
 offset_right = 1.5258789e-05
 grow_horizontal = 2
 grow_vertical = 2
@@ -88,19 +88,11 @@ layout_mode = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="DieSlot1" type="PanelContainer" parent="RollPanel/MarginContainer/VBox/DiceRow"]
-custom_minimum_size = Vector2(96, 96)
-layout_mode = 2
-
-[node name="Die1" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow/DieSlot1"]
+[node name="Die1" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow"]
 layout_mode = 2
 stretch_mode = 5
 
-[node name="DieSlot2" type="PanelContainer" parent="RollPanel/MarginContainer/VBox/DiceRow"]
-custom_minimum_size = Vector2(96, 96)
-layout_mode = 2
-
-[node name="Die2" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow/DieSlot2"]
+[node name="Die2" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow"]
 layout_mode = 2
 stretch_mode = 5
 
@@ -122,4 +114,3 @@ volume_db = -12.0
 [node name="RollResult" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("9_yqaqp")
 volume_db = -6.0
-
