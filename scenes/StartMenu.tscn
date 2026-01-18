@@ -338,7 +338,9 @@ grow_vertical = 2
 pivot_offset = Vector2(100, 100)
 theme_override_colors/font_color = Color(0.35686275, 0.22745098, 0.11764706, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids\n\n"
+text = "Acquiring Asteroids
+
+"
 label_settings = SubResource("LabelSettings_kcs48")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -360,7 +362,9 @@ grow_vertical = 2
 pivot_offset = Vector2(80, 80)
 theme_override_colors/font_color = Color(0.60784316, 0.43529412, 0.24705882, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids\n\n"
+text = "Acquiring Asteroids
+
+"
 label_settings = SubResource("LabelSettings_cp7se")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -382,7 +386,9 @@ grow_vertical = 2
 pivot_offset = Vector2(60, 60)
 theme_override_colors/font_color = Color(0.7882353, 0.6627451, 0.47843137, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids\n\n"
+text = "Acquiring Asteroids
+
+"
 label_settings = SubResource("LabelSettings_aso40")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -403,13 +409,16 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(0.95686275, 0.92941177, 0.89411765, 1)
 theme_override_font_sizes/font_size = 36
-text = "Acquiring Asteroids\n\n"
+text = "Acquiring Asteroids
+
+"
 label_settings = SubResource("LabelSettings_cuvp2")
 horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("3_cp7se")
 
 [node name="Logo" type="TextureRect" parent="CenterBox/Menu"]
+visible = false
 layout_mode = 2
 texture = ExtResource("2_logo")
 expand_mode = 5
@@ -471,7 +480,9 @@ theme_override_constants/separation = 12
 
 [node name="DifficultyLabel" type="Label" parent="SettingsPopUp/Center/Box/DifficultyRow"]
 layout_mode = 2
-text = "Computer Difficulty\n\n"
+text = "Computer Difficulty
+
+"
 horizontal_alignment = 2
 
 [node name="DifficultyOption" type="OptionButton" parent="SettingsPopUp/Center/Box/DifficultyRow"]
@@ -493,4 +504,3 @@ visible = false
 layout_mode = 1
 
 [connection signal="screen_entered" from="ProbeSprite/OnScreen" to="ProbeSprite" method="_on_on_screen_screen_entered"]
-

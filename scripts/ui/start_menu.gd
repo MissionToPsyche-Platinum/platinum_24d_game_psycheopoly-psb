@@ -70,4 +70,3 @@ func _on_settings_closed() -> void:
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
-
