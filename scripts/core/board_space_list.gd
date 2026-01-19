@@ -18,6 +18,7 @@ func _create_board() -> Array[GameSpace]:
 			"property":
 				space = PropertySpace.new(
 					data.get("name", ""),
+					data.get("description",""),
 					data.get("price", 0),
 					0, 0, 0, 0, 0, 0, 0  # rent tiers not in SpaceData yet
 				)
