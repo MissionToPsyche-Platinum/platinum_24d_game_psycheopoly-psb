@@ -2,19 +2,18 @@ extends Ownable
 
 class_name PropertySpace
 
-var _property_name: String
 var _initial_price: int
 var _default_rent: int
 var _rent_upgrade1: int
 var _rent_upgrade2: int
 var _rent_upgrade3: int
 var _rent_upgrade4: int
+var _current_upgrades: int
 var _upgrade_cost: int
 var _mortgage_value: int
 
-
 func _init(
-	property_name: String,
+	space_name: String,
 	initial_price: int,
 	default_rent: int,
 	rent_upgrade1: int,
@@ -24,7 +23,7 @@ func _init(
 	upgrade_cost: int,
 	mortgage_value: int
 ) -> void:
-	_property_name = property_name
+	_space_name = space_name
 	_initial_price = initial_price
 	_default_rent = default_rent
 	_rent_upgrade1 = rent_upgrade1
@@ -33,3 +32,5 @@ func _init(
 	_rent_upgrade4 = rent_upgrade4
 	_upgrade_cost = upgrade_cost
 	_mortgage_value = mortgage_value
+	
+	_current_upgrades = 0

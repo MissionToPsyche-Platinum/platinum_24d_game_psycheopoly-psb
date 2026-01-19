@@ -1,6 +1,6 @@
 extends CanvasLayer
 
-# Load space data
+# Load spacespace data
 const SpaceData = preload("res://scripts/core/space_data.gd")
 
 # References to UI elements
