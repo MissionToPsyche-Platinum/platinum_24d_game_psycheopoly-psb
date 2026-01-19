@@ -2,14 +2,14 @@ extends Resource
 
 class_name BoardSpaceList
 
-var board: Array[GameSpace] = []
+static var board: Array[GameSpace] = []
 
 
 func _init() -> void:
 	board = _create_board()
 
 
-func _create_board() -> Array[GameSpace]:
+static func _create_board() -> Array[GameSpace]:
 	var result: Array[GameSpace] = []
 	for i in range(SpaceData.SPACE_INFO.size()):
 		var data: Dictionary = SpaceData.SPACE_INFO[i]
@@ -20,17 +20,66 @@ func _create_board() -> Array[GameSpace]:
 					data.get("name", ""),
 					data.get("description",""),
 					data.get("price", 0),
-					0, 0, 0, 0, 0, 0, 0  # rent tiers not in SpaceData yet
+					data.get("rent", 0),
+					data.get("rent1data", 0),
+					data.get("rent2data", 0),
+					data.get("rent3data", 0),
+					data.get("rent4data", 0),
+					data.get("rentDiscovery", 0),
+					data.get("dataCost", 0),
+					data.get("mortgage", 0),
+					data.get("color", Color.BLACK)
+					)
+			"instrument":
+				space = InstrumentSpace.new(
+					data.get("name"),
+					data.get("description",""),
+					data.get("price", 0),
+					data.get("rent1instrument", 0),
+					data.get("rent2instrument", 0),
+					data.get("rent3instrument", 0),
+					data.get("rent4instrument", 0),
+					data.get("mortgage", 0),
+					data.get("color", Color.BLACK)
+					)
+			"planet":
+				space = PlanetSpace.new(
+					data.get("name"),
+					data.get("description",""),
+					data.get("price", 0),
+					data.get("mult1Planet", 0),
+					data.get("mult2Planet", 0),
+					data.get("mortgage", 0),
+					data.get("color", Color.BLACK)
 				)
-			"instrument", "planet":
-				space = Ownable.new()
+			"card":
+				space = CardSpace.new(
+					data.get("name"),
+					data.get("description", ""),
+					data.get("cardType", ""),
+					data.get("color", Color.BLACK)
+				)
+			"expense":
+				space = ExpenseSpace.new(
+					data.get("name"),
+					data.get("description", ""),
+					data.get("expenseType", ""),
+					data.get("color", Color.BLACK)
+				)
+			"special":
+				space = SpecialSpace.new(
+					data.get("name"),
+					data.get("description", ""),
+					data.get("specialType", ""),
+					data.get("color", Color.BLACK)
+				)
 			_:
 				space = GameSpace.new()
 		result.append(space)
 	return result
 
 
-func get_space_info(space_num: int) -> Dictionary:
+static func get_space_info(space_num: int) -> Dictionary:
 	if space_num >= 0 and space_num < board.size():
 		return SpaceData.SPACE_INFO[space_num]
 	return {}
