@@ -1,3 +1,3 @@
-[gd_scene format=3 uid="uid://ge0cddjg0bfe"]
+[gd_scene load_steps=0 format=3 uid="uid://ge0cddjg0bfe"]
 
 [node name="Probe" type="Node2D"]

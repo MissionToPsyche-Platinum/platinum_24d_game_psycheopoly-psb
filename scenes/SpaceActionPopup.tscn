@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://bwau46p8j2n3a"]
+[gd_scene load_steps=5 format=3 uid="uid://ii1nmjmy5khl"]
 
-[ext_resource type="Script" path="res://scripts/ui/space_action_popup.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d08t7b5ciqqj" path="res://scripts/ui/space_action_popup.gd" id="1_script"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_font_bold"]
 
@@ -95,6 +95,7 @@ autowrap_mode = 3
 layout_mode = 2
 
 [node name="ActionDescription" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(40, 10)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 14
