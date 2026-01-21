@@ -213,7 +213,7 @@ func _handle_mouse_motion(_event: InputEventMouseMotion) -> void:
 		hovered_tile = Vector2i(-1, -1)
 
 
-func _handle_mouse_click(_event: InputEventMouseButton) -> void:
+func _handle_mouse_click(event: InputEventMouseButton) -> void:
 	if not tile_map_layer or not space_info_panel:
 		return
 	
@@ -224,7 +224,15 @@ func _handle_mouse_click(_event: InputEventMouseButton) -> void:
 	# Check if this is a valid board tile
 	if not _is_valid_board_tile(tile_coords):
 		return
-	
+
+	# Debug quick teleport: Shift + Left Click
+	if event.shift_pressed:
+		var space_num = _get_space_from_tile_coords(tile_coords)
+		if space_num >= 0 and piece:
+			print("DEBUG: Quick teleporting piece to space ", space_num)
+			piece.teleport_to_space(space_num)
+			return
+
 	# If clicking the same tile, deselect it
 	if is_tile_selected and tile_coords == selected_tile:
 		# Deselect
