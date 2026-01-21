@@ -1,8 +1,5 @@
 extends Node2D
 
-# Load core classes
-const SpaceData = preload("res://scripts/core/space_data.gd")
-
 # Reference to the piece
 var piece: Node2D = null
 

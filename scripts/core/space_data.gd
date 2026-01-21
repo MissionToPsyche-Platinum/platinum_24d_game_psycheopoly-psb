@@ -7,7 +7,7 @@ class_name SpaceData
 const SPACE_INFO = [
 	# Space 0 - GO (bottom-right corner)
 	{
-		"type": "special",
+		"type": "corner",
 		"name": "GO",
 		"description": "Collect a $200 grant as you pass",
 		"specialType": "go",
@@ -52,7 +52,7 @@ const SPACE_INFO = [
 		"color": Color(1.0, 1.0, 0.0)  # Yellow
 	},
 	{
-		"type": "expense",
+		"type": "cost",
 		"name": "Consult Subject Matter Expert",
 		"description": "Pay $200",
 		"expenseType": "pay200",
@@ -67,7 +67,7 @@ const SPACE_INFO = [
 		"rent2instrument": 50,
 		"rent3instrument": 100,
 		"rent4instrument": 200,
-		"mortgage": 75,	
+		"mortgage": 75,
 		"color": Color.GRAY
 	},
 	{
@@ -124,7 +124,7 @@ const SPACE_INFO = [
 	},
 	# Space 10 - Launch Pad (bottom-left corner)
 	{
-		"type": "special",
+		"type": "corner",
 		"name": "Launch Pad",
 		"description": "Just watching or launching",
 		"specialType": "launchPad",
@@ -252,7 +252,7 @@ const SPACE_INFO = [
 	},
 	# Space 20 - Gravity Assist (top-left corner)
 	{
-		"type": "special",
+		"type": "corner",
 		"name": "Gravity Assist",
 		"description": "Free boost from planetary alignment",
 		"specialType": "gravityAssist",
@@ -380,7 +380,7 @@ const SPACE_INFO = [
 	},
 	# Space 30 - Solar Storm (top-right corner)
 	{
-		"type": "special",
+		"type": "corner",
 		"name": "Solar Storm",
 		"description": "Go directly to Launch Pad",
 		"specialType": "solarStorm",
@@ -474,7 +474,7 @@ const SPACE_INFO = [
 		"color": Color(0.7, 0.6, 0.9)  # Light purple
 	},
 	{
-		"type": "expense",
+		"type": "cost",
 		"name": "Funding Cut",
 		"description": "Pay $100 budget reduction",
 		"expenseType": "pay100",

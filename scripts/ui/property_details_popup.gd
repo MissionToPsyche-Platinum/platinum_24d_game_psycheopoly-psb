@@ -1,8 +1,5 @@
 extends CanvasLayer
 
-# Load spacespace data
-const SpaceData = preload("res://scripts/core/space_data.gd")
-
 # References to UI elements
 @onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
 @onready var property_name: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/PropertyName

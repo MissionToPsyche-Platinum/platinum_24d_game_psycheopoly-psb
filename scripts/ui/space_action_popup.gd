@@ -7,8 +7,7 @@ signal draw_card_pressed(space_num: int)
 signal move_pressed(space_num: int)
 signal close_pressed()
 
-# Load space data
-const SpaceData = preload("res://scripts/core/space_data.gd")
+# Load popups
 const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 
 # References to UI elements

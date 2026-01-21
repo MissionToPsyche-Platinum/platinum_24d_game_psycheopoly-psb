@@ -2,7 +2,7 @@ extends GameSpace
 
 class_name ExpenseSpace
 
-var _expense_type: String 
+var _expense_type: String
 
 func _init(
 	space_name: String,

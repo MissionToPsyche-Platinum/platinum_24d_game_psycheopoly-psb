@@ -14,7 +14,7 @@ func _init(
 	default_multiplier: int,
 	two_planet_multiplier: int,
 	mortgage_value: int,
-	color: Color,
+	color: Color
 
 ) -> void:
 	_space_name = space_name

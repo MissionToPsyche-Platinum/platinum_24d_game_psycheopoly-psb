@@ -2,7 +2,7 @@ extends Resource
 
 class_name BoardSpaceList
 
-static var board: Array[GameSpace] = []
+var board: Array[GameSpace] = []
 
 
 func _init() -> void:
@@ -59,14 +59,14 @@ static func _create_board() -> Array[GameSpace]:
 					data.get("cardType", ""),
 					data.get("color", Color.BLACK)
 				)
-			"expense":
+			"cost":
 				space = ExpenseSpace.new(
 					data.get("name"),
 					data.get("description", ""),
 					data.get("expenseType", ""),
 					data.get("color", Color.BLACK)
 				)
-			"special":
+			"corner":
 				space = SpecialSpace.new(
 					data.get("name"),
 					data.get("description", ""),
@@ -80,11 +80,11 @@ static func _create_board() -> Array[GameSpace]:
 
 
 static func get_space_info(space_num: int) -> Dictionary:
-	if space_num >= 0 and space_num < board.size():
+	if space_num >= 0 and space_num < SpaceData.SPACE_INFO.size():
 		return SpaceData.SPACE_INFO[space_num]
 	return {}
 
 
-func is_purchasable(space_num: int) -> bool:
+static func is_purchasable(space_num: int) -> bool:
 	var info = get_space_info(space_num)
-	return info.has("type") and (info.type == "property" or info.type == "instrument")
+	return info.has("type") and (info.type == "property" or info.type == "instrument" or info.type == "planet")
