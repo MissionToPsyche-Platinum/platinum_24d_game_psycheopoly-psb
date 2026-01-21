@@ -5,7 +5,7 @@ class_name ChanceCards
 
 
 
-const Chance_CARD_INFO = [
+const CHANCE_CARD_INFO = [
 	#Cards 1-18 are Metal Cards, causing earning or paying money
 	{
 		"card number": 1,
@@ -40,7 +40,7 @@ const Chance_CARD_INFO = [
 		"type": "Metal",
 		"description": "Unresolved software issues cause a 
 						launch delay. Pay each player $50 to
-						reschedule their teavel plans.",
+						reschedule their travel plans.",
 		"effect": "pay $",
 		"value": "" #50 * NumPlayers
 	},
@@ -130,7 +130,7 @@ const Chance_CARD_INFO = [
 		"type": "Metal",
 		"description": "Collision with space debris damages
 						the Multispectral Imager.
-						Pay $50 to activate the seconday camera.",
+						Pay $50 to activate the secondary camera.",
 		"effect": "pay $",
 		"value": 50
 	},
@@ -176,6 +176,14 @@ const Chance_CARD_INFO = [
 						If you pass Go, collect $200",
 		"effect": "move to ",
 		"value": "Eunomia"
+	},
+	{
+		"card number": 21,
+		"type": "Silicate",
+		"description": "Advance to Themis. 
+						If you pass Go, collect $200",
+		"effect": "move to ",
+		"value": "Themis"
 	},
 	{
 		"card number": 22,
@@ -302,7 +310,7 @@ const Chance_CARD_INFO = [
 		"value": "the Launch Pad"
 	},
 	{
-		"card number": 35,
+		"card number": 36,
 		"type": "Silicate",
 		"description": "Go for launch! 
 						Get off the Launch Pad for free. 
@@ -314,7 +322,10 @@ const Chance_CARD_INFO = [
 ]
 
 
+## Returns information for a chance card at the given index.
+## @param index Zero-based index into the CHANCE_CARD_INFO array.
+## @return A Dictionary containing the card's data, or an empty Dictionary if the index is out of range.
 static func get_card_info(index: int) -> Dictionary:
-	if index >= 0 and index < Chance_CARD_INFO.size():
-		return Chance_CARD_INFO[index]
+	if index >= 0 and index < CHANCE_CARD_INFO.size():
+		return CHANCE_CARD_INFO[index]
 	return {}

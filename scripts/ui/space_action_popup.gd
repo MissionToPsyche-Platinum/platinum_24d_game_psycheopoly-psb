@@ -10,7 +10,7 @@ signal close_pressed()
 # Load popups
 const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 
-#Load chance card data
+# Load chance card data.
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
 const ChanceCardPopup = preload("res://scenes/ChanceCardPopup.tscn")
 
@@ -31,6 +31,7 @@ var current_space_num: int = -1
 
 # Popup instance
 var _details_popup: CanvasLayer = null
+var _chance_card_popup: CanvasLayer = null
 
 func _ready() -> void:
 	# Initially hidden
@@ -143,12 +144,14 @@ func _on_pay_pressed() -> void:
 
 func _on_draw_pressed() -> void:
 	# Create popup if it doesn't exist
-	if _details_popup == null:
-		_details_popup = ChanceCardPopup.instantiate()
+	if _chance_card_popup == null:
+		_chance_card_popup = ChanceCardPopup.instantiate()
 		# CanvasLayers must be added to the SceneTree directly
-		get_tree().root.add_child(_details_popup)
+		get_tree().root.add_child(_chance_card_popup)
 	
-	_details_popup.show_card_details(current_space_num)
+	_chance_card_popup.show_card_details(current_space_num)
+	
+	draw_card_pressed.emit(current_space_num)
 	
 	hide_popup()
 	
