@@ -16,63 +16,17 @@ static func _create_board() -> Array[GameSpace]:
 		var space: GameSpace
 		match data.get("type", ""):
 			"property":
-				space = PropertySpace.new(
-					data.get("name", ""),
-					data.get("description",""),
-					data.get("price", 0),
-					data.get("rent", 0),
-					data.get("rent1data", 0),
-					data.get("rent2data", 0),
-					data.get("rent3data", 0),
-					data.get("rent4data", 0),
-					data.get("rentDiscovery", 0),
-					data.get("dataCost", 0),
-					data.get("mortgage", 0),
-					data.get("color", Color.BLACK)
-					)
+				space = PropertySpace.new(data)
 			"instrument":
-				space = InstrumentSpace.new(
-					data.get("name"),
-					data.get("description",""),
-					data.get("price", 0),
-					data.get("rent1instrument", 0),
-					data.get("rent2instrument", 0),
-					data.get("rent3instrument", 0),
-					data.get("rent4instrument", 0),
-					data.get("mortgage", 0),
-					data.get("color", Color.BLACK)
-					)
+				space = InstrumentSpace.new(data)
 			"planet":
-				space = PlanetSpace.new(
-					data.get("name"),
-					data.get("description",""),
-					data.get("price", 0),
-					data.get("mult1Planet", 0),
-					data.get("mult2Planet", 0),
-					data.get("mortgage", 0),
-					data.get("color", Color.BLACK)
-				)
+				space = PlanetSpace.new(data)
 			"card":
-				space = CardSpace.new(
-					data.get("name"),
-					data.get("description", ""),
-					data.get("cardType", ""),
-					data.get("color", Color.BLACK)
-				)
+				space = CardSpace.new(data)
 			"cost":
-				space = ExpenseSpace.new(
-					data.get("name"),
-					data.get("description", ""),
-					data.get("expenseType", ""),
-					data.get("color", Color.BLACK)
-				)
+				space = ExpenseSpace.new(data)
 			"corner":
-				space = SpecialSpace.new(
-					data.get("name"),
-					data.get("description", ""),
-					data.get("specialType", ""),
-					data.get("color", Color.BLACK)
-				)
+				space = SpecialSpace.new(data)
 			_:
 				space = GameSpace.new()
 		result.append(space)

@@ -14,32 +14,16 @@ var _mortgage_value: int
 
 var _current_upgrades: int
 
-func _init(
-	space_name: String,
-	space_description: String,
-	initial_price: int,
-	default_rent: int,
-	one_data_rent: int,
-	two_data_rent: int,
-	three_data_rent: int,
-	four_data_rent: int,
-	discovery_rent: int,
-	upgrade_cost: int,
-	mortgage_value: int,
-	color: Color
-
-) -> void:
-	_space_name = space_name
-	_space_description = space_description
-	_initial_price = initial_price
-	_default_rent = default_rent
-	_one_data_rent = one_data_rent
-	_two_data_rent = two_data_rent
-	_three_data_rent = three_data_rent
-	_four_data_rent = four_data_rent
-	_discovery_rent = discovery_rent
-	_upgrade_cost = upgrade_cost
-	_mortgage_value = mortgage_value
-	_color = color
+func _init(data: Dictionary) -> void:
+	super(data)
+	_initial_price = data.get("price", 0)
+	_default_rent = data.get("rent", 0)
+	_one_data_rent = data.get("rent1data", 0)
+	_two_data_rent = data.get("rent2data", 0)
+	_three_data_rent = data.get("rent3data", 0)
+	_four_data_rent = data.get("rent4data", 0)
+	_discovery_rent = data.get("rentDiscovery", 0)
+	_upgrade_cost = data.get("dataCost", 0)
+	_mortgage_value = data.get("mortgage", 0)
 
 	_current_upgrades = 0

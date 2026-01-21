@@ -7,20 +7,9 @@ var _default_multiplier: int
 var _two_planet_multiplier: int
 var _mortgage_value: int
 
-func _init(
-	space_name: String,
-	space_description: String,
-	initial_price: int,
-	default_multiplier: int,
-	two_planet_multiplier: int,
-	mortgage_value: int,
-	color: Color
-
-) -> void:
-	_space_name = space_name
-	_space_description = space_description
-	_initial_price = initial_price
-	_default_multiplier = default_multiplier
-	_two_planet_multiplier = two_planet_multiplier
-	_mortgage_value = mortgage_value
-	_color = color
+func _init(data: Dictionary) -> void:
+	super(data)
+	_initial_price = data.get("price", 0)
+	_default_multiplier = data.get("mult1Planet", 0)
+	_two_planet_multiplier = data.get("mult2Planet", 0)
+	_mortgage_value = data.get("mortgage", 0)

@@ -9,24 +9,11 @@ var _three_instrument_rent: int
 var _four_instrument_rent: int
 var _mortgage_value: int
 
-func _init(
-	space_name: String,
-	space_description: String,
-	initial_price: int,
-	default_rent: int,
-	two_instrument_rent: int,
-	three_instrument_rent: int,
-	four_instrument_rent: int,
-	mortgage_value: int,
-	color: Color,
-
-) -> void:
-	_space_name = space_name
-	_space_description = space_description
-	_initial_price = initial_price
-	_default_rent = default_rent
-	_two_instrument_rent = two_instrument_rent
-	_three_instrument_rent = three_instrument_rent
-	_four_instrument_rent = four_instrument_rent
-	_mortgage_value = mortgage_value
-	_color = color
+func _init(data: Dictionary) -> void:
+	super(data)
+	_initial_price = data.get("price", 0)
+	_default_rent = data.get("rent1instrument", 0)
+	_two_instrument_rent = data.get("rent2instrument", 0)
+	_three_instrument_rent = data.get("rent3instrument", 0)
+	_four_instrument_rent = data.get("rent4instrument", 0)
+	_mortgage_value = data.get("mortgage", 0)
