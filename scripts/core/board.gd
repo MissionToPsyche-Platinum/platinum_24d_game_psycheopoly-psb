@@ -397,4 +397,3 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 	if piece:
 		piece.move_forward(total)
 	print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
-
