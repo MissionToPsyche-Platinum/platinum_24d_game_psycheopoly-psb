@@ -1,7 +1,5 @@
 extends CanvasLayer
 
-# Load space data
-const SpaceData = preload("res://scripts/core/space_data.gd")
 const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 
 # References to UI elements

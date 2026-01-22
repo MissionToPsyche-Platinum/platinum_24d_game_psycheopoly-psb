@@ -3,9 +3,9 @@ extends Node2D
 # Load core classes
 const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 
+# Popups
 const PropertyDetailsPopupScene = preload("res://scenes/PropertyDetailsPopup.tscn")
 var property_details_popup: CanvasLayer = null
-
 
 # Reference to the piece
 var piece: Node2D = null
@@ -43,6 +43,7 @@ var is_tile_selected: bool = false
 const HOVER_TILE := Vector2i(0, 2) # Hover texture
 const SELECTED_TILE := Vector2i(5, 1) # Highlighted texture
 
+
 func _ready() -> void:
 	# Load and spawn the piece
 	var piece_scene = preload("res://scenes/Piece.tscn")
@@ -70,8 +71,8 @@ func _ready() -> void:
 
 	# Instantiate space action popup
 	_setup_space_action_popup()
-	
-	# Instantiate auction popup
+
+	# Instantiate auction popup + details popup
 	_setup_auction_popup()
 
 	# Connect piece's space_changed signal to update the panel (only when no tile selected)
@@ -86,6 +87,7 @@ func _ready() -> void:
 
 	# Update panel after everything is ready
 	call_deferred("_initial_panel_update")
+
 
 func _setup_dice_roll_ui() -> void:
 	# Create a CanvasLayer to hold the dice UI (ensures it's always on top)
@@ -103,6 +105,7 @@ func _setup_dice_roll_ui() -> void:
 	# Connect the dice_rolled signal to move the piece
 	dice_roll_ui.dice_rolled.connect(_on_dice_rolled)
 
+
 func _setup_money_hud() -> void:
 	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
 	var canvas_layer = CanvasLayer.new()
@@ -116,6 +119,7 @@ func _setup_money_hud() -> void:
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
+
 func _setup_space_action_popup() -> void:
 	space_action_popup = SpaceActionPopupScene.instantiate()
 	get_tree().root.call_deferred("add_child", space_action_popup)
@@ -127,14 +131,17 @@ func _setup_space_action_popup() -> void:
 	space_action_popup.draw_card_pressed.connect(_on_draw_card_pressed)
 	space_action_popup.move_pressed.connect(_on_move_pressed)
 	space_action_popup.close_pressed.connect(_on_close_pressed)
-	
+
+
 func _setup_auction_popup() -> void:
+	# Auction popup
 	auction_popup = AuctionPopupScene.instantiate()
 	get_tree().root.call_deferred("add_child", auction_popup)
 
 	# Start hidden safely (does NOT require @onready nodes)
 	auction_popup.visible = false
 
+	# Property details popup
 	property_details_popup = PropertyDetailsPopupScene.instantiate()
 	get_tree().root.call_deferred("add_child", property_details_popup)
 	property_details_popup.visible = false
@@ -150,13 +157,16 @@ func _initial_panel_update() -> void:
 	if space_info_panel and piece:
 		space_info_panel.update_space_display(piece.board_space)
 
+
 func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
 	if space_action_popup:
 		space_action_popup.show_actions(space_num)
 
+
 func _on_purchase_pressed(space_num: int) -> void:
 	print("Player wants to purchase space: ", space_num)
+
 
 func _on_auction_pressed(space_num: int) -> void:
 	print("Auction started for space: ", space_num)
@@ -182,12 +192,13 @@ func _on_move_pressed(space_num: int) -> void:
 		if piece:
 			piece.teleport_to_space(10)
 
+
 func _on_draw_card_pressed(space_num: int) -> void:
 	print("Player drawing card at space: ", space_num)
 	# TODO: Implement card deck system
-	# Determine if Silicate (blue) or Metal (orange) based on space_num
 	var space_info = SpaceDataRef.get_space_info(space_num)
 	print("Card type: ", space_info.name)
+
 
 func _on_pay_pressed(space_num: int) -> void:
 	print("Player paying for space: ", space_num)
@@ -200,22 +211,26 @@ func _on_pay_pressed(space_num: int) -> void:
 		# Update HUD
 		GameState.player_money_updated.emit(GameState.players[player_idx])
 
+
 func _on_close_pressed() -> void:
 	print("Player closed the action popup")
+
 
 func _on_piece_space_changed(space_num: int) -> void:
 	# Only update panel if no tile selected
 	if not is_tile_selected and space_info_panel:
 		space_info_panel.update_space_display(space_num)
-		
+
+
 func _on_auction_details_requested() -> void:
 	if not auction_popup:
 		return
 
+	# We rely on AuctionPopup storing this when it opens
 	var space_num: int = auction_popup.current_space_num
 	print("Auction details requested for space:", space_num)
 
-	# Don't call hide_popup() here (it resets current_space_num)
+	# IMPORTANT: don't call hide_popup() because it resets current_space_num
 	auction_popup.visible = false
 
 	# Show the property details popup
@@ -241,66 +256,92 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_handle_mouse_click(event)
 
+
 func _handle_mouse_motion(_event: InputEventMouseMotion) -> void:
 	if not tile_map_layer:
 		return
+
 	# Get the tile coordinates under the mouse
 	var mouse_pos = get_global_mouse_position()
 	var tile_coords = tile_map_layer.local_to_map(mouse_pos)
+
 	# Check if this tile is a valid board space
 	if _is_valid_board_tile(tile_coords) and tile_coords != hovered_tile:
 		# Clear previous hover highlight (only if it's not the selected tile)
 		if hovered_tile != Vector2i(-1, -1) and hovered_tile != selected_tile:
 			highlight_layer.erase_cell(hovered_tile)
+
 		# Set new hovered tile
 		hovered_tile = tile_coords
+
 		# Show hover highlight (only if it's not the selected tile)
 		if hovered_tile != selected_tile:
 			highlight_layer.set_cell(hovered_tile, 1, HOVER_TILE)
+
 	elif not _is_valid_board_tile(tile_coords) and hovered_tile != Vector2i(-1, -1):
 		# Mouse left the board, clear hover highlight (only if it's not the selected tile)
 		if hovered_tile != selected_tile:
 			highlight_layer.erase_cell(hovered_tile)
 		hovered_tile = Vector2i(-1, -1)
 
-func _handle_mouse_click(_event: InputEventMouseButton) -> void:
+
+func _handle_mouse_click(event: InputEventMouseButton) -> void:
 	if not tile_map_layer or not space_info_panel:
 		return
+
 	# Get the tile coordinates under the mouse
 	var mouse_pos = get_global_mouse_position()
 	var tile_coords = tile_map_layer.local_to_map(mouse_pos)
+
 	# Check if this is a valid board tile
 	if not _is_valid_board_tile(tile_coords):
 		return
+
+	# Debug quick teleport: Shift + Left Click
+	if event.shift_pressed:
+		var space_num := _get_space_from_tile_coords(tile_coords)
+		if space_num >= 0 and piece:
+			print("DEBUG: Quick teleporting piece to space ", space_num)
+			piece.teleport_to_space(space_num)
+			return
+
 	# If clicking the same tile, deselect it
 	if is_tile_selected and tile_coords == selected_tile:
 		# Deselect
 		is_tile_selected = false
 		highlight_layer.erase_cell(selected_tile)
 		selected_tile = Vector2i(-1, -1)
+
 		# Restore hover highlight if mouse is still over a tile
 		if hovered_tile != Vector2i(-1, -1):
 			highlight_layer.set_cell(hovered_tile, 1, HOVER_TILE)
+
 		# Show player's current position info
 		space_info_panel.update_space_display(piece.board_space)
+
 	else:
 		# Clear previous selection
 		if is_tile_selected and selected_tile != Vector2i(-1, -1):
 			highlight_layer.erase_cell(selected_tile)
+
 		# Select new tile
 		selected_tile = tile_coords
 		is_tile_selected = true
+
 		# Show selected highlight
 		highlight_layer.set_cell(selected_tile, 1, SELECTED_TILE)
+
 		# Update space info panel with selected tile's info
-		var space_num = _get_space_from_tile_coords(tile_coords)
+		var space_num := _get_space_from_tile_coords(tile_coords)
 		if space_num >= 0:
 			space_info_panel.update_space_display(space_num)
+
 
 func _is_valid_board_tile(coords: Vector2i) -> bool:
 	# Check if coordinates are on the board perimeter (Monopoly-style)
 	var x = coords.x
 	var y = coords.y
+
 	# Bottom edge
 	if y == 10 and x >= 0 and x <= 10:
 		return true
@@ -313,12 +354,15 @@ func _is_valid_board_tile(coords: Vector2i) -> bool:
 	# Left edge
 	if x == 0 and y >= 0 and y <= 10:
 		return true
+
 	return false
+
 
 func _get_space_from_tile_coords(coords: Vector2i) -> int:
 	# Use the same logic as piece.gd's get_space_from_coords
 	var x = coords.x
 	var y = coords.y
+
 	# Handle corners explicitly
 	if x == 10 and y == 0:
 		return 0 # Go (top-right corner)
@@ -328,22 +372,29 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 		return 20 # Free Parking (bottom-left corner)
 	if x == 0 and y == 0:
 		return 30 # Go to Jail (top-left corner)
+
 	# Right edge: spaces 1-9 (x=10, y=1 to 9)
 	if x == 10 and y > 0 and y < 10:
 		return y
+
 	# Bottom edge: spaces 11-19 (y=10, x=9 to 1)
 	if y == 10 and x > 0 and x < 10:
 		return 10 + (10 - x)
+
 	# Left edge: spaces 21-29 (x=0, y=9 to 1)
 	if x == 0 and y > 0 and y < 10:
 		return 20 + (10 - y)
+
 	# Top edge: spaces 31-39 (y=0, x=1 to 9)
 	if y == 0 and x > 0 and x < 10:
 		return 30 + x
+
 	return -1
+
 
 func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 	# Move the piece forward by the total dice value
 	if piece:
 		piece.move_forward(total)
 	print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
+

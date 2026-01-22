@@ -1,0 +1,140 @@
+[gd_scene load_steps=5 format=3 uid="uid://e1sg7t8v1rk0"]
+
+[ext_resource type="Script" uid="uid://btel5475shx7m" path="res://scenes/chance_card_popup.gd" id="1_mhufo"]
+[ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_k0jgk"]
+[ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_rlfmp"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rr1nq"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="SilicateCardPopup" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_mhufo")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1026.0
+offset_bottom = 768.0
+mouse_filter = 1
+
+[node name="DimBackground" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="CenterContainer" type="CenterContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 0.9710001
+offset_right = -2.0
+offset_bottom = 22.271973
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="Control/CenterContainer"]
+custom_minimum_size = Vector2(620, 310)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_rr1nq")
+
+[node name="PanelContainer" type="MarginContainer" parent="Control/CenterContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CardType" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_fonts/font = ExtResource("2_k0jgk")
+theme_override_font_sizes/font_size = 16
+text = "Card Type"
+horizontal_alignment = 1
+
+[node name="HSeparator3" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CardInfoContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="CardDescription" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardInfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_k0jgk")
+theme_override_font_sizes/font_size = 16
+text = "Card Information"
+
+[node name="HSeparator5" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CardEffectContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_k0jgk")
+theme_override_font_sizes/font_size = 16
+text = "You will"
+
+[node name="Effect" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_k0jgk")
+theme_override_font_sizes/font_size = 16
+text = "[effect]"
+
+[node name="EffectValue" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_k0jgk")
+theme_override_font_sizes/font_size = 16
+text = "[effect value]"
+
+[node name="HSeparator4" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="CloseButton" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(100, 32)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_rlfmp")
+theme_override_font_sizes/font_size = 16
+text = "Close"

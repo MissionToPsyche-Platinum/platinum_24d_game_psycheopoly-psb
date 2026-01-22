@@ -2,34 +2,28 @@ extends Ownable
 
 class_name PropertySpace
 
-var _property_name: String
 var _initial_price: int
 var _default_rent: int
-var _rent_upgrade1: int
-var _rent_upgrade2: int
-var _rent_upgrade3: int
-var _rent_upgrade4: int
+var _one_data_rent: int
+var _two_data_rent: int
+var _three_data_rent: int
+var _four_data_rent: int
+var _discovery_rent: int
 var _upgrade_cost: int
 var _mortgage_value: int
 
+var _current_upgrades: int
 
-func _init(
-	property_name: String,
-	initial_price: int,
-	default_rent: int,
-	rent_upgrade1: int,
-	rent_upgrade2: int,
-	rent_upgrade3: int,
-	rent_upgrade4: int,
-	upgrade_cost: int,
-	mortgage_value: int
-) -> void:
-	_property_name = property_name
-	_initial_price = initial_price
-	_default_rent = default_rent
-	_rent_upgrade1 = rent_upgrade1
-	_rent_upgrade2 = rent_upgrade2
-	_rent_upgrade3 = rent_upgrade3
-	_rent_upgrade4 = rent_upgrade4
-	_upgrade_cost = upgrade_cost
-	_mortgage_value = mortgage_value
+func _init(data: Dictionary) -> void:
+	super(data)
+	_initial_price = data.get("price", 0)
+	_default_rent = data.get("rent", 0)
+	_one_data_rent = data.get("rent1data", 0)
+	_two_data_rent = data.get("rent2data", 0)
+	_three_data_rent = data.get("rent3data", 0)
+	_four_data_rent = data.get("rent4data", 0)
+	_discovery_rent = data.get("rentDiscovery", 0)
+	_upgrade_cost = data.get("dataCost", 0)
+	_mortgage_value = data.get("mortgage", 0)
+
+	_current_upgrades = 0

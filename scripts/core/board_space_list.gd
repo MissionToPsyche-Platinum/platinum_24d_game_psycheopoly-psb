@@ -16,13 +16,17 @@ static func _create_board() -> Array[GameSpace]:
 		var space: GameSpace
 		match data.get("type", ""):
 			"property":
-				space = PropertySpace.new(
-					data.get("name", ""),
-					data.get("price", 0),
-					0, 0, 0, 0, 0, 0, 0  # rent tiers not in SpaceData yet
-				)
-			"instrument", "planet":
-				space = Ownable.new()
+				space = PropertySpace.new(data)
+			"instrument":
+				space = InstrumentSpace.new(data)
+			"planet":
+				space = PlanetSpace.new(data)
+			"card":
+				space = CardSpace.new(data)
+			"cost":
+				space = ExpenseSpace.new(data)
+			"corner":
+				space = SpecialSpace.new(data)
 			_:
 				space = GameSpace.new()
 		result.append(space)
@@ -37,4 +41,4 @@ static func get_space_info(space_num: int) -> Dictionary:
 
 static func is_purchasable(space_num: int) -> bool:
 	var info = get_space_info(space_num)
-	return info.has("type") and (info.type == "property" or info.type == "instrument")
+	return info.has("type") and (info.type == "property" or info.type == "instrument" or info.type == "planet")
