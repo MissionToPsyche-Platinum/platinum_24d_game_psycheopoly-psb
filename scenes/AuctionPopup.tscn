@@ -205,7 +205,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "+$50"
 
-[node name="BidMax" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
+[node name="BidPlus100" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Max"
+text = "+$100
+"

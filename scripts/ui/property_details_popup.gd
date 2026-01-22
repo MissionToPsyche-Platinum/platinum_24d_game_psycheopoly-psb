@@ -1,4 +1,5 @@
 extends CanvasLayer
+signal close_pressed
 
 # Load space data
 const SpaceData = preload("res://scripts/core/space_data.gd")
@@ -195,7 +196,9 @@ func _hide_all_details() -> void:
 	additional_info_container.visible = false
 
 
+# 
 # Called when close button is pressed
 func _on_close_pressed() -> void:
 	visible = false
+	emit_signal("close_pressed")
 	print("Popup closed")
