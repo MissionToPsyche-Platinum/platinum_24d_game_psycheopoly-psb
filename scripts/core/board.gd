@@ -148,6 +148,9 @@ func _setup_auction_popup() -> void:
 
 	# When Auction -> Details
 	auction_popup.details_requested.connect(_on_auction_details_requested)
+	
+	# When Auction -> Pass
+	auction_popup.pass_requested.connect(_on_auction_pass_requested)
 
 	# When Details -> Close (go back to auction)
 	property_details_popup.close_pressed.connect(_on_property_details_closed)
@@ -238,6 +241,19 @@ func _on_auction_details_requested() -> void:
 		property_details_popup.call("show_space_details", space_num)
 	else:
 		push_warning("PropertyDetailsPopup missing show_space_details(space_num)")
+
+func _on_auction_pass_requested() -> void:
+	# v1 (single-player / no turn system yet):
+	# Just close the auction UI.
+	if auction_popup:
+		auction_popup.hide_popup()
+
+	print("Auction: current player passed (v1: close UI).")
+
+	# TODO LATER
+	# Make sure that when user presses pass, the UI doesn't close, but waits for all bids to finish
+	# Maybe have something like -> AuctionManager.player_passed(GameState.current_player_index)
+
 
 
 func _on_property_details_closed() -> void:

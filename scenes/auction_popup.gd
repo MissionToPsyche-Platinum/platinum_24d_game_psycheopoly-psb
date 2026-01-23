@@ -1,6 +1,5 @@
 extends CanvasLayer
 #TODO:
-# WHen user clicks pass, they pass correctly
 #add sounds to the button press as feedback
 # add a green floating dollar amount as visual confirmation that the user bid on selected amount
 # add funnctionality that it deducts from user balance
@@ -50,6 +49,8 @@ var current_space_num: int = -1
 	"CenterContainer/Panel/PanelContainer/VBoxContainer/PropertyType"
 )
 
+@onready var sfx_click: AudioStreamPlayer = $SfxClick
+
 
 # ============================
 # Ready
@@ -76,12 +77,21 @@ func _ready() -> void:
 # ============================
 
 func _on_details_pressed() -> void:
+	if sfx_click:
+		sfx_click.pitch_scale = randf_range(0.95, 1.05)
+		sfx_click.play()
 	emit_signal("details_requested")
 
 func _on_pass_pressed() -> void:
+	if sfx_click:
+		sfx_click.pitch_scale = randf_range(0.95, 1.05)
+		sfx_click.play()
 	emit_signal("pass_requested")
 
 func _on_bid_pressed() -> void:
+	if sfx_click:
+		sfx_click.pitch_scale = randf_range(0.95, 1.05)
+		sfx_click.play()
 	# Toggle bid increment row
 	bid_controls.visible = !bid_controls.visible
 

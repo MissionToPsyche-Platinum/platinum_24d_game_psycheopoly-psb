@@ -8,6 +8,8 @@ signal close_pressed
 @onready var details_container: VBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer
 @onready var owner_label: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/OwnerContainer/OwnerLabel
 @onready var close_button: Button = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer/CloseButton
+@onready var sfx_click: AudioStreamPlayer = $SfxClick
+
 
 # Detail row references
 @onready var rent_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer/RentContainer/Value
@@ -27,6 +29,8 @@ signal close_pressed
 @onready var collaboration_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/CollaborationContainer/Value
 @onready var data_point_cost: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DataPointCostContainer/Value
 @onready var discovery_cost: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AdditionalInfoContainer/DiscoveryCostContainer/Value
+
+
 
 # Current space being displayed
 var current_space: int = 0
@@ -194,8 +198,13 @@ func _hide_all_details() -> void:
 
 
 # 
+
 # Called when close button is pressed
 func _on_close_pressed() -> void:
+	if sfx_click:
+		sfx_click.pitch_scale = randf_range(0.95, 1.05) # optional polish
+		sfx_click.play()
+
 	visible = false
 	emit_signal("close_pressed")
 	print("Popup closed")
