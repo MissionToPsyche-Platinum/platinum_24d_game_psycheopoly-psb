@@ -252,7 +252,7 @@ func _on_auction_pass_requested() -> void:
 
 	# TODO LATER
 	# Make sure that when user presses pass, the UI doesn't close, but waits for all bids to finish
-	# Maybe have something like -> AuctionManager.player_passed(GameState.current_player_index)
+	# Maybe have something like an AuctionManager script.
 
 
 
