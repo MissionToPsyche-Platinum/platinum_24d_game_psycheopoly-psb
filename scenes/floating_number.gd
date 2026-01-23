@@ -4,7 +4,7 @@ extends Label
 @export var duration: float = 0.35
 @export var start_scale: float = 1.0
 @export var end_scale: float = 1.10
-@export var color_ok: Color = Color("#39e26f") # green
+@export var color_ok: Color = Color("#39e26f") 
 
 func play(value: int) -> void:
 	text = str(value)

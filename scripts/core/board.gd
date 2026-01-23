@@ -233,7 +233,7 @@ func _on_auction_details_requested() -> void:
 	var space_num: int = auction_popup.current_space_num
 	print("Auction details requested for space:", space_num)
 
-	# IMPORTANT: don't call hide_popup() because it resets current_space_num
+	#  don't call hide_popup() because it resets current_space_num
 	auction_popup.visible = false
 
 	# Show the property details popup
@@ -243,7 +243,7 @@ func _on_auction_details_requested() -> void:
 		push_warning("PropertyDetailsPopup missing show_space_details(space_num)")
 
 func _on_auction_pass_requested() -> void:
-	# v1 (single-player / no turn system yet):
+	# single-player / no turn system yet:
 	# Just close the auction UI.
 	if auction_popup:
 		auction_popup.hide_popup()

@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://h6y63q4jrlvn"]
+[gd_scene load_steps=7 format=3 uid="uid://h6y63q4jrlvn"]
 
 [ext_resource type="Script" uid="uid://dd03fthymldm6" path="res://scenes/auction_popup.gd" id="1_in6qw"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_y4eys"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="3_0uw6r"]
 [ext_resource type="AudioStream" uid="uid://eksgsp2mwq0t" path="res://assets/audio/click2.wav" id="4_y4eys"]
+[ext_resource type="AudioStream" uid="uid://07mn7uq51wn1" path="res://assets/audio/money.wav" id="5_0uw6r"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.15, 0.15, 0.2, 0.95)
@@ -214,4 +215,8 @@ text = "+$100
 
 [node name="SfxClick" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("4_y4eys")
+volume_db = -6.0
+
+[node name="SfxBidOk" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_0uw6r")
 volume_db = -6.0

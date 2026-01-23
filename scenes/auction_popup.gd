@@ -1,10 +1,12 @@
 extends CanvasLayer
 #TODO:
-# add funnctionality that it deducts from user balance (handled by auction manager)
-
-# ============================
-# Signals (emitted to GameBoard / Auction Manager)
-# ============================
+# maybe add a buffer or cushoion so the bid butttons aren't so close ot "details, bid, pass"
+# maybe have the feedback of the green floating number stay on screen just a tick or two longer
+# when user selects money to bid, it makes sure the user has available funds to bid once bid closes...
+# final total gets deducted from player balance
+# ======================================
+# Signals (communicates with Game Board)
+# ======================================
 
 const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 const FloatingNumberScene := preload("res://scenes/FloatingNumber.tscn")
@@ -45,6 +47,8 @@ var current_space_num: int = -1
 )
 
 @onready var sfx_click: AudioStreamPlayer = $SfxClick
+@onready var sfx_bid_ok: AudioStreamPlayer = $SfxBidOk
+
 
 # ============================
 # Ready
@@ -79,16 +83,30 @@ func _on_bid_pressed() -> void:
 	bid_controls.visible = !bid_controls.visible
 
 func _emit_bid_increment(amount: int, from_button: Control) -> void:
-	# Visual confirmation (polish)
+	# SFX: bid accepted 
+	if sfx_bid_ok:
+		_play_ui(sfx_bid_ok, 0.98, 1.05)
+	else:
+		_play_ui(sfx_click, 0.98, 1.05)
+
+	# Visual confirmation / floating number when button pressed
 	_spawn_floating_number(amount, from_button)
 
-	# Let AuctionManager validate + apply the bid
 	emit_signal("bid_increment_requested", amount)
 
 func _play_click() -> void:
-	if sfx_click:
-		sfx_click.pitch_scale = randf_range(0.95, 1.05)
-		sfx_click.play()
+	_play_ui(sfx_click, 0.95, 1.05)
+
+func _play_ui(player: AudioStreamPlayer, pitch_min := 0.97, pitch_max := 1.03) -> void:
+	if player and player.stream:
+		player.pitch_scale = randf_range(pitch_min, pitch_max)
+
+		#  prevent sound stacking when spamming buttons
+		if player.playing:
+			player.stop()
+
+		player.play()
+
 
 # ============================
 # Public Helpers
@@ -131,24 +149,25 @@ func hide_popup() -> void:
 	bid_controls.visible = false
 	current_space_num = -1
 
-# ============================
-# Floating Number Polish
-# ============================
+
+# ========================================
+# Floating Number Animation for bid button
+# ========================================
 
 func _spawn_floating_number(amount: int, from_button: Control) -> void:
 	var n := FloatingNumberScene.instantiate() as Control
 
-	# Add to popup root overlay (NOT into an HBox/VBox container)
+	# Add to popup root overlay 
 	ui_root.add_child(n)
 
-	# Button center in GLOBAL space
+	# Button center in the global space
 	var button_center_global: Vector2 = from_button.global_position + (from_button.size * 0.5)
 
-	# Convert GLOBAL -> ui_root LOCAL space (works even when Control has no to_local)
+	# Convert gl;obal to ui_root local space
 	var local_pos: Vector2 = ui_root.get_global_transform().affine_inverse() * button_center_global
 
-	# Place slightly above button center
-	n.position = local_pos + Vector2(0, -8)
+	# Place a little above button center
+	n.position = local_pos + Vector2(0, -17)
 
 	# Run its tween
 	if n.has_method("play"):
