@@ -78,6 +78,33 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 	players[seller].balance += purchase_price
 	_transfer_property(property, buyer)
 
+func _payRent(property: Ownable, player:int) ->void:
+	var rent = 0
+	match property.get_script().get_global_name():
+		"property_space":
+			match property._current_upgrades:
+				0:  
+					rent = property._default_rent
+				1:  
+					rent = property._one_data_rent
+				2:  
+					rent = property._two_data_rent
+				3:  
+					rent = property._three_data_rent
+				4:  
+					rent = property._four_data_rent
+				5:  
+					rent = property._discovery_rent
+				_:  
+					rent = 0
+		"instrument_space": # TODO: Implement checking for number of instrument spaces
+			rent = 0
+		"planet_space": # TODO: Implement checking dice roll for determining rent
+			rent = 0
+	players[player].balance -= rent
+	players[property.owner] += rent
+	player_money_updated.emit(players[player])
+	player_money_updated.emit(players[property.owner])
 
 
 func set_difficulty(new_difficulty: String) -> void:
