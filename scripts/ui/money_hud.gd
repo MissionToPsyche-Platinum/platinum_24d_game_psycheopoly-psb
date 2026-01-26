@@ -70,6 +70,7 @@ func _ready() -> void:
 		push_warning("GameState autoload not found. " +
 					 "HUD will only update if set_cash/set_assets are called manually.")
 
+	GameState.player_money_updated.emit(GameState.players[0]) # update the starting balance of the first player
 
 # ---------------------------------------------------------------------------
 #  other scripts should be able  call these directly if we want
@@ -111,8 +112,8 @@ func update_from_player(player: Object) -> void:
 			assets = int(player["assets_value"])
 	else:
 		# Node/Resource-style player data
-		if "cash" in player:
-			cash = int(player.cash)
+		if "balance" in player:
+			cash = int(player.balance)
 		elif player.has_method("get_cash"):
 			cash = int(player.get_cash())
 
