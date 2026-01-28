@@ -80,7 +80,7 @@ func _transfer_property(property: Ownable, player: int) -> void:
 ## Purchases a property - called by the purchase property signal
 func _purchase_property(property: Ownable, player: int) -> void:
 	if (property._is_owned):
-		_purchase_owned_property(property, player, property._player_owner, property._initial_price) # currently we assume that the pruchase price is the same as the default, though this will not always be the case
+		_purchase_owned_property(property, player, property._player_owner, property._initial_price) # currently we assume that the purchase price is the same as the default, though this will not always be the case
 	else:
 		_purchase_unowned_property(property, player, property._initial_price)
 
@@ -100,10 +100,13 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 	player_money_updated.emit(players[seller])
 	_transfer_property(property, buyer)
 
-func _pay_rent(property: Ownable, player:int) ->void:
+func _pay_rent(property: Ownable, player: int) -> void:
+	if !property._is_owned or property._player_owner == player:
+		return
+		
 	var rent = 0
 	match property.get_script().get_global_name():
-		"property_space":
+		"PropertySpace":
 			match property._current_upgrades:
 				0:  
 					rent = property._default_rent
@@ -119,14 +122,14 @@ func _pay_rent(property: Ownable, player:int) ->void:
 					rent = property._discovery_rent
 				_:  
 					rent = 0
-		"instrument_space": # TODO: Implement checking for number of instrument spaces
+		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
 			rent = 0
-		"planet_space": # TODO: Implement checking dice roll for determining rent
+		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
 			rent = 0
 	players[player].balance -= rent
-	players[property.owner] += rent
+	players[property._player_owner].balance += rent
 	player_money_updated.emit(players[player])
-	player_money_updated.emit(players[property.owner])
+	player_money_updated.emit(players[property._player_owner])
 
 
 func set_difficulty(new_difficulty: String) -> void:
