@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://e1sg7t8v1rk0"]
 
-[ext_resource type="Script" uid="uid://btel5475shx7m" path="res://scenes/chance_card_popup.gd" id="1_mhufo"]
+[ext_resource type="Script" uid="uid://btel5475shx7m" path="res://scripts/ui/chance_card_popup.gd" id="1_mhufo"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_k0jgk"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_rlfmp"]
 

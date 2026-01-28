@@ -1,0 +1,220 @@
+[gd_scene load_steps=7 format=3 uid="uid://h6y63q4jrlvn"]
+
+[ext_resource type="Script" uid="uid://dd03fthymldm6" path="res://scripts/ui/auction_popup.gd" id="1_in6qw"]
+[ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_y4eys"]
+[ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="3_0uw6r"]
+[ext_resource type="AudioStream" uid="uid://eksgsp2mwq0t" path="res://assets/audio/click2.wav" id="4_y4eys"]
+[ext_resource type="AudioStream" uid="uid://07mn7uq51wn1" path="res://assets/audio/money.wav" id="5_0uw6r"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="AuctionPopup" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_in6qw")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DimBackground" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="CenterContainer" type="CenterContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="Panel" parent="Control/CenterContainer"]
+custom_minimum_size = Vector2(520, 310)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="PanelContainer" type="MarginContainer" parent="Control/CenterContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ColorBar" type="ColorRect" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+color = Color(0.4, 0.7, 1, 1)
+
+[node name="PropertyName" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+theme_override_fonts/font = ExtResource("2_y4eys")
+theme_override_font_sizes/font_size = 16
+text = "Property Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PropertyType" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_fonts/font = ExtResource("3_0uw6r")
+theme_override_font_sizes/font_size = 16
+text = "Property Type"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AuctionContainer" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="AuctionMessage" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+text = "Auction in progress...Highest bid wins
+when all other players pass."
+autowrap_mode = 2
+
+[node name="HSeparator_Auction" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+
+[node name="CurrentBidRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+
+[node name="CurrentBidLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/CurrentBidRow"]
+layout_mode = 2
+text = "Current Bid:"
+
+[node name="CurrentBidValue" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/CurrentBidRow"]
+layout_mode = 2
+text = "$0"
+
+[node name="HighestBidderRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+
+[node name="HighestBidderLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/HighestBidderRow"]
+layout_mode = 2
+text = "Highest Bidder:"
+
+[node name="HighestBidderValue" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/HighestBidderRow"]
+layout_mode = 2
+text = "None"
+
+[node name="TurnRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/TurnRow"]
+layout_mode = 2
+text = "Waiting For:"
+
+[node name="Turn Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/TurnRow"]
+layout_mode = 2
+text = "Player 1"
+
+[node name="HSeparator_Bidders" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+
+[node name="BiddersTitle" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+text = "Bidders:"
+
+[node name="BiddersList" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+layout_mode = 2
+
+[node name="BidderRow1" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList"]
+layout_mode = 2
+
+[node name="PlayerName" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList/BidderRow1"]
+layout_mode = 2
+text = "Player 1"
+
+[node name="PlayerCash" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList/BidderRow1"]
+layout_mode = 2
+text = "$500"
+
+[node name="PlayerStatus" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList/BidderRow1"]
+layout_mode = 2
+text = "Active"
+
+[node name="ButtonsRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DetailsButton" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Details"
+
+[node name="BidButton" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Bid"
+
+[node name="PassButton" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Pass"
+
+[node name="BidControlRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="BidPlus10" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "+$10"
+
+[node name="BidPlus50" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "+$50"
+
+[node name="BidPlus100" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "+$100"
+
+[node name="SfxClick" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_y4eys")
+volume_db = -6.0
+
+[node name="SfxBidOk" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_0uw6r")
+volume_db = -6.0

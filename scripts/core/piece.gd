@@ -206,6 +206,9 @@ func update_position() -> void:
 		
 		# Use different layouts based on player count
 		match player_count:
+			1:
+				# 1 player: centered (no offset needed)
+				pass
 			2:
 				# 2 players: side by side horizontally
 				match player_index:

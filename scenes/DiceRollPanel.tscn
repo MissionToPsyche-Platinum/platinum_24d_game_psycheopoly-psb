@@ -1,6 +1,6 @@
 [gd_scene load_steps=11 format=3 uid="uid://bg4e1oscnyeqv"]
 
-[ext_resource type="Script" uid="uid://cq6j5leeq8t2i" path="res://scenes/dice_roll_panel.gd" id="1_gn10m"]
+[ext_resource type="Script" uid="uid://cq6j5leeq8t2i" path="res://scripts/ui/dice_roll_panel.gd" id="1_gn10m"]
 [ext_resource type="Texture2D" uid="uid://bebuqr8rjcy55" path="res://assets/images/sprites/1dot_dice.png" id="2_uv78u"]
 [ext_resource type="Texture2D" uid="uid://ckbc2luigl007" path="res://assets/images/sprites/2_dots.png" id="3_uw5oi"]
 [ext_resource type="Texture2D" uid="uid://dl2dfbwftfa4v" path="res://assets/images/sprites/3_dots.png" id="4_rxcad"]
