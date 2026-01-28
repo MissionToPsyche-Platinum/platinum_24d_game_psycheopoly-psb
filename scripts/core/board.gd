@@ -301,7 +301,7 @@ func _on_pay_pressed(space_num: int) -> void:
 	var space_info = SpaceDataRef.get_space_info(space_num)
 	var amount = space_info.get("amount", 0)
 	if amount > 0:
-		var player_idx = 0 # Assume player 1 for now
+		var player_idx = GameState.current_player_index
 		GameState.players[player_idx].balance -= amount
 		print("Paid $%d for %s" % [amount, space_info.name])
 		# Update HUD
