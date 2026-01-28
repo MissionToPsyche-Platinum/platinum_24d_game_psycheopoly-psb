@@ -54,12 +54,12 @@ func _ready() -> void:
 	for i in range(GameState.player_count):
 		var piece_instance = piece_scene.instantiate()
 		piece_instance.tile_map = tile_map_layer
+		piece_instance.player_index = i  # Store player index for offset calculation
+		piece_instance.player_count = GameState.player_count  # Store total player count for scaling
 		add_child(piece_instance)
 		pieces.append(piece_instance)
 		# Position piece at GO
 		piece_instance.move_to(10, 0)
-		# Offset pieces slightly so they're visible when on same space
-		piece_instance.position.x += i * 8
 	
 	# Set current piece to first player
 	current_piece = pieces[0]

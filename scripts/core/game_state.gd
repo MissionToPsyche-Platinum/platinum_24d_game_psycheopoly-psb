@@ -49,7 +49,7 @@ var board: Array[GameSpace] = []
 var _spaces_list := BoardSpaceList.new()
 
 # TODO: Eventually we want to be able to set this before a game starts
-var player_count: int = 4
+var player_count: int = 5
 
 # Holds the player state data models
 var players: Array[PlayerState] = []

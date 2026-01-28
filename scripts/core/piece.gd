@@ -5,12 +5,23 @@ signal space_changed(space_num: int)
 # Signal emitted when the piece finishes all movement steps
 signal movement_finished(final_space: int)
 
+# Piece positioning offsets (adjust these to change spacing)
+const MAX_PIECE_OFFSET_X: float = 6.0  # Max horizontal spacing (for 6 players)
+const MAX_PIECE_OFFSET_Y: float = 4.0  # Max vertical spacing (for 6 players)
+const MAX_PLAYER_COUNT: int = 6  # Maximum number of players for scaling
+
 # Current board position (grid coordinates)
 var board_x: int = 0
 var board_y: int = 0
 
 # Current position on the board (0-39 like Monopoly)
 var board_space: int = 0
+
+# Player index (0-5 for positioning offsets)
+var player_index: int = 0
+
+# Total number of players (used for offset scaling)
+var player_count: int = 6
 
 # Reference to the TileMapLayer
 @export var tile_map: TileMapLayer
@@ -149,7 +160,67 @@ func _move_one_step() -> void:
 func update_position() -> void:
 	if tile_map:
 		var world_pos = tile_map.map_to_local(Vector2i(board_x, board_y))
-		position = world_pos
+		
+		# Calculate offset based on player index and player count
+		var offset_x: float = 0.0
+		var offset_y: float = 0.0
+		
+		# Use different layouts based on player count
+		match player_count:
+			2:
+				# 2 players: side by side horizontally
+				match player_index:
+					0: offset_x = -MAX_PIECE_OFFSET_X
+					1: offset_x = MAX_PIECE_OFFSET_X
+			3:
+				# 3 players: triangle pattern
+				match player_index:
+					0:  # Top center
+						offset_y = -MAX_PIECE_OFFSET_Y
+					1:  # Bottom left
+						offset_x = -MAX_PIECE_OFFSET_X
+						offset_y = MAX_PIECE_OFFSET_Y
+					2:  # Bottom right
+						offset_x = MAX_PIECE_OFFSET_X
+						offset_y = MAX_PIECE_OFFSET_Y
+			4:
+				# 4 players: 2x2 grid
+				match player_index:
+					0:  # Top-left
+						offset_x = -MAX_PIECE_OFFSET_X
+						offset_y = -MAX_PIECE_OFFSET_Y
+					1:  # Top-right
+						offset_x = MAX_PIECE_OFFSET_X
+						offset_y = -MAX_PIECE_OFFSET_Y
+					2:  # Bottom-left
+						offset_x = -MAX_PIECE_OFFSET_X
+						offset_y = MAX_PIECE_OFFSET_Y
+					3:  # Bottom-right
+						offset_x = MAX_PIECE_OFFSET_X
+						offset_y = MAX_PIECE_OFFSET_Y
+			5, 6:
+				# 5-6 players: 2x3 grid
+				match player_index:
+					0:  # Top-left
+						offset_x = -MAX_PIECE_OFFSET_X
+						offset_y = -MAX_PIECE_OFFSET_Y
+					1:  # Top-right
+						offset_x = MAX_PIECE_OFFSET_X
+						offset_y = -MAX_PIECE_OFFSET_Y
+					2:  # Middle-left
+						offset_x = -MAX_PIECE_OFFSET_X
+						offset_y = 0.0
+					3:  # Middle-right
+						offset_x = MAX_PIECE_OFFSET_X
+						offset_y = 0.0
+					4:  # Bottom-left
+						offset_x = -MAX_PIECE_OFFSET_X
+						offset_y = MAX_PIECE_OFFSET_Y
+					5:  # Bottom-right
+						offset_x = MAX_PIECE_OFFSET_X
+						offset_y = MAX_PIECE_OFFSET_Y
+		
+		position = world_pos + Vector2(offset_x, offset_y)
 
 
 # Check if position is on the board edge (Monopoly-style: 11 spaces per side = 40 total)
