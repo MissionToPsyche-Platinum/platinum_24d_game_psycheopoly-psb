@@ -76,8 +76,9 @@ func _ready() -> void:
 		piece_instance.move_to(10, 0)
 	
 	# Set current piece to first player (also set 'piece' for backward compatibility)
-	current_piece = pieces[0]
-	piece = current_piece
+	if pieces.size() > 0:
+		current_piece = pieces[0]
+		piece = current_piece
 	
 	# Instantiate the space info panel
 	space_info_panel = SpaceInfoPanelScene.instantiate()
@@ -112,11 +113,16 @@ func _ready() -> void:
 	GameState.turn_started.connect(_on_turn_started)
 	GameState.turn_ended.connect(_on_turn_ended)
 	
-	# Start the game
-	GameState.start_game()
+	# Start the game (deferred to ensure all UI components are ready)
+	call_deferred("_start_game_deferred")
 	
 	# Update panel after everything is ready
 	call_deferred("_initial_panel_update")
+
+
+func _start_game_deferred() -> void:
+	## Deferred game start to ensure all UI components are initialized
+	GameState.start_game()
 
 
 func _setup_dice_roll_ui() -> void:
@@ -221,16 +227,31 @@ func _initial_panel_update() -> void:
 
 func _on_turn_started(player_index: int) -> void:
 	print("Board: Turn started for player ", player_index)
+	
+	# Validate player_index is within bounds
+	if player_index < 0 or player_index >= pieces.size():
+		push_error("Invalid player_index: %d (pieces size: %d)" % [player_index, pieces.size()])
+		return
+	
+	if player_index >= GameState.players.size():
+		push_error("Invalid player_index for GameState.players: %d" % player_index)
+		return
+	
 	# Switch to the new player's piece
 	if current_piece:
-		current_piece.space_changed.disconnect(_on_piece_space_changed)
-		current_piece.movement_finished.disconnect(_on_piece_movement_finished)
+		# Safely disconnect signals only if they are connected
+		if current_piece.space_changed.is_connected(_on_piece_space_changed):
+			current_piece.space_changed.disconnect(_on_piece_space_changed)
+		if current_piece.movement_finished.is_connected(_on_piece_movement_finished):
+			current_piece.movement_finished.disconnect(_on_piece_movement_finished)
 	
 	current_piece = pieces[player_index]
 	
-	# Connect signals for new piece
-	current_piece.space_changed.connect(_on_piece_space_changed)
-	current_piece.movement_finished.connect(_on_piece_movement_finished)
+	# Connect signals for new piece (avoid duplicate connections)
+	if not current_piece.space_changed.is_connected(_on_piece_space_changed):
+		current_piece.space_changed.connect(_on_piece_space_changed)
+	if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
+		current_piece.movement_finished.connect(_on_piece_movement_finished)
 	
 	# Reset turn state
 	GameState.players[player_index].has_rolled = false

@@ -56,7 +56,7 @@ var board: Array[GameSpace] = []
 var _spaces_list := BoardSpaceList.new()
 
 # TODO: Eventually we want to be able to set this before a game starts
-var player_count: int = 5
+var player_count: int = 6
 
 # Holds the player state data models
 var players: Array[PlayerState] = []
@@ -179,9 +179,10 @@ func start_game() -> void:
 	game_active = true
 	current_player_index = 0
 	var current_player = get_current_player()
-	print("Game started! ", current_player.player_name, "'s turn")
-	emit_signal("current_player_changed", current_player)
-	emit_signal("turn_started", current_player_index)
+	if current_player:
+		print("Game started! ", current_player.player_name, "'s turn")
+		emit_signal("current_player_changed", current_player)
+		emit_signal("turn_started", current_player_index)
 
 
 func next_player() -> void:
@@ -197,9 +198,10 @@ func next_player() -> void:
 	
 	# Emit signals for new player
 	var current_player = get_current_player()
-	print(current_player.player_name, "'s turn")
-	emit_signal("current_player_changed", current_player)
-	emit_signal("turn_started", current_player_index)
+	if current_player:
+		print(current_player.player_name, "'s turn")
+		emit_signal("current_player_changed", current_player)
+		emit_signal("turn_started", current_player_index)
 
 
 func change_player_cash(player: PlayerState, delta: int) -> void:
