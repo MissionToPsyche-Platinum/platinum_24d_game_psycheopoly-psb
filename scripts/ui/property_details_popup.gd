@@ -197,8 +197,6 @@ func _hide_all_details() -> void:
 	additional_info_container.visible = false
 
 
-# 
-
 # Called when close button is pressed
 func _on_close_pressed() -> void:
 	if sfx_click:

@@ -1,6 +1,6 @@
 extends CanvasLayer
 #TODO:
-# maybe add a buffer or cushoion so the bid butttons aren't so close ot "details, bid, pass"
+# maybe add a buffer or cushion so the bid buttons aren't so close to "details, bid, pass"
 # maybe have the feedback of the green floating number stay on screen just a tick or two longer
 # when user selects money to bid, it makes sure the user has available funds to bid once bid closes...
 # final total gets deducted from player balance
@@ -163,7 +163,7 @@ func _spawn_floating_number(amount: int, from_button: Control) -> void:
 	# Button center in the global space
 	var button_center_global: Vector2 = from_button.global_position + (from_button.size * 0.5)
 
-	# Convert gl;obal to ui_root local space
+	# Convert global to ui_root local space
 	var local_pos: Vector2 = ui_root.get_global_transform().affine_inverse() * button_center_global
 
 	# Place a little above button center
