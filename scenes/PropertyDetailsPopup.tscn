@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://dagj7g6588uep"]
+[gd_scene load_steps=6 format=3 uid="uid://dagj7g6588uep"]
 
 [ext_resource type="Script" uid="uid://b81bc8f8xyv8y" path="res://scripts/ui/property_details_popup.gd" id="1_details_script"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_font_bold"]
+[ext_resource type="AudioStream" uid="uid://eksgsp2mwq0t" path="res://assets/audio/click2.wav" id="4_mks7t"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.15, 0.15, 0.2, 0.95)
@@ -18,10 +19,10 @@ corner_radius_bottom_left = 4
 
 [node name="PropertyDetailsPopup" type="CanvasLayer"]
 layer = 100
-follow_viewport_enabled = false
 script = ExtResource("1_details_script")
 
 [node name="Control" type="Control" parent="."]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -36,7 +37,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.6)
 
 [node name="CenterContainer" type="CenterContainer" parent="Control"]
@@ -311,3 +311,7 @@ layout_mode = 2
 theme_override_fonts/font = ExtResource("3_font_bold")
 theme_override_font_sizes/font_size = 16
 text = "Close"
+
+[node name="SfxClick" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_mks7t")
+volume_db = -6.0
