@@ -22,6 +22,18 @@ signal current_player_changed(player)
 ## Emitted when a player's money changes (MoneyHUD should listen to this).
 signal player_money_updated(player)
 
+## Emitted when a player's turn starts
+signal turn_started(player_index: int)
+
+## Emitted when a player's turn ends
+signal turn_ended(player_index: int)
+
+## Emitted when a player rolls the dice
+signal player_rolled(player: PlayerState)
+
+## Emitted when a player completes an action (purchase, pay, etc.)
+signal action_completed()
+
 
 # ------------------------------------------------------------------------------
 # Global difficulty (used by StartMenu.gd)
@@ -42,6 +54,12 @@ var player_count: int = 4
 # Holds the player state data models
 var players: Array[PlayerState] = []
 
+# Current player's index (0-based)
+var current_player_index: int = 0
+
+# Whether a game is currently active
+var game_active: bool = false
+
 
 func _ready() -> void:
 	_setup_board()
@@ -54,9 +72,12 @@ func _setup_board() -> void:
 
 func _setup_players() -> void:
 	for i in range(player_count):
-		players.append(PlayerState.new())
-		add_child(players[i])
-		players[i].balance = 1500  # TODO: Change to constant
+		var player = PlayerState.new()
+		player.player_id = i
+		player.player_name = "Player " + str(i + 1)
+		player.balance = 1500  # TODO: Change to constant
+		players.append(player)
+		add_child(player)
 
 
 ## Changes the ownership of an ownable property
@@ -94,37 +115,44 @@ func set_difficulty(new_difficulty: String) -> void:
 ## them. We can change implementations later, no big deal.
 
 
-func get_current_player():
-	## PLACEHOLDER:
-	##   - Currently returns null, because we don't have a real player model yet.
-	##   - When the real Player system is implemented, this should return the
-	##     current player object / dictionary/array.
+func get_current_player() -> PlayerState:
+	## Returns the current active player
+	if players.size() > 0 and current_player_index < players.size():
+		return players[current_player_index]
 	return null
 
 
 func start_game() -> void:
-	## PLACEHOLDER:
-	##   - Call this from the main scene if we want a single place to
-	##     initialize GameState.
-	##   - Emits current_player_changed with whatever get_current_player()
-	##     returns (currently null).
-	emit_signal("current_player_changed", get_current_player())
+	## Initialize the game and start the first player's turn
+	game_active = true
+	current_player_index = 0
+	var current_player = get_current_player()
+	print("Game started! ", current_player.player_name, "'s turn")
+	emit_signal("current_player_changed", current_player)
+	emit_signal("turn_started", current_player_index)
 
 
 func next_player() -> void:
-	## PLACEHOLDER:
-	##   - for "end turn / advance player" logic.
-	##   - Right now it just re-emits current_player_changed with whatever
-	##     get_current_player() returns (null).
-	emit_signal("current_player_changed", get_current_player())
+	## Advance to the next player's turn
+	if not game_active:
+		return
+	
+	# Emit turn ended for current player
+	emit_signal("turn_ended", current_player_index)
+	
+	# Advance to next player
+	current_player_index = (current_player_index + 1) % player_count
+	
+	# Emit signals for new player
+	var current_player = get_current_player()
+	print(current_player.player_name, "'s turn")
+	emit_signal("current_player_changed", current_player)
+	emit_signal("turn_started", current_player_index)
 
 
-func change_player_cash(player, _delta: int) -> void:
-	## PLACEHOLDER:
-	##   - Intended to adjust a player's cash 
-	##   - Currently does nothing to player and only emits a signal.
-	##   - When the real Player model is ready, this function is a good place
-	##     to:
-	##         • modify player.cash (or whatever field we use)
-	##         • then emit player_money_updated(player)
-	emit_signal("player_money_updated", player)
+func change_player_cash(player: PlayerState, delta: int) -> void:
+	## Adjust a player's cash and emit update signal
+	if player:
+		player.balance += delta
+		print(player.player_name, " cash changed by ", delta, " (new balance: $", player.balance, ")")
+		emit_signal("player_money_updated", player)

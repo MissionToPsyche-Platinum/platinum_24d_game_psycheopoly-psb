@@ -36,6 +36,7 @@ offset_bottom = -8.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 4
+mouse_filter = 2
 script = ExtResource("1_gn10m")
 dice_faces = Array[Texture2D]([ExtResource("2_uv78u"), ExtResource("3_uw5oi"), ExtResource("4_rxcad"), ExtResource("5_yqaqp"), ExtResource("6_2tjk1"), ExtResource("7_kd3ah")])
 die1_path = NodePath("RollPanel/MarginContainer/VBox/DiceRow/Die1")

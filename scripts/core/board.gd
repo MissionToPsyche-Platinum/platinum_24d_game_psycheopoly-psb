@@ -1,7 +1,10 @@
 extends Node2D
 
-# Reference to the piece
-var piece: Node2D = null
+# Array of player pieces
+var pieces: Array[Node2D] = []
+
+# Reference to the current player's piece
+var current_piece: Node2D = null
 
 # Tile map references
 var tile_map_layer: TileMapLayer = null
@@ -19,9 +22,17 @@ var dice_roll_ui: Control = null
 const MoneyHUDScene = preload("res://scenes/MoneyHUD.tscn")
 var money_hud: Control = null
 
+# Player name HUD reference and scene
+const PlayerNameHUDScene = preload("res://scenes/PlayerNameHUD.tscn")
+var player_name_hud: Control = null
+
 # Space action popup reference and scene
 const SpaceActionPopupScene = preload("res://scenes/SpaceActionPopup.tscn")
 var space_action_popup: CanvasLayer = null
+
+# End turn button reference and scene
+const EndTurnButtonScene = preload("res://scenes/EndTurnButton.tscn")
+var end_turn_button: Control = null
 
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
@@ -34,21 +45,27 @@ const SELECTED_TILE := Vector2i(5, 1)  # Highlighted texture
 
 
 func _ready() -> void:
-	# Load and spawn the piece
-	var piece_scene = preload("res://scenes/Piece.tscn")
-	piece = piece_scene.instantiate()
-	add_child(piece)
-	
-	# Get reference to the TileMapLayer
+	# Get reference to the TileMapLayer first
 	tile_map_layer = $TileMap/TileMapLayer
-	piece.tile_map = tile_map_layer
-	
-	# Get reference to highlight layer
 	highlight_layer = $TileMap/HighlightLayer
+	
+	# Load and spawn pieces for all players
+	var piece_scene = preload("res://scenes/Piece.tscn")
+	for i in range(GameState.player_count):
+		var piece_instance = piece_scene.instantiate()
+		piece_instance.tile_map = tile_map_layer
+		add_child(piece_instance)
+		pieces.append(piece_instance)
+		# Position piece at GO
+		piece_instance.move_to(10, 0)
+		# Offset pieces slightly so they're visible when on same space
+		piece_instance.position.x += i * 8
+	
+	# Set current piece to first player
+	current_piece = pieces[0]
 	
 	# Instantiate the space info panel
 	space_info_panel = SpaceInfoPanelScene.instantiate()
-	# CanvasLayers must be added to the SceneTree directly
 	get_tree().root.call_deferred("add_child", space_info_panel)
 	
 	# Instantiate the dice roll UI
@@ -57,18 +74,29 @@ func _ready() -> void:
 	# Instantiate the money HUD
 	_setup_money_hud()
 	
+	# Instantiate the player name HUD
+	_setup_player_name_hud()
+	
 	# Instantiate space action popup
 	_setup_space_action_popup()
 	
-	# Connect piece's space_changed signal to update the panel (only when no tile selected)
-	if space_info_panel:
-		piece.space_changed.connect(_on_piece_space_changed)
+	# Instantiate end turn button
+	_setup_end_turn_button()
 	
-	# Connect piece's movement_finished signal to show action popup
-	piece.movement_finished.connect(_on_piece_movement_finished)
-
-	# Start the piece at position (10, 0) on the board (space 0 - GO)
-	piece.move_to(10, 0)
+	# Connect current piece's space_changed signal
+	if space_info_panel and current_piece:
+		current_piece.space_changed.connect(_on_piece_space_changed)
+	
+	# Connect current piece's movement_finished signal
+	if current_piece:
+		current_piece.movement_finished.connect(_on_piece_movement_finished)
+	
+	# Connect to GameState turn signals
+	GameState.turn_started.connect(_on_turn_started)
+	GameState.turn_ended.connect(_on_turn_ended)
+	
+	# Start the game
+	GameState.start_game()
 	
 	# Update panel after everything is ready
 	call_deferred("_initial_panel_update")
@@ -105,6 +133,20 @@ func _setup_money_hud() -> void:
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
 
+func _setup_player_name_hud() -> void:
+	# Create a CanvasLayer to hold the player name HUD
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "PlayerNameHUDLayer"
+	canvas_layer.layer = 9  # Same level as money HUD
+	
+	# Instantiate the player name HUD
+	player_name_hud = PlayerNameHUDScene.instantiate()
+	canvas_layer.add_child(player_name_hud)
+	
+	# Add to scene tree
+	get_tree().root.call_deferred("add_child", canvas_layer)
+
+
 func _setup_space_action_popup() -> void:
 	space_action_popup = SpaceActionPopupScene.instantiate()
 	get_tree().root.call_deferred("add_child", space_action_popup)
@@ -118,9 +160,54 @@ func _setup_space_action_popup() -> void:
 	space_action_popup.close_pressed.connect(_on_close_pressed)
 
 
+func _setup_end_turn_button() -> void:
+	# Create a CanvasLayer to hold the end turn button (always on top)
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "EndTurnButtonLayer"
+	canvas_layer.layer = 11  # Above dice roll layer
+	
+	# Instantiate the end turn button
+	end_turn_button = EndTurnButtonScene.instantiate()
+	canvas_layer.add_child(end_turn_button)
+	
+	# Add to scene tree
+	get_tree().root.call_deferred("add_child", canvas_layer)
+
+
 func _initial_panel_update() -> void:
-	if space_info_panel and piece:
-		space_info_panel.update_space_display(piece.board_space)
+	if space_info_panel and current_piece:
+		space_info_panel.update_space_display(current_piece.board_space)
+
+
+func _on_turn_started(player_index: int) -> void:
+	print("Board: Turn started for player ", player_index)
+	# Switch to the new player's piece
+	if current_piece:
+		current_piece.space_changed.disconnect(_on_piece_space_changed)
+		current_piece.movement_finished.disconnect(_on_piece_movement_finished)
+	
+	current_piece = pieces[player_index]
+	
+	# Connect signals for new piece
+	current_piece.space_changed.connect(_on_piece_space_changed)
+	current_piece.movement_finished.connect(_on_piece_movement_finished)
+	
+	# Reset turn state
+	GameState.players[player_index].has_rolled = false
+	GameState.players[player_index].doubles_count = 0
+	
+	# Update info panel
+	if space_info_panel:
+		space_info_panel.update_space_display(current_piece.board_space)
+
+
+func _on_turn_ended(player_index: int) -> void:
+	print("Board: Turn ended for player ", player_index)
+
+
+func end_turn() -> void:
+	## Called when player wants to end their turn
+	GameState.next_player()
 
 
 func _on_piece_movement_finished(space_num: int) -> void:
@@ -132,11 +219,14 @@ func _on_piece_movement_finished(space_num: int) -> void:
 
 func _on_purchase_pressed(space_num: int) -> void:
 	print("Player wants to purchase space: ", space_num)
+	# TODO: Implement actual purchase logic
+	GameState.action_completed.emit()
 
 
 func _on_auction_pressed(space_num: int) -> void:
 	print("Auction started for space: ", space_num)
 	# TODO: Implement auction system logic
+	GameState.action_completed.emit()
 
 
 func _on_move_pressed(space_num: int) -> void:
@@ -144,8 +234,9 @@ func _on_move_pressed(space_num: int) -> void:
 	if space_num == 30:
 		print("Solar Storm! Transporting to Launch Pad...")
 		# Teleport to space 10 (Launch Pad)
-		if piece:
-			piece.teleport_to_space(10)
+		if current_piece:
+			current_piece.teleport_to_space(10)
+	GameState.action_completed.emit()
 
 
 func _on_draw_card_pressed(space_num: int) -> void:
@@ -154,6 +245,7 @@ func _on_draw_card_pressed(space_num: int) -> void:
 	# Determine if Silicate (blue) or Metal (orange) based on space_num
 	var space_info = SpaceData.get_space_info(space_num)
 	print("Card type: ", space_info.name)
+	GameState.action_completed.emit()
 
 
 func _on_pay_pressed(space_num: int) -> void:
@@ -167,10 +259,12 @@ func _on_pay_pressed(space_num: int) -> void:
 		print("Paid $%d for %s" % [amount, space_info.name])
 		# Update HUD
 		GameState.player_money_updated.emit(GameState.players[player_idx])
+	GameState.action_completed.emit()
 
 
 func _on_close_pressed() -> void:
 	print("Player closed the action popup")
+	GameState.action_completed.emit()
 
 
 func _on_piece_space_changed(space_num: int) -> void:
@@ -228,9 +322,9 @@ func _handle_mouse_click(event: InputEventMouseButton) -> void:
 	# Debug quick teleport: Shift + Left Click
 	if event.shift_pressed:
 		var space_num = _get_space_from_tile_coords(tile_coords)
-		if space_num >= 0 and piece:
+		if space_num >= 0 and current_piece:
 			print("DEBUG: Quick teleporting piece to space ", space_num)
-			piece.teleport_to_space(space_num)
+			current_piece.teleport_to_space(space_num)
 			return
 
 	# If clicking the same tile, deselect it
@@ -245,7 +339,8 @@ func _handle_mouse_click(event: InputEventMouseButton) -> void:
 			highlight_layer.set_cell(hovered_tile, 1, HOVER_TILE)
 		
 		# Show player's current position info
-		space_info_panel.update_space_display(piece.board_space)
+		if current_piece:
+			space_info_panel.update_space_display(current_piece.board_space)
 	else:
 		# Clear previous selection
 		if is_tile_selected and selected_tile != Vector2i(-1, -1):
@@ -316,7 +411,16 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 
 
 func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
-	# Move the piece forward by the total dice value
-	if piece:
-		piece.move_forward(total)
+	# Move the current player's piece forward by the total dice value
+	if current_piece:
+		current_piece.move_forward(total)
 		print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
+		
+		# Mark player as having rolled
+		var current_player = GameState.get_current_player()
+		if current_player:
+			current_player.has_rolled = true
+			if is_doubles:
+				current_player.doubles_count += 1
+			# Notify that player has rolled
+			GameState.player_rolled.emit(current_player)
