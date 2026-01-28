@@ -1,6 +1,13 @@
 [gd_scene load_steps=11 format=3 uid="uid://byeqtctiiqjkl"]
 
 [ext_resource type="Script" uid="uid://cf7wevrjmhi8t" path="res://scenes/settings_menu.gd" id="1_yelko"]
+[ext_resource type="Shader" path="res://assets/shaders/starfield.gdshader" id="2_starfield"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_stars"]
+shader = ExtResource("2_starfield")
+shader_parameter/bg_color = Color(0, 0, 0, 0)
+shader_parameter/star_density = 0.005
+shader_parameter/pixel_size = 2.0
 
 [sub_resource type="Gradient" id="Gradient_yelko"]
 colors = PackedColorArray(0.16862746, 0.05882353, 0.22745098, 1, 0.47843137, 0.18431373, 0.22745098, 1)
@@ -115,6 +122,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = SubResource("GradientTexture2D_1yw23")
+
+[node name="Stars" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_stars")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="."]
 unique_name_in_owner = true
