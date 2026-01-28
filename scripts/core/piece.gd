@@ -25,12 +25,12 @@ var player_count: int = 6
 
 # Player colors for the shader
 const PLAYER_COLORS: Array[Color] = [
-	Color(0.9, 0.2, 0.2),   # Soft Red
-	Color(0.2, 0.5, 0.9),   # Royal Blue
-	Color(0.2, 0.8, 0.2),   # Forest Green
-	Color(0.9, 0.8, 0.1),   # Golden Yellow
-	Color(0.9, 0.5, 0.1),   # Burnt Orange
-	Color(0.8, 0.3, 0.8),   # Plum Purple
+	Color(0.9, 0.2, 0.2),   # Red
+	Color(0.2, 0.5, 0.9),   # Blue
+	Color(0.2, 0.8, 0.2),   # Green
+	Color(0.9, 0.8, 0.1),   # Yellow
+	Color(0.9, 0.5, 0.1),   # Orange
+	Color(0.8, 0.3, 0.8),   # Purple
 ]
 
 # Reference to the TileMapLayer
