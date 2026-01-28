@@ -23,8 +23,20 @@ var player_index: int = 0
 # Total number of players (used for offset scaling)
 var player_count: int = 6
 
+# Player colors for the shader
+const PLAYER_COLORS: Array[Color] = [
+	Color(0.9, 0.2, 0.2),   # Soft Red
+	Color(0.2, 0.5, 0.9),   # Royal Blue
+	Color(0.2, 0.8, 0.2),   # Forest Green
+	Color(0.9, 0.8, 0.1),   # Golden Yellow
+	Color(0.9, 0.5, 0.1),   # Burnt Orange
+	Color(0.8, 0.3, 0.8),   # Plum Purple
+]
+
 # Reference to the TileMapLayer
 @export var tile_map: TileMapLayer
+
+@onready var sprite: Sprite2D = $Sprite
 
 # Movement animation settings
 var _is_moving: bool = false
@@ -35,6 +47,17 @@ var _step_delay: float = 0.2  # Time between each step in seconds
 func _ready() -> void:
 	if tile_map:
 		update_position()
+	
+	_apply_player_color()
+
+
+func _apply_player_color() -> void:
+	if sprite and sprite.material:
+		var color_idx = player_index % PLAYER_COLORS.size()
+		# Create a unique material instance so each piece can have a different color
+		var unique_material = sprite.material.duplicate()
+		unique_material.set_shader_parameter("target_color", PLAYER_COLORS[color_idx])
+		sprite.material = unique_material
 
 
 # Move the piece to a board position
