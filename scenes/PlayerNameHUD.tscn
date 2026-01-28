@@ -27,7 +27,7 @@ script = ExtResource("1_script")
 layout_mode = 1
 offset_left = 10.0
 offset_top = 10.0
-offset_right = 150.0
+offset_right = 166.0
 offset_bottom = 50.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_player_name")
 
@@ -43,9 +43,19 @@ theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 5
 
-[node name="NameLabel" type="Label" parent="Panel/MarginContainer"]
+[node name="HBox" type="HBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ColorIndicator" type="ColorRect" parent="Panel/MarginContainer/HBox"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="NameLabel" type="Label" parent="Panel/MarginContainer/HBox"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
 text = "Player 1"
+vertical_alignment = 1
 vertical_alignment = 1

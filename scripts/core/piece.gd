@@ -49,6 +49,22 @@ func _ready() -> void:
 		update_position()
 	
 	_apply_player_color()
+	
+	# Connect to game state to highlight if it is our turn
+	GameState.current_player_changed.connect(_on_player_changed)
+	# Check if it's already our turn (for initialization)
+	_on_player_changed(GameState.get_current_player())
+
+
+func _on_player_changed(player: PlayerState) -> void:
+	if not player:
+		return
+	set_highlight(player.player_id == player_index)
+
+
+func set_highlight(active: bool) -> void:
+	if sprite and sprite.material:
+		sprite.material.set_shader_parameter("use_outline", active)
 
 
 func _apply_player_color() -> void:
