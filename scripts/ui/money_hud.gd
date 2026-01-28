@@ -70,6 +70,7 @@ func _ready() -> void:
 		push_warning("GameState autoload not found. " +
 					 "HUD will only update if set_cash/set_assets are called manually.")
 
+	GameState.player_money_updated.emit(GameState.players[0]) # update the starting balance of the first player
 
 # ---------------------------------------------------------------------------
 #  other scripts should be able  call these directly if we want
@@ -91,11 +92,11 @@ func update_from_player(player: Object) -> void:
 	## Method for convenience: update HUD from a "player" object or dictionary.
 	##
 	## PLACEHOLDER ASSUMPTIONS I AM HAVING ABOUT THE PLAYER
-	##   - player.cash          : int value
+	##   - player.balance       : int value
 	##   - player.assets_value  : int (cash + property values, etc.) value
 	##
 	## If our Player uses different names, change only the field access modifier here
-	## (so for example `player.money` instead of `player.cash`).
+	## (so for example `player.balance` instead of `player.cash`).
 	##
 	if player == null:
 		return
@@ -105,14 +106,14 @@ func update_from_player(player: Object) -> void:
 
 	# Dictionary-style player data
 	if typeof(player) == TYPE_DICTIONARY:
-		if "cash" in player:
-			cash = int(player["cash"])
+		if "balance" in player:
+			cash = int(player["balance"])
 		if "assets_value" in player:
 			assets = int(player["assets_value"])
 	else:
 		# Node/Resource-style player data
-		if "cash" in player:
-			cash = int(player.cash)
+		if "balance" in player:
+			cash = int(player.balance)
 		elif player.has_method("get_cash"):
 			cash = int(player.get_cash())
 
