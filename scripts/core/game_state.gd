@@ -22,6 +22,13 @@ signal current_player_changed(player)
 ## Emitted when a player's money changes (MoneyHUD should listen to this).
 signal player_money_updated(player)
 
+# ------------------------------------------------------------------------------
+# Signals to be called from space action popup
+# ------------------------------------------------------------------------------
+signal pay_rent(property, player)
+
+signal purchase_property(property, player)
+
 
 # ------------------------------------------------------------------------------
 # Global difficulty (used by StartMenu.gd)
@@ -44,6 +51,10 @@ var players: Array[PlayerState] = []
 
 
 func _ready() -> void:
+	# connect signals 
+	pay_rent.connect(_pay_rent)
+	purchase_property.connect(_purchase_property)
+	
 	_setup_board()
 	_setup_players()
 
@@ -66,18 +77,59 @@ func _transfer_property(property: Ownable, player: int) -> void:
 	property._player_owner = player
 
 
+## Purchases a property - called by the purchase property signal
+func _purchase_property(property: Ownable, player: int) -> void:
+	if (property._is_owned):
+		_purchase_owned_property(property, player, property._player_owner, property._initial_price) # currently we assume that the purchase price is the same as the default, though this will not always be the case
+	else:
+		_purchase_unowned_property(property, player, property._initial_price)
+
+
 ## Purchases an unowned property - deducts balance and transfers ownership
 func _purchase_unowned_property(property: Ownable, player: int, purchase_price: int) -> void:
 	players[player].balance -= purchase_price
+	player_money_updated.emit(players[player])
 	_transfer_property(property, player)
 
 
 ## Purchases an owned property - handles money transfer between players
 func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purchase_price: int) -> void:
 	players[buyer].balance -= purchase_price
+	player_money_updated.emit(players[buyer])
 	players[seller].balance += purchase_price
+	player_money_updated.emit(players[seller])
 	_transfer_property(property, buyer)
 
+func _pay_rent(property: Ownable, player: int) -> void:
+	if !property._is_owned or property._player_owner == player:
+		return
+		
+	var rent = 0
+	match property.get_script().get_global_name():
+		"PropertySpace":
+			match property._current_upgrades:
+				0:  
+					rent = property._default_rent
+				1:  
+					rent = property._one_data_rent
+				2:  
+					rent = property._two_data_rent
+				3:  
+					rent = property._three_data_rent
+				4:  
+					rent = property._four_data_rent
+				5:  
+					rent = property._discovery_rent
+				_:  
+					rent = 0
+		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
+			rent = 0
+		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
+			rent = 0
+	players[player].balance -= rent
+	players[property._player_owner].balance += rent
+	player_money_updated.emit(players[player])
+	player_money_updated.emit(players[property._player_owner])
 
 
 func set_difficulty(new_difficulty: String) -> void:
