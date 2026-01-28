@@ -77,7 +77,7 @@ func show_actions(space_num: int) -> void:
 				can_auction = true
 				if space_info.has("price"):
 					var price = space_info.price
-					var player_idx = 0 # TODO: Get current player from GameState
+					var player_idx = GameState.current_player_index
 					if GameState.players[player_idx].balance >= price:
 						can_purchase = true
 						description = "You landed on %s. Would you like to purchase it for $%d or put it up for auction?" % [space_info.name, price]

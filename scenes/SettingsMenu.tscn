@@ -1,6 +1,6 @@
 [gd_scene load_steps=11 format=3 uid="uid://byeqtctiiqjkl"]
 
-[ext_resource type="Script" uid="uid://cf7wevrjmhi8t" path="res://scenes/settings_menu.gd" id="1_yelko"]
+[ext_resource type="Script" uid="uid://cf7wevrjmhi8t" path="res://scripts/ui/settings_menu.gd" id="1_yelko"]
 
 [sub_resource type="Gradient" id="Gradient_yelko"]
 colors = PackedColorArray(0.16862746, 0.05882353, 0.22745098, 1, 0.47843137, 0.18431373, 0.22745098, 1)

@@ -125,6 +125,14 @@ func _ready() -> void:
 
 	roll_button.pressed.connect(_on_roll_pressed)
 	# Connect the button press signal to our handler function.
+	
+	# Connect to GameState turn signals
+	if GameState:
+		GameState.turn_started.connect(_on_turn_started)
+		# Update button states when turn changes
+	
+	# Initialize button states for first player
+	_update_button_states()
 
 func _on_roll_pressed() -> void:
 	# Runs when the Roll button is clicked/pressed.
@@ -240,11 +248,11 @@ func roll_dice() -> void:
 	is_rolling = false
 	# Unlock rolling state.
 
-	roll_button.disabled = false
-	# Re-enable the roll button.
-
 	roll_button.text = _roll_text_idle
 	# Restore the original button label.
+	
+	# Update button states based on turn rules
+	_update_button_states()
 
 func _set_die_faces(v1: int, v2: int) -> void:
 	# Helper: sets die textures based on numeric values 1..6.
@@ -345,3 +353,20 @@ func _current_face_value(die: TextureRect) -> int:
 
 	return 1
 	# If no match found, default to 1.
+
+
+func _on_turn_started(player_index: int) -> void:
+	## Called when a new turn starts
+	print("DicePanel: Turn started for player ", player_index)
+	_update_button_states()
+
+
+func _update_button_states() -> void:
+	## Update button enabled/disabled states based on turn state
+	var current_player = GameState.get_current_player()
+	if not current_player:
+		return
+	
+	# Roll button: enabled if player hasn't rolled yet (and not currently rolling)
+	if roll_button:
+		roll_button.disabled = current_player.has_rolled or is_rolling

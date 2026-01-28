@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3 uid="uid://cq7vx8yh2nfy8"]
+
+[ext_resource type="Script" uid="uid://uc2xavoa08qh" path="res://scripts/ui/end_turn_button.gd" id="1_k3m4p"]
+[ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_font"]
+
+[node name="EndTurnButton" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_k3m4p")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -66.0
+offset_right = 100.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+
+[node name="EndTurnButton" type="Button" parent="CenterContainer"]
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+mouse_filter = 0
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = "End Turn"

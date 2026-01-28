@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://h6y63q4jrlvn"]
 
-[ext_resource type="Script" uid="uid://dd03fthymldm6" path="res://scenes/auction_popup.gd" id="1_in6qw"]
+[ext_resource type="Script" uid="uid://dd03fthymldm6" path="res://scripts/ui/auction_popup.gd" id="1_in6qw"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_y4eys"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="3_0uw6r"]
 [ext_resource type="AudioStream" uid="uid://eksgsp2mwq0t" path="res://assets/audio/click2.wav" id="4_y4eys"]
