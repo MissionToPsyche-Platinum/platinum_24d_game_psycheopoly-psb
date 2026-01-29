@@ -23,16 +23,6 @@ var player_index: int = 0
 # Total number of players (used for offset scaling)
 var player_count: int = 6
 
-# Player colors for the shader
-const PLAYER_COLORS: Array[Color] = [
-	Color(0.9, 0.2, 0.2),   # Red
-	Color(0.2, 0.5, 0.9),   # Blue
-	Color(0.2, 0.8, 0.2),   # Green
-	Color(0.9, 0.8, 0.1),   # Yellow
-	Color(0.9, 0.5, 0.1),   # Orange
-	Color(0.8, 0.3, 0.8),   # Purple
-]
-
 # Reference to the TileMapLayer
 @export var tile_map: TileMapLayer
 
@@ -69,10 +59,10 @@ func set_highlight(active: bool) -> void:
 
 func _apply_player_color() -> void:
 	if sprite and sprite.material:
-		var color_idx = player_index % PLAYER_COLORS.size()
+		var color_idx = player_index % GameState.PLAYER_COLORS.size()
 		# Create a unique material instance so each piece can have a different color
 		var unique_material = sprite.material.duplicate()
-		unique_material.set_shader_parameter("target_color", PLAYER_COLORS[color_idx])
+		unique_material.set_shader_parameter("target_color", GameState.PLAYER_COLORS[color_idx])
 		sprite.material = unique_material
 
 
