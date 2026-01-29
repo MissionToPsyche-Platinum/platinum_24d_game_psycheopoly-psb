@@ -75,6 +75,9 @@ func _ready() -> void:
 		# Position piece at GO
 		piece_instance.move_to(10, 0)
 	
+	# Update initial layouts at GO so pieces aren't overlapping
+	update_piece_layouts_at(0)
+	
 	# Set current piece to first player (also set 'piece' for backward compatibility)
 	if pieces.size() > 0:
 		current_piece = pieces[0]
@@ -271,8 +274,22 @@ func end_turn() -> void:
 	GameState.next_player()
 
 
+# Update piece layouts (offsets) for all pieces on a specific space
+func update_piece_layouts_at(space_index: int) -> void:
+	var pieces_at_space = []
+	for p in pieces:
+		if p.board_space == space_index:
+			pieces_at_space.append(p)
+	
+	for i in range(pieces_at_space.size()):
+		pieces_at_space[i].set_tile_layout(i, pieces_at_space.size())
+
+
 func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
+	# Update layout at destination (centering if alone, offset if with others)
+	update_piece_layouts_at(space_num)
+	
 	if space_action_popup:
 		space_action_popup.show_actions(space_num)
 
@@ -305,7 +322,11 @@ func _on_move_pressed(space_num: int) -> void:
 		print("Solar Storm! Transporting to Launch Pad...")
 		# Teleport to space 10 (Launch Pad)
 		if current_piece:
+			var old_space = current_piece.board_space
 			current_piece.teleport_to_space(10)
+			# Update both spaces
+			update_piece_layouts_at(old_space)
+			update_piece_layouts_at(10)
 	GameState.action_completed.emit()
 
 
@@ -527,7 +548,11 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 	# Move the current player's piece forward by the total dice value
 	if current_piece:
+		var old_space = current_piece.board_space
 		current_piece.move_forward(total)
+		# Update the space we just left so remaining pieces re-center
+		update_piece_layouts_at(old_space)
+		
 		print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
 		
 		# Mark player as having rolled

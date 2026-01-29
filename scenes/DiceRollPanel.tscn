@@ -50,7 +50,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -34.0
-offset_top = -66.0
+offset_top = -20.0
 offset_right = 3.0517578e-05
 grow_horizontal = 2
 grow_vertical = 2
@@ -90,11 +90,15 @@ theme_override_constants/separation = 16
 alignment = 1
 
 [node name="Die1" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
+expand_mode = 1
 stretch_mode = 5
 
 [node name="Die2" type="TextureRect" parent="RollPanel/MarginContainer/VBox/DiceRow"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
+expand_mode = 1
 stretch_mode = 5
 
 [node name="RollButton" type="Button" parent="RollPanel/MarginContainer/VBox"]

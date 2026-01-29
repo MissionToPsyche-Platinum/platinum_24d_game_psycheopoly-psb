@@ -3,7 +3,8 @@ extends Control
 ## End Turn Button UI
 ## Centered button that allows players to end their turn after rolling
 
-@onready var end_turn_button: Button = $CenterContainer/EndTurnButton
+@onready var ui_container: Control = $CenterContainer
+@onready var end_turn_button: Button = $CenterContainer/Panel/MarginContainer/EndTurnButton
 
 func _ready() -> void:
 	# Connect button signal
@@ -16,8 +17,8 @@ func _ready() -> void:
 		GameState.action_completed.connect(_on_action_completed)
 	
 	# Initialize button state (hidden at start)
-	if end_turn_button:
-		end_turn_button.visible = false
+	if ui_container:
+		ui_container.visible = false
 
 
 func _on_end_turn_pressed() -> void:
@@ -36,8 +37,8 @@ func _on_end_turn_pressed() -> void:
 
 func _on_turn_started(_player_index: int) -> void:
 	## Called when a new turn starts - hide button
-	if end_turn_button:
-		end_turn_button.visible = false
+	if ui_container:
+		ui_container.visible = false
 
 
 func _on_action_completed() -> void:
@@ -46,6 +47,6 @@ func _on_action_completed() -> void:
 	if not current_player:
 		return
 	
-	if current_player.has_rolled and end_turn_button:
-		end_turn_button.visible = true
+	if current_player.has_rolled and ui_container:
+		ui_container.visible = true
 

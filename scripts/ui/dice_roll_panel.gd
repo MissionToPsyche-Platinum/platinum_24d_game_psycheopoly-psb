@@ -32,7 +32,7 @@ signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
 # ---------------------------
 # Pop animation (landing feel)
 # ---------------------------
-@export var pop_scale: float = 1.15
+@export var pop_scale: float = 1.08
 # How much to scale up the dice when they land (1.15 = 15% bigger). We can adjust this setting freely to see what we like
 
 @export var pop_time: float = 0.08

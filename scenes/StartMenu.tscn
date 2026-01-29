@@ -10,6 +10,13 @@
 [ext_resource type="AudioStream" uid="uid://daer2kjq6kdv0" path="res://assets/audio/probe_whoosh.wav" id="5_cuvp2"]
 [ext_resource type="Texture2D" uid="uid://ddiym42am7ay3" path="res://assets/images/sprites/asteroid_img.png" id="6_cuvp2"]
 [ext_resource type="PackedScene" uid="uid://byeqtctiiqjkl" path="res://scenes/SettingsMenu.tscn" id="9_sf8pk"]
+[ext_resource type="Shader" path="res://assets/shaders/starfield.gdshader" id="10_starfield"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_stars"]
+shader = ExtResource("10_starfield")
+shader_parameter/bg_color = Color(0, 0, 0, 0)
+shader_parameter/star_density = 0.005
+shader_parameter/pixel_size = 2.0
 
 [sub_resource type="LabelSettings" id="LabelSettings_kcs48"]
 line_spacing = 5.0
@@ -216,6 +223,16 @@ grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("2_kmax6")
 expand_mode = 1
+
+[node name="Stars" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_stars")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="Asteroids" type="Sprite2D" parent="."]
 
