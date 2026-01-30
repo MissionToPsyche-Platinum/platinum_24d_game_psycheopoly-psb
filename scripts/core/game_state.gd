@@ -41,6 +41,13 @@ signal pay_rent(property, player)
 
 signal purchase_property(property, player)
 
+#other signals
+
+signal difficulty_changed(new_value: String)
+signal colorblind_mode_changed(enabled: bool)
+signal setup_changed()
+
+
 
 # ------------------------------------------------------------------------------
 # Global difficulty (used by StartMenu.gd)
@@ -77,6 +84,16 @@ var current_player_index: int = 0
 # Whether a game is currently active
 var game_active: bool = false
 
+# Accessibility
+var colorblind_mode: bool = false
+
+# Setup selections (filled by GameSetupScreen before starting board)
+# Each: { "name": String, "color_index": int }
+var setup_humans: Array[Dictionary] = []
+
+var setup_human_count: int = 1
+
+
 
 func _ready() -> void:
 	# connect signals 
@@ -92,13 +109,35 @@ func _setup_board() -> void:
 
 
 func _setup_players() -> void:
+	# Clear old players if reconfiguring
+	for p in players:
+		if is_instance_valid(p):
+			p.queue_free()
+	players.clear()
+
 	for i in range(player_count):
 		var player = PlayerState.new()
 		player.player_id = i
-		player.player_name = "Player " + str(i + 1)
-		player.balance = 1500  # TODO: Change to constant
+		player.balance = 1500
+
+		# Apply human config if provided
+		if i < setup_humans.size():
+			var cfg: Dictionary = setup_humans[i]
+
+			player.player_name = str(cfg.get("name", "Player " + str(i + 1)))
+		
+			var color_index: int = int(cfg.get("color_index", i))
+			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
+			player.player_color = PLAYER_COLORS[color_index]
+		else:
+	# AI player
+			player.player_name = "AI " + str(i + 1)
+			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
+
+
 		players.append(player)
 		add_child(player)
+
 
 
 ## Changes the ownership of an ownable property
@@ -164,10 +203,25 @@ func _pay_rent(property: Ownable, player: int) -> void:
 
 
 func set_difficulty(new_difficulty: String) -> void:
-	## Simple setter used by StartMenu.gd
-	## You can add validation or mapping here later if needed.
 	difficulty = new_difficulty
+	emit_signal("difficulty_changed", difficulty)
 	print("GameState difficulty set to: ", difficulty)
+
+func set_colorblind_mode(enabled: bool) -> void:
+	if enabled == colorblind_mode:
+		return
+	colorblind_mode = enabled
+	emit_signal("colorblind_mode_changed", colorblind_mode)
+	emit_signal("setup_changed")
+
+func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
+	player_count = total_players
+	setup_humans = humans.duplicate(true)
+	setup_human_count = setup_humans.size()
+
+	_setup_players() 
+
+	emit_signal("setup_changed")
 
 
 # ------------------------------------------------------------------------------

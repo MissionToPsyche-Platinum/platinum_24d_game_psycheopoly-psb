@@ -6,6 +6,8 @@ extends Control
 @onready var ai_value: Label = %AIValue
 @onready var summary_label: Label = %SummaryLabel
 @onready var humans_list: VBoxContainer = %HumansList
+@onready var start_button: Button = %StartButton
+@onready var back_button: Button = %BackButton
 
 
 
@@ -46,9 +48,15 @@ func _ready() -> void:
 	# Wire signals
 	total_option.item_selected.connect(_on_total_selected)
 	human_option.item_selected.connect(_on_human_selected)
+	
+	start_button.pressed.connect(_on_start_pressed)
+	back_button.pressed.connect(_on_back_pressed)
+
 
 	_update_summary()
 	_rebuild_human_rows()
+	_refresh_start_button()
+
 
 
 # ---------------------------
@@ -113,12 +121,16 @@ func _on_total_selected(index: int) -> void:
 	var value := total_option.get_item_id(index)
 	_set_total_players(value)
 	_rebuild_human_rows()
+	_apply_setup_to_gamestate()
+
 
 
 func _on_human_selected(index: int) -> void:
 	var value := human_option.get_item_id(index)
 	_set_human_players(value)
 	_rebuild_human_rows()
+	_apply_setup_to_gamestate()
+
 
 func _rebuild_human_rows() -> void:
 	# Ensure human_configs matches human_players length
@@ -141,6 +153,7 @@ func _rebuild_human_rows() -> void:
 
 	# After rows exist, enforce uniqueness (no duplicate names/colors)
 	_apply_uniqueness_rules()
+	_refresh_start_button()
 
 
 func _create_human_row(player_index: int) -> HBoxContainer:
@@ -159,7 +172,7 @@ func _create_human_row(player_index: int) -> HBoxContainer:
 	var name_opt := OptionButton.new()
 	name_opt.name = "NameOption"
 	name_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_fill_optionbutton(name_opt, NAME_POOL)
+	_fill_optionbutton(name_opt, NAME_POOL, "Select Name")
 	row.add_child(name_opt)
 	
 	var swatch := ColorRect.new()
@@ -172,7 +185,7 @@ func _create_human_row(player_index: int) -> HBoxContainer:
 	var color_opt := OptionButton.new()
 	color_opt.name = "ColorOption"
 	color_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_fill_optionbutton(color_opt, COLOR_POOL)
+	_fill_optionbutton(color_opt, COLOR_POOL, "Select Color")
 	row.add_child(color_opt)
 
 	# Load existing selections (if any)
@@ -185,21 +198,30 @@ func _create_human_row(player_index: int) -> HBoxContainer:
 	name_opt.item_selected.connect(func(idx: int) -> void:
 		human_configs[player_index]["name"] = name_opt.get_item_text(idx)
 		_apply_uniqueness_rules()
-	)
+		_apply_setup_to_gamestate()
+		_refresh_start_button()
 
+)
+
+	
+	
 	color_opt.item_selected.connect(func(idx: int) -> void:
 		human_configs[player_index]["color"] = color_opt.get_item_text(idx)
 		_update_swatch_from_dropdown(swatch, color_opt)
 		_apply_uniqueness_rules()
+		_apply_setup_to_gamestate()
+		_refresh_start_button()
+
 )
+
 
 
 	return row
 
 
-func _fill_optionbutton(opt: OptionButton, values: Array) -> void:
+func _fill_optionbutton(opt: OptionButton, values: Array, placeholder: String) -> void:
 	opt.clear()
-	opt.add_item("-- Select --", -1)
+	opt.add_item(placeholder, -1)
 
 	for i in range(values.size()):
 		var v = values[i]
@@ -207,6 +229,7 @@ func _fill_optionbutton(opt: OptionButton, values: Array) -> void:
 			opt.add_item(str(v["label"]), i)
 		else:
 			opt.add_item(str(v), i)
+
 
 
 
@@ -242,13 +265,14 @@ func _apply_uniqueness_rules() -> void:
 		var name_opt: OptionButton = row.get_node("NameOption")
 		var color_opt: OptionButton = row.get_node("ColorOption")
 
-		var current_name := name_opt.get_item_text(name_opt.selected)
-		var current_color := color_opt.get_item_text(color_opt.selected)
+		var current_name := "" if name_opt.selected == 0 else name_opt.get_item_text(name_opt.selected)
+		var current_color := "" if color_opt.selected == 0 else color_opt.get_item_text(color_opt.selected)
+
 
 		# Names
 		for i in range(name_opt.item_count):
 			var text := name_opt.get_item_text(i)
-			if text == "-- Select --":
+			if i == 0:
 				name_opt.set_item_disabled(i, false)
 				continue
 
@@ -258,7 +282,7 @@ func _apply_uniqueness_rules() -> void:
 		# Colors
 		for i in range(color_opt.item_count):
 			var text := color_opt.get_item_text(i)
-			if text == "-- Select --":
+			if i == 0:
 				color_opt.set_item_disabled(i, false)
 				continue
 
@@ -277,3 +301,59 @@ func _update_swatch_from_dropdown(swatch: ColorRect, opt: OptionButton) -> void:
 		return
 
 	swatch.color = COLOR_POOL[id]["color"]
+	
+func _color_label_to_index(label: String) -> int:
+	for i in range(COLOR_POOL.size()):
+		if COLOR_POOL[i]["label"] == label:
+			return i
+	return 0 # fallback (Red)
+
+func _on_start_pressed() -> void:
+	if start_button.disabled:
+		return
+
+	_apply_setup_to_gamestate()
+
+	get_tree().change_scene_to_file("res://scenes/GameBoard.tscn")
+
+
+func _on_back_pressed() -> void:
+	# Return to main menu
+	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
+	
+func _is_setup_valid() -> bool:
+	# Must have correct number of human configs
+	if human_configs.size() != human_players:
+		return false
+
+	for cfg in human_configs:
+		var n: String = str(cfg.get("name", ""))
+		var c: String = str(cfg.get("color", ""))
+
+		# Must not be blank
+		if n.strip_edges() == "" or c.strip_edges() == "":
+			return false
+
+		# Must not be the placeholder
+		if n == "-- Select --" or c == "-- Select --":
+			return false
+
+	return true
+
+
+func _refresh_start_button() -> void:
+	var ok := _is_setup_valid()
+	start_button.disabled = not ok
+
+
+
+func _apply_setup_to_gamestate() -> void:
+	var humans_for_game: Array[Dictionary] = []
+
+	for cfg in human_configs:
+		humans_for_game.append({
+			"name": cfg["name"],
+			"color_index": _color_label_to_index(cfg["color"])
+		})
+
+	GameState.apply_setup(total_players, humans_for_game)

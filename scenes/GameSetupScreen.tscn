@@ -41,9 +41,9 @@ layout_mode = 2
 
 [node name="PlayerMargin" type="MarginContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard"]
 layout_mode = 2
-theme_override_constants/margin_left = 16
+theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
+theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 16
 
 [node name="PlayerVBox" type="VBoxContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin"]
@@ -57,7 +57,7 @@ text = "Players"
 [node name="Grid" type="GridContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
 layout_mode = 2
 theme_override_constants/h_separation = 16
-theme_override_constants/v_separation = 10
+theme_override_constants/v_separation = 18
 columns = 2
 
 [node name="TotalLabel" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
@@ -71,6 +71,7 @@ size_flags_horizontal = 3
 
 [node name="HumanLabel" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
 layout_mode = 2
+theme_override_constants/line_spacing = 3
 text = "Total Human Players:"
 
 [node name="HumanOption" type="OptionButton" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
@@ -92,15 +93,19 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Human 1 AI 1 Total: 2"
 
+[node name="Gap_1" type="Control" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+
 [node name="HumansCard" type="PanelContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
 layout_mode = 2
 
 [node name="HumansMargin" type="MarginContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard"]
 layout_mode = 2
 theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
 [node name="HumansVbox" type="VBoxContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard"]
 layout_mode = 2
@@ -108,12 +113,32 @@ theme_override_constants/separation = 12
 
 [node name="HumansTitle" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
 layout_mode = 2
-text = "Human Players:"
+text = "Human Players: Please choose a name and token color for each Human Player."
+
+[node name="Gap_2" type="Control" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
 
 [node name="HumansList" type="VBoxContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 18
 
-[node name="HumansHint" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
+[node name="BottomRow" type="HBoxContainer" parent="CenterPanel/MarginContainer/Vbox"]
 layout_mode = 2
-text = "Please choose a name and token color for each human player."
+
+[node name="BackButton" type="Button" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Back"
+
+[node name="Spacer" type="Control" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StartButton" type="Button" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Start Game"
