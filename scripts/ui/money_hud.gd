@@ -51,18 +51,18 @@ func _ready() -> void:
 	
 	# General note for us as a reminder
 	#   - If these signal names change, update them here.
-	#   - If GameState stops being an autoload, this section will need to be
+	#   - If GameController stops being an autoload, this section will need to be
 	#     adjusted to use get_node() instead, I think. Just FYI
 	#
-	if GameState:
-		if GameState.has_signal("current_player_changed"):
-			GameState.current_player_changed.connect(_on_current_player_changed)
+	if GameController:
+		if GameController.has_signal("current_player_changed"):
+			GameController.current_player_changed.connect(_on_current_player_changed)
 		else:
 			push_warning("GameState has no 'current_player_changed' signal. " +
 						 "HUD will not auto-update on turn changes.")
 
-		if GameState.has_signal("player_money_updated"):
-			GameState.player_money_updated.connect(_on_player_money_updated)
+		if GameController.has_signal("player_money_updated"):
+			GameController.player_money_updated.connect(_on_player_money_updated)
 		else:
 			push_warning("GameState has no 'player_money_updated' signal. " +
 						 "HUD will not auto-update on money changes.")
@@ -70,7 +70,7 @@ func _ready() -> void:
 		push_warning("GameState autoload not found. " +
 					 "HUD will only update if set_cash/set_assets are called manually.")
 
-	GameState.player_money_updated.emit(GameState.players[0]) # update the starting balance of the first player
+	GameController.player_money_updated.emit(GameState.players[0]) # update the starting balance of the first player
 
 # ---------------------------------------------------------------------------
 #  other scripts should be able  call these directly if we want

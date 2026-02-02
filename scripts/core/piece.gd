@@ -52,9 +52,9 @@ func _ready() -> void:
 	_apply_player_color()
 	
 	# Connect to game state to highlight if it is our turn
-	GameState.current_player_changed.connect(_on_player_changed)
+	GameController.current_player_changed.connect(_on_player_changed)
 	# Check if it's already our turn (for initialization)
-	_on_player_changed(GameState.get_current_player())
+	_on_player_changed(GameController.get_current_player())
 
 
 func _on_player_changed(player: PlayerState) -> void:

@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameState="*res://scripts/core/game_state.gd"
+GameController="*res://scripts/core/game_controller.gd"
 
 [display]
 
@@ -33,5 +34,5 @@ theme/custom_font="uid://bsp5euc03804b"
 
 [rendering]
 
-environment/defaults/default_clear_color=Color(0.0235294, 0.0235294, 0.0588235, 1)
 textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0.0235294, 0.0235294, 0.0588235, 1)
