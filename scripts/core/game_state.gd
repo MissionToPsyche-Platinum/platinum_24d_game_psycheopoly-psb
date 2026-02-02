@@ -96,12 +96,13 @@ var setup_human_count: int = 1
 
 
 func _ready() -> void:
-	# connect signals 
 	pay_rent.connect(_pay_rent)
 	purchase_property.connect(_purchase_property)
-	
+
 	_setup_board()
-	_setup_players()
+	# Don't call _setup_players() here.
+	# Players will be created when apply_setup() is called.
+	# there was a bug where token colors were not matching player selections bc of this i beleive.
 
 
 func _setup_board() -> void:
@@ -219,9 +220,12 @@ func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	setup_humans = humans.duplicate(true)
 	setup_human_count = setup_humans.size()
 
-	_setup_players() 
+	current_player_index = 0  
+	game_active = false       
 
+	_setup_players()
 	emit_signal("setup_changed")
+
 
 
 # ------------------------------------------------------------------------------

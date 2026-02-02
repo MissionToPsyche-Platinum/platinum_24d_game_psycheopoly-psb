@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bx8ec1enup4gj"]
+[gd_scene load_steps=3 format=3 uid="uid://bx8ec1enup4gj"]
 
 [ext_resource type="Script" uid="uid://dfj0guqdndb4m" path="res://scripts/core/game_setup_screen.gd" id="1_086pk"]
+[ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/ui_background.tscn" id="2_fdyvb"]
 
 [node name="GameSetupScreen" type="Control"]
 layout_mode = 3
@@ -10,6 +11,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_086pk")
+
+[node name="UIBackground" parent="." instance=ExtResource("2_fdyvb")]
+layout_mode = 1
 
 [node name="CenterPanel" type="PanelContainer" parent="."]
 layout_mode = 1

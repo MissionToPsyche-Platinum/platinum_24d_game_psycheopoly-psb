@@ -17,7 +17,7 @@ const MAX_PLAYERS := 6
 
 # Some space themed names for players to choose from. Will add more, just something to get started
 const NAME_POOL := [
-	"Nova", "Atlas", "Orion", "Vega", "Luna", "Helios"
+	"Nova", "Atlas", "Orion", "Vega", "Luna", "Helios", "Titan", "Cosmo", "Phoenix", "Voyager", "Odyssey", "Pathfinder", "Artemis"
 ]
 
 #Colors for the player tokens
@@ -26,9 +26,10 @@ const COLOR_POOL := [
 	{"label":"Blue",   "color": Color(0.25, 0.45, 0.90)},
 	{"label":"Green",  "color": Color(0.25, 0.80, 0.35)},
 	{"label":"Yellow", "color": Color(0.95, 0.85, 0.25)},
-	{"label":"Purple", "color": Color(0.70, 0.35, 0.90)},
-	{"label":"Orange", "color": Color(0.95, 0.55, 0.20)}
+	{"label":"Orange", "color": Color(0.95, 0.55, 0.20)}, 
+	{"label":"Purple", "color": Color(0.70, 0.35, 0.90)}  
 ]
+
 
 
 
@@ -137,8 +138,9 @@ func _rebuild_human_rows() -> void:
 	while human_configs.size() < human_players:
 		human_configs.append({
 			"name": "",
-			"color": ""
+			"color_id": -1
 		})
+
 	while human_configs.size() > human_players:
 		human_configs.pop_back()
 
@@ -191,30 +193,35 @@ func _create_human_row(player_index: int) -> HBoxContainer:
 	# Load existing selections (if any)
 	var cfg: Dictionary = human_configs[player_index]
 	_select_if_present(name_opt, cfg.get("name", ""))
-	_select_if_present(color_opt, cfg.get("color", ""))
-	_update_swatch_from_dropdown(swatch, color_opt)
 
+	var saved_color_id: int = int(cfg.get("color_id", -1))
+	if saved_color_id >= 0:
+		for i in range(color_opt.item_count):
+			if color_opt.get_item_id(i) == saved_color_id:
+				color_opt.select(i)
+				break
+	else:
+		color_opt.select(0)
+	_update_swatch_from_dropdown(swatch, color_opt)
+	
 	# Wire changes to save back into human_configs
+
 	name_opt.item_selected.connect(func(idx: int) -> void:
 		human_configs[player_index]["name"] = name_opt.get_item_text(idx)
 		_apply_uniqueness_rules()
 		_apply_setup_to_gamestate()
 		_refresh_start_button()
-
 )
 
 	
 	
 	color_opt.item_selected.connect(func(idx: int) -> void:
-		human_configs[player_index]["color"] = color_opt.get_item_text(idx)
+		human_configs[player_index]["color_id"] = color_opt.get_item_id(idx) # <-- THIS is the key
 		_update_swatch_from_dropdown(swatch, color_opt)
 		_apply_uniqueness_rules()
 		_apply_setup_to_gamestate()
 		_refresh_start_button()
-
 )
-
-
 
 	return row
 
@@ -247,15 +254,16 @@ func _select_if_present(opt: OptionButton, value: String) -> void:
 func _apply_uniqueness_rules() -> void:
 	# Collect chosen values
 	var used_names: Dictionary = {}
-	var used_colors: Dictionary = {}
+	var used_color_ids: Dictionary = {}
 
 	for cfg in human_configs:
-		var n: String = cfg.get("name", "")
-		var c: String = cfg.get("color", "")
+		var n: String = str(cfg.get("name", "")).strip_edges()
+		var cid: int = int(cfg.get("color_id", -1))
+
 		if n != "":
 			used_names[n] = true
-		if c != "":
-			used_colors[c] = true
+		if cid >= 0:
+			used_color_ids[cid] = true
 
 	# For each row, disable options already chosen by other players
 	for row in humans_list.get_children():
@@ -265,29 +273,31 @@ func _apply_uniqueness_rules() -> void:
 		var name_opt: OptionButton = row.get_node("NameOption")
 		var color_opt: OptionButton = row.get_node("ColorOption")
 
-		var current_name := "" if name_opt.selected == 0 else name_opt.get_item_text(name_opt.selected)
-		var current_color := "" if color_opt.selected == 0 else color_opt.get_item_text(color_opt.selected)
+		var current_name := "" if name_opt.selected == 0 else name_opt.get_item_text(name_opt.selected).strip_edges()
+		var current_color_id := color_opt.get_item_id(color_opt.selected)  # -1 if placeholder
 
-
-		# Names
+	
 		for i in range(name_opt.item_count):
-			var text := name_opt.get_item_text(i)
 			if i == 0:
 				name_opt.set_item_disabled(i, false)
 				continue
 
+			var text := name_opt.get_item_text(i).strip_edges()
 			var should_disable := used_names.has(text) and text != current_name
 			name_opt.set_item_disabled(i, should_disable)
 
-		# Colors
+		# ----------------
+		# Colors (by ID)
+		# ----------------
 		for i in range(color_opt.item_count):
-			var text := color_opt.get_item_text(i)
 			if i == 0:
 				color_opt.set_item_disabled(i, false)
 				continue
 
-			var should_disable := used_colors.has(text) and text != current_color
+			var id := color_opt.get_item_id(i)  # this is your COLOR_POOL index
+			var should_disable := used_color_ids.has(id) and id != current_color_id
 			color_opt.set_item_disabled(i, should_disable)
+
 			
 func _update_swatch_from_dropdown(swatch: ColorRect, opt: OptionButton) -> void:
 	var sel := opt.selected
@@ -327,18 +337,19 @@ func _is_setup_valid() -> bool:
 		return false
 
 	for cfg in human_configs:
-		var n: String = str(cfg.get("name", ""))
-		var c: String = str(cfg.get("color", ""))
+		var n: String = str(cfg.get("name", "")).strip_edges()
+		var color_id: int = int(cfg.get("color_id", -1))
 
-		# Must not be blank
-		if n.strip_edges() == "" or c.strip_edges() == "":
+		# Name must be selected
+		if n == "":
 			return false
 
-		# Must not be the placeholder
-		if n == "-- Select --" or c == "-- Select --":
+		# Color must be selected (placeholder = -1)
+		if color_id < 0:
 			return false
 
 	return true
+
 
 
 func _refresh_start_button() -> void:
@@ -353,7 +364,8 @@ func _apply_setup_to_gamestate() -> void:
 	for cfg in human_configs:
 		humans_for_game.append({
 			"name": cfg["name"],
-			"color_index": _color_label_to_index(cfg["color"])
+			"color_index": int(cfg.get("color_id", -1))
 		})
 
 	GameState.apply_setup(total_players, humans_for_game)
+	print("APPLY SETUP -> total:", total_players, " humans_for_game:", humans_for_game)
