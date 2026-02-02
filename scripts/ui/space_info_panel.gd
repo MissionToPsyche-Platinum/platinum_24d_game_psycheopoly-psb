@@ -100,5 +100,9 @@ func _on_details_pressed() -> void:
 		print("Popup created and will be added to scene tree")
 	
 	# Show the popup with current space details
+	var property = GameState.board[current_space]
+	var owner_str = "Unowned"
 	print("Showing details for space: ", current_space)
-	_details_popup.show_space_details(current_space, "Unowned")  # TODO: Get actual owner
+	if property is Ownable and property._is_owned:
+		owner_str = "Player %d" % (property._player_owner + 1)
+	_details_popup.show_space_details(current_space, owner_str)  

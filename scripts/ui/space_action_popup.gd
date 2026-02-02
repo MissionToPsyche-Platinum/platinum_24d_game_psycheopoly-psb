@@ -136,12 +136,12 @@ func _on_details_pressed() -> void:
 
 func _on_purchase_pressed() -> void:
 	purchase_pressed.emit(current_space_num)
-	GameController.purchase_property.emit(GameState.board[current_space_num], 0) # 0 is temporary, replace with whatever player is currently making the decision
+	GameController.purchase_property.emit(GameState.board[current_space_num], GameState.current_player_index) 
 	hide_popup()
 
 func _on_pay_pressed() -> void:
 	pay_pressed.emit(current_space_num)
-	GameController.pay_rent.emit(GameState.board[current_space_num], 0) # 0 is again temporary, replace with whatever player is currently making the decision
+	GameController.pay_rent.emit(GameState.board[current_space_num], GameState.current_player_index) 
 	hide_popup()
 
 func _on_draw_pressed() -> void:
