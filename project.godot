@@ -15,9 +15,14 @@ run/main_scene="res://scenes/StartMenu.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://l7mgbby5vgdq"
+
 [autoload]
 
 GameState="*res://scripts/core/game_state.gd"
+Audio="*res://scripts/core/audio_manager.gd"
 
 [display]
 
@@ -33,5 +38,5 @@ theme/custom_font="uid://bsp5euc03804b"
 
 [rendering]
 
-environment/defaults/default_clear_color=Color(0.0235294, 0.0235294, 0.0588235, 1)
 textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0.0235294, 0.0235294, 0.0588235, 1)

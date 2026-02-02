@@ -1,0 +1,133 @@
+[gd_scene load_steps=9 format=3 uid="uid://xrsun7pg06y8"]
+
+[ext_resource type="Texture2D" uid="uid://uw4vt5e63tsg" path="res://assets/images/menu_background_gradient.tres" id="1_il0qu"]
+[ext_resource type="Shader" uid="uid://0evux3ox72qw" path="res://assets/shaders/starfield.gdshader" id="2_246an"]
+[ext_resource type="Texture2D" uid="uid://ddiym42am7ay3" path="res://assets/images/sprites/asteroid_img.png" id="3_26yut"]
+[ext_resource type="Script" uid="uid://daqs1c1xj25h1" path="res://scripts/core/asteroid_sprite.gd" id="4_hffk0"]
+[ext_resource type="Texture2D" uid="uid://boddmgn7a5uod" path="res://assets/images/sprites/psyche_probe_pixel.png" id="5_cd3wg"]
+[ext_resource type="Script" uid="uid://dhx6oudn2fwb0" path="res://scripts/ui/probe_sprite.gd" id="6_mksb6"]
+[ext_resource type="AudioStream" uid="uid://daer2kjq6kdv0" path="res://assets/audio/probe_whoosh.wav" id="7_s76to"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_stars"]
+shader = ExtResource("2_246an")
+shader_parameter/bg_color = Color(0, 0, 0, 0)
+shader_parameter/star_density = 0.005
+shader_parameter/pixel_size = 2.0
+
+[node name="UIBackground" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("1_il0qu")
+expand_mode = 1
+
+[node name="Stars" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_stars")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Asteroids" type="Sprite2D" parent="."]
+
+[node name="AsteroidSprite" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.9, 0.9)
+texture = ExtResource("3_26yut")
+script = ExtResource("4_hffk0")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="AsteroidSprite2" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_26yut")
+script = ExtResource("4_hffk0")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="AsteroidSprite3" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("3_26yut")
+script = ExtResource("4_hffk0")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="AsteroidSprite4" type="Sprite2D" parent="Asteroids"]
+position = Vector2(0, 72)
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("3_26yut")
+script = ExtResource("4_hffk0")
+margin = 140.0
+travel_time_min = 5.0
+travel_time_max = 8.0
+min_leg_distance = 650.0
+max_vertical_ratio = 0.75
+fade_in_time = 0.55
+fade_out_time = 0.55
+base_alpha = 0.85
+float_amplitude = 7.0
+float_speed = 0.35
+scale_pulse = 0.015
+scale_speed = 0.18
+
+[node name="ProbeSprite" type="Sprite2D" parent="."]
+position = Vector2(0, 72)
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("5_cd3wg")
+script = ExtResource("6_mksb6")
+
+[node name="OnScreen" type="VisibleOnScreenNotifier2D" parent="ProbeSprite"]
+
+[node name="ProbeWhoosh" type="AudioStreamPlayer2D" parent="ProbeSprite"]
+stream = ExtResource("7_s76to")
+volume_db = -18.0
+
+[connection signal="screen_entered" from="ProbeSprite/OnScreen" to="ProbeSprite" method="_on_on_screen_screen_entered"]

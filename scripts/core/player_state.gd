@@ -1,10 +1,12 @@
 extends Node
-
 class_name PlayerState
 
 # Player identification
 var player_id: int = 0
 var player_name: String = "Player"
+
+# Visual identity (token/UI)
+var player_color: Color = Color.WHITE
 
 # Board position (0-39)
 var board_space: int = 0
