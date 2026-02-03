@@ -62,30 +62,20 @@ func _ready() -> void:
 	# Get reference to the TileMapLayer first
 	tile_map_layer = $TileMap/TileMapLayer
 	highlight_layer = $TileMap/HighlightLayer
-	
-	# Load and spawn pieces for all players
-	var piece_scene = preload("res://scenes/Piece.tscn")
-	for i in range(GameState.player_count):
-		var piece_instance = piece_scene.instantiate()
-		piece_instance.tile_map = tile_map_layer
-		piece_instance.player_index = i  # Store player index for offset calculation
-		piece_instance.player_count = GameState.player_count  # Store total player count for scaling
-		add_child(piece_instance)
-		pieces.append(piece_instance)
-		# Position piece at GO
-		piece_instance.move_to(10, 0)
-	
-	# Update initial layouts at GO so pieces aren't overlapping
-	update_piece_layouts_at(0)
-	
-	# Set current piece to first player (also set 'piece' for backward compatibility)
-	if pieces.size() > 0:
-		current_piece = pieces[0]
-		piece = current_piece
-	
+
+	# Listen for setup changes (important if GameState rebuilds players)
+	GameState.setup_changed.connect(_on_setup_changed)
+
+
+	# Spawn pieces using the configured players/colors
+	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
+	if GameState.players.size() > 0:
+		_spawn_pieces_from_gamestate()
+	else:
+		print("Board: GameState.players empty - waiting for setup_changed to spawn pieces")
+
 	# Instantiate the space info panel
 	space_info_panel = SpaceInfoPanelScene.instantiate()
-	# CanvasLayers must be added to the SceneTree directly
 	get_tree().root.call_deferred("add_child", space_info_panel)
 
 	# Instantiate the dice roll UI
@@ -93,34 +83,38 @@ func _ready() -> void:
 
 	# Instantiate the money HUD
 	_setup_money_hud()
-	
+
 	# Instantiate the player name HUD
 	_setup_player_name_hud()
-	
+
 	# Instantiate space action popup
 	_setup_space_action_popup()
-	
+
 	# Instantiate end turn button
 	_setup_end_turn_button()
-	
+
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
-	
+
 	# Connect current piece's signals to update the UI
 	if current_piece:
-		if space_info_panel:
+		if space_info_panel and not current_piece.space_changed.is_connected(_on_piece_space_changed):
 			current_piece.space_changed.connect(_on_piece_space_changed)
-		current_piece.movement_finished.connect(_on_piece_movement_finished)
+		if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
+			current_piece.movement_finished.connect(_on_piece_movement_finished)
 	
 	# Connect to GameController turn signals
-	GameController.turn_started.connect(_on_turn_started)
-	GameController.turn_ended.connect(_on_turn_ended)
+	if not GameController.turn_started.is_connected(_on_turn_started):
+		GameController.turn_started.connect(_on_turn_started)
+	if not GameController.turn_ended.is_connected(_on_turn_ended):
+		GameController.turn_ended.connect(_on_turn_ended)
 	
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
-	
+
 	# Update panel after everything is ready
 	call_deferred("_initial_panel_update")
+
 
 
 func _start_game_deferred() -> void:
@@ -563,3 +557,77 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				current_player.doubles_count += 1
 			# Notify that player has rolled
 			GameController.player_rolled.emit(current_player)
+			
+
+func _clear_pieces() -> void:
+	for p in pieces:
+		if is_instance_valid(p):
+			p.queue_free()
+	pieces.clear()
+	current_piece = null
+	piece = null
+
+
+func _spawn_pieces_from_gamestate() -> void:
+	if not tile_map_layer:
+		return
+
+	_clear_pieces()
+
+	var piece_scene = preload("res://scenes/Piece.tscn")
+
+	for i in range(GameState.player_count):
+		var piece_instance: Node2D = piece_scene.instantiate()
+		piece_instance.tile_map = tile_map_layer
+		piece_instance.player_index = i
+		piece_instance.player_count = GameState.player_count
+
+		add_child(piece_instance)
+		pieces.append(piece_instance)
+
+		# Position piece at GO
+		piece_instance.move_to(10, 0)
+
+		# ✅ APPLY COLOR AFTER the node is in the tree (so it wins vs Piece._ready)
+		if i < GameState.players.size():
+			var c: Color = GameState.players[i].player_color
+			call_deferred("_apply_color_to_piece", piece_instance, c)
+
+	# Layout at GO so pieces don't overlap
+	update_piece_layouts_at(0)
+
+	if pieces.size() > 0:
+		current_piece = pieces[0]
+		piece = current_piece
+
+	
+
+
+func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
+	# 1) Best: Piece exposes an API
+	if piece_instance.has_method("set_player_color"):
+		piece_instance.call("set_player_color", c)
+		return
+
+	# 2) Try to color ANY Sprite2D under the piece (recursive)
+	var painted := false
+	for n in piece_instance.find_children("*", "Sprite2D", true, false):
+		(n as Sprite2D).modulate = c
+		painted = true
+
+	# 3) If no Sprite2D found, tint any CanvasItem children (rare fallback)
+	if not painted:
+		for n in piece_instance.find_children("*", "CanvasItem", true, false):
+			(n as CanvasItem).modulate = c
+			painted = true
+
+	# 4) Last resort: tint the root if possible
+	if not painted and piece_instance is CanvasItem:
+		(piece_instance as CanvasItem).modulate = c
+
+	print("Applied color to piece", piece_instance.name, " painted=", painted, " color=", c)
+
+		
+func _on_setup_changed() -> void:
+	print("Board: setup_changed -> rebuilding pieces")
+	_spawn_pieces_from_gamestate()

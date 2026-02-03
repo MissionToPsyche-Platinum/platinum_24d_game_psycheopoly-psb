@@ -1,13 +1,16 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=5 format=3 uid="uid://bc6t1ftjc7ina"]
 
-[ext_resource type="Script" path="res://scripts/core/piece.gd" id="1_abcde"]
-[ext_resource type="Shader" path="res://assets/shaders/piece_color.gdshader" id="2_shader"]
-[ext_resource type="Texture2D" path="res://assets/images/sprites/game_piece.png" id="3_tk1p6"]
+[ext_resource type="Script" uid="uid://bhhg7mtk48h7f" path="res://scripts/core/piece.gd" id="1_abcde"]
+[ext_resource type="Shader" uid="uid://d3yacx7kcd26o" path="res://assets/shaders/piece_color.gdshader" id="2_shader"]
+[ext_resource type="Texture2D" uid="uid://bno5a28b2flol" path="res://assets/images/sprites/game_piece.png" id="3_tk1p6"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_piece"]
 shader = ExtResource("2_shader")
 shader_parameter/target_color = Color(1, 1, 1, 1)
 shader_parameter/color_intensity = 1.0
+shader_parameter/use_outline = false
+shader_parameter/outline_color = Color(1, 1, 1, 1)
+shader_parameter/outline_width = 1.0
 
 [node name="Piece" type="Node2D"]
 script = ExtResource("1_abcde")

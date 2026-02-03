@@ -1,0 +1,148 @@
+[gd_scene load_steps=3 format=3 uid="uid://bx8ec1enup4gj"]
+
+[ext_resource type="Script" uid="uid://dfj0guqdndb4m" path="res://scripts/core/game_setup_screen.gd" id="1_086pk"]
+[ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/ui_background.tscn" id="2_fdyvb"]
+
+[node name="GameSetupScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_086pk")
+
+[node name="UIBackground" parent="." instance=ExtResource("2_fdyvb")]
+layout_mode = 1
+
+[node name="CenterPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Vbox" type="VBoxContainer" parent="CenterPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="CenterPanel/MarginContainer/Vbox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Game Setup"
+horizontal_alignment = 1
+
+[node name="PlayerCard" type="PanelContainer" parent="CenterPanel/MarginContainer/Vbox"]
+layout_mode = 2
+
+[node name="PlayerMargin" type="MarginContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="PlayerVBox" type="VBoxContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SectionTitle" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
+layout_mode = 2
+text = "Players"
+
+[node name="Grid" type="GridContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 18
+columns = 2
+
+[node name="TotalLabel" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
+layout_mode = 2
+text = "Total Players:"
+
+[node name="TotalOption" type="OptionButton" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HumanLabel" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
+layout_mode = 2
+theme_override_constants/line_spacing = 3
+text = "Total Human Players:"
+
+[node name="HumanOption" type="OptionButton" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AILabel" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
+layout_mode = 2
+text = "AI Players:"
+
+[node name="AIValue" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="SummaryLabel" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Human 1 AI 1 Total: 2"
+
+[node name="Gap_1" type="Control" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+
+[node name="HumansCard" type="PanelContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox"]
+layout_mode = 2
+
+[node name="HumansMargin" type="MarginContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="HumansVbox" type="VBoxContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HumansTitle" type="Label" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
+layout_mode = 2
+text = "Human Players: Please choose a name and token color for each Human Player."
+
+[node name="Gap_2" type="Control" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="HumansList" type="VBoxContainer" parent="CenterPanel/MarginContainer/Vbox/PlayerCard/PlayerMargin/PlayerVBox/HumansCard/HumansVbox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="BottomRow" type="HBoxContainer" parent="CenterPanel/MarginContainer/Vbox"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Back"
+
+[node name="Spacer" type="Control" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StartButton" type="Button" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Start Game"

@@ -48,10 +48,22 @@ var current_player_index: int = 0
 # Whether a game is currently active
 var game_active: bool = false
 
+# Accessibility
+var colorblind_mode: bool = false
+
+# Setup selections (filled by GameSetupScreen before starting board)
+# Each: { "name": String, "color_index": int }
+var setup_humans: Array[Dictionary] = []
+
+var setup_human_count: int = 1
+
+
 
 func _ready() -> void:
 	_setup_board()
-	_setup_players()
+	# Don't call _setup_players() here.
+	# Players will be created when apply_setup() is called.
+	# there was a bug where token colors were not matching player selections bc of this i beleive.
 
 
 func _setup_board() -> void:
@@ -59,10 +71,31 @@ func _setup_board() -> void:
 
 
 func _setup_players() -> void:
+	# Clear old players if reconfiguring
+	for p in players:
+		if is_instance_valid(p):
+			p.queue_free()
+	players.clear()
+
 	for i in range(player_count):
 		var player = PlayerState.new()
 		player.player_id = i
-		player.player_name = "Player " + str(i + 1)
-		player.balance = 1500  # TODO: Change to constant
+		player.balance = 1500
+
+		# Apply human config if provided
+		if i < setup_humans.size():
+			var cfg: Dictionary = setup_humans[i]
+
+			player.player_name = str(cfg.get("name", "Player " + str(i + 1)))
+		
+			var color_index: int = int(cfg.get("color_index", i))
+			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
+			player.player_color = PLAYER_COLORS[color_index]
+		else:
+	# AI player
+			player.player_name = "AI " + str(i + 1)
+			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
+
+
 		players.append(player)
 		add_child(player)

@@ -69,12 +69,23 @@ func set_highlight(active: bool) -> void:
 
 
 func _apply_player_color() -> void:
-	if sprite and sprite.material:
-		var color_idx = player_index % GameState.PLAYER_COLORS.size()
-		# Create a unique material instance so each piece can have a different color
-		var unique_material = sprite.material.duplicate()
-		unique_material.set_shader_parameter("target_color", GameState.PLAYER_COLORS[color_idx])
-		sprite.material = unique_material
+	if not (sprite and sprite.material):
+		return
+
+	# Pull the real chosen color from GameState's PlayerState
+	var chosen_color: Color = Color.WHITE
+	if GameState.players.size() > player_index and GameState.players[player_index]:
+		chosen_color = GameState.players[player_index].player_color
+	else:
+		# Fallback only (should rarely happen)
+		var color_idx := player_index % GameState.PLAYER_COLORS.size()
+		chosen_color = GameState.PLAYER_COLORS[color_idx]
+
+	# Create a unique material instance so each piece can have a different color
+	var unique_material = sprite.material.duplicate()
+	unique_material.set_shader_parameter("target_color", chosen_color)
+	sprite.material = unique_material
+
 
 
 # Move the piece to a board position
