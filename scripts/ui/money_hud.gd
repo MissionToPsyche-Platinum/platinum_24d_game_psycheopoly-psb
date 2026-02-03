@@ -70,7 +70,9 @@ func _ready() -> void:
 		push_warning("GameState autoload not found. " +
 					 "HUD will only update if set_cash/set_assets are called manually.")
 
-	GameController.player_money_updated.emit(GameState.players[0]) # update the starting balance of the first player
+	# Update the starting balance if players are ready
+	if GameState.players.size() > 0:
+		GameController.player_money_updated.emit(GameState.players[0])
 
 # ---------------------------------------------------------------------------
 #  other scripts should be able  call these directly if we want

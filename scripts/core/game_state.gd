@@ -92,7 +92,7 @@ func _setup_players() -> void:
 			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
 			player.player_color = PLAYER_COLORS[color_index]
 		else:
-	# AI player
+			# AI player
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
 
