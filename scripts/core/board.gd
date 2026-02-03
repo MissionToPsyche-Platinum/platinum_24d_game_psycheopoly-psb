@@ -631,3 +631,6 @@ func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
 func _on_setup_changed() -> void:
 	print("Board: setup_changed -> rebuilding pieces")
 	_spawn_pieces_from_gamestate()
+	# If setup happens after board load, start the game once players exist
+	if not GameState.game_active and GameState.players.size() > 0:
+		call_deferred("_start_game_deferred")
