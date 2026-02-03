@@ -36,6 +36,12 @@ signal pay_rent(property, player)
 
 signal purchase_property(property, player)
 
+#other signals
+
+signal difficulty_changed(new_value: String)
+signal colorblind_mode_changed(enabled: bool)
+signal setup_changed()
+
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
 	purchase_property.connect(_purchase_property)
@@ -101,12 +107,18 @@ func _pay_rent(property: Ownable, player: int) -> void:
 	player_money_updated.emit(GameState.players[player])
 	player_money_updated.emit(GameState.players[property._player_owner])
 
-
 func set_difficulty(new_difficulty: String) -> void:
 	## Simple setter used by StartMenu.gd
 	## You can add validation or mapping here later if needed.
 	GameState.difficulty = new_difficulty
 	print("GameState difficulty set to: ", GameState.difficulty)
+
+func set_colorblind_mode(enabled: bool) -> void:
+	if enabled == GameState.colorblind_mode:
+		return
+	GameState.colorblind_mode = enabled
+	emit_signal("colorblind_mode_changed", GameState.colorblind_mode)
+	emit_signal("setup_changed")
 
 
 # ------------------------------------------------------------------------------

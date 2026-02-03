@@ -99,3 +99,14 @@ func _setup_players() -> void:
 
 		players.append(player)
 		add_child(player)
+
+func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
+	player_count = total_players
+	setup_humans = humans.duplicate(true)
+	setup_human_count = setup_humans.size()
+
+	current_player_index = 0  
+	game_active = false       
+
+	_setup_players()
+	GameController.emit_signal("setup_changed")

@@ -64,7 +64,7 @@ func _ready() -> void:
 	highlight_layer = $TileMap/HighlightLayer
 
 	# Listen for setup changes (important if GameState rebuilds players)
-	GameState.setup_changed.connect(_on_setup_changed)
+	GameController.setup_changed.connect(_on_setup_changed)
 
 
 	# Spawn pieces using the configured players/colors
