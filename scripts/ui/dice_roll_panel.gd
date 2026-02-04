@@ -71,13 +71,6 @@ signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
 # Grabs the roll button node and casts it to Button.
 
 @onready var total_label: Label = get_node(total_label_path) as Label
-# Grabs the label used to display the TOTAL.
-
-@onready var roll_sound_node: Node = get_node_or_null("RollSound")
-# Tries to find a child named "RollSound". If missing, returns null instead of crashing.
-
-@onready var result_sound_node: Node = get_node_or_null("RollResult")
-# Tries to find a child named "RollResult".
 
 
 var rng := RandomNumberGenerator.new()
@@ -135,8 +128,9 @@ func _ready() -> void:
 	_update_button_states()
 
 func _on_roll_pressed() -> void:
-	# Runs when the Roll button is clicked/pressed.
+	AudioManager.play_ui("click")
 	roll_dice()
+
 	# Calls the main roll function.
 
 func roll_dice() -> void:
@@ -285,54 +279,17 @@ func _pop(node: Control) -> void:
 	# Wait for tween to fully finish before returning.
 
 func _play_roll_sfx(force: bool) -> void:
-	# Plays the rolling tick sound (RollSound), but throttles it to avoid spam.
-
-	if roll_sound_node == null:
-		# If the scene does not have the RollSound node, do nothing.
-		return
-
 	var now := Time.get_ticks_msec() / 1000.0
-	# Current time in seconds (ticks_msec gives milliseconds since engine start).
-
 	if not force and (now - _last_roll_sfx_time) < roll_sfx_min_gap:
-		# If we are NOT forcing playback and the last sound was too recent, skip.
 		return
 
 	_last_roll_sfx_time = now
-	# Update last-played timestamp.
+	AudioManager.play_sfx("dice_tick")
 
-	# Works for AudioStreamPlayer and AudioStreamPlayer2D
-	if roll_sound_node.has_method("stop"):
-		
-		roll_sound_node.call("stop")
-
-	if roll_sound_node.has_method("play"):
-		
-		roll_sound_node.call("play")
 
 func _play_result_sfx() -> void:
-	# Plays the final result sound (RollResult), optionally with slight pitch randomness.
-
-	if result_sound_node == null:
-		# If the scene does not have the result sound node, do nothing.
-		return
-
-	# Optional subtle pitch variation if the node supports it
-	if result_sound_node.has_method("set"):
-		# Generic check: if the node can set properties dynamically...
-		# Only set pitch if property exists (AudioStreamPlayer / 2D)
-		if result_sound_node.get("pitch_scale") != null:
-			# If the node has a pitch_scale property, randomize it.
-			result_sound_node.set("pitch_scale", rng.randf_range(result_pitch_min, result_pitch_max))
-			# randf_range returns a float between min/max.
-
-	if result_sound_node.has_method("stop"):
-		# Stop current playback before playing (clean retrigger).
-		result_sound_node.call("stop")
-
-	if result_sound_node.has_method("play"):
-		# Play the result sound.
-		result_sound_node.call("play")
+	var pitch := rng.randf_range(result_pitch_min, result_pitch_max)
+	AudioManager.play_sfx("dice_result", pitch)
 
 #  figure out current die value from its current texture.
 # If it can't find it, returns 1.
