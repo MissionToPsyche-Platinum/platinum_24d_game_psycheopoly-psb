@@ -287,6 +287,12 @@ func _load_settings() -> void:
 func _ensure_stream_loops(stream: AudioStream) -> void:
 	if stream is AudioStreamWAV:
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = 0
+	elif stream is AudioStreamOggVorbis:
+		stream.loop = true
+		stream.loop_offset = 0.0
+
 		
 
 func is_music_playing_key(key: String) -> bool:
