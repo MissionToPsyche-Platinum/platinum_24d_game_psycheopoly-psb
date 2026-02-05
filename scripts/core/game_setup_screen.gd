@@ -39,7 +39,7 @@ var human_configs: Array = []
 
 
 func _ready() -> void:
-	AudioManager.play_music("menu", 6.0, 0.15) # won't restart if already playing
+	AudioManager.play_music("menu", 12.0, 0.15) # won't restart if already playing
 	_build_total_players_dropdown()
 	_build_human_players_dropdown()
 
