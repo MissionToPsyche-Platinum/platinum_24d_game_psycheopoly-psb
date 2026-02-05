@@ -19,6 +19,7 @@ var _last_music_volume: float = 80
 
 
 func _ready() -> void:
+	AudioManager.play_music("menu", 4.5, 0.0)
 	# Initialize labels immediately
 	_update_master_label(master_slider.value)
 	_update_sfx_label(sfx_slider.value)

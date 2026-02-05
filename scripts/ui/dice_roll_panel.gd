@@ -52,7 +52,6 @@ signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
 # slight pitch variety on result sound (subtle) so the sounds doesn't sound the exact smae all the time
 @export var result_pitch_min: float = 0.96
 @export var result_pitch_max: float = 1.08
-# Range for random pitch variation on the result sound
 
 
 @export var die1_path: NodePath
@@ -127,10 +126,11 @@ func _ready() -> void:
 	# Initialize button states for first player
 	_update_button_states()
 
+
 func _on_roll_pressed() -> void:
 	AudioManager.play_ui("click")
+	# Runs when the Roll button is clicked/pressed.
 	roll_dice()
-
 	# Calls the main roll function.
 
 func roll_dice() -> void:
@@ -148,6 +148,10 @@ func roll_dice() -> void:
 
 	is_rolling = true
 	# Lock input so you can’t trigger another roll during this roll.
+	
+	# Lower game bg music while dice is rolling.
+	AudioManager.duck_music(-20.0, 0.12)
+
 
 	roll_button.disabled = true
 	# Disables the button in UI so user can’t click it again.
@@ -236,6 +240,10 @@ func roll_dice() -> void:
 	_play_result_sfx()
 	# Play the final result sound (with optional pitch variance).
 
+	# Return game bg music to normal AFTER the roll finishes.
+	AudioManager.unduck_music(0.18)
+
+
 	# Notify listeners (like GameBoard) that the roll is finished
 	dice_rolled.emit(final1, final2, total, final1 == final2)
 
@@ -279,17 +287,29 @@ func _pop(node: Control) -> void:
 	# Wait for tween to fully finish before returning.
 
 func _play_roll_sfx(force: bool) -> void:
+	# Plays the rolling tick sound, but throttles it to avoid spam.
+
 	var now := Time.get_ticks_msec() / 1000.0
+	# Current time in seconds (ticks_msec gives milliseconds since engine start).
+
 	if not force and (now - _last_roll_sfx_time) < roll_sfx_min_gap:
+		# If we are NOT forcing playback and the last sound was too recent, skip.
 		return
 
 	_last_roll_sfx_time = now
-	AudioManager.play_sfx("dice_tick")
+	# Update last-played timestamp.
 
+	# Slight boost so dice cuts through background music
+	AudioManager.play_sfx("dice_tick", 1.0, +4.5)
 
 func _play_result_sfx() -> void:
+	# Plays the final result sound, optionally with slight pitch randomness.
+
 	var pitch := rng.randf_range(result_pitch_min, result_pitch_max)
-	AudioManager.play_sfx("dice_result", pitch)
+	# randf_range returns a float between min/max.
+
+	# Slight boost so result cuts through background music
+	AudioManager.play_sfx("dice_result", pitch, +20.0) # had to up the pitch to 20 bc the effect vol was so low.
 
 #  figure out current die value from its current texture.
 # If it can't find it, returns 1.

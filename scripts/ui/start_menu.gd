@@ -20,10 +20,13 @@ extends Control
 
 func _ready() -> void:
 	_connect_signals()
+	
 
 	# Ensure settings menu starts hidden
 	if settings_menu:
 		settings_menu.hide()
+
+	AudioManager.play_music("menu", 4.5, 0.0)
 
 
 # ============================

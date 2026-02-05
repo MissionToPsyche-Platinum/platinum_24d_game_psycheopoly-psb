@@ -28,6 +28,10 @@ var _music_bank: Dictionary = {}
 var _ui_cooldown := 0.04
 var _ui_last_time := -999.0
 
+var _music_restore_db: float = 0.0
+var _is_ducked: bool = false
+
+
 func _ready() -> void:
 	# Create players
 	_ui_player = AudioStreamPlayer.new()
@@ -69,13 +73,7 @@ func register_music(key: String, stream: AudioStream) -> void:
 	_music_bank[key] = stream
 
 func _register_defaults() -> void:
-	# Add your common sounds here.
-	# You can remove these lines if you prefer to register elsewhere.
-	#
-	# Example:
-	# register_ui("click", preload("res://audio/ui/click.wav"))
-	# register_sfx("dice_roll", preload("res://audio/sfx/dice_roll.wav"))
-	# register_music("menu", preload("res://audio/music/menu_theme.ogg"))
+	#Sounds for Game, UI, etc
 	register_ui("click", preload("res://assets/audio/click2.wav"))
 	register_ui("probe_whoosh", preload("res://assets/audio/probe_whoosh.wav"))
 	register_ui("confirm_tap",preload("res://assets/audio/confirm_tap.wav"))
@@ -83,6 +81,9 @@ func _register_defaults() -> void:
 	register_sfx("dice_tick",  preload("res://assets/audio/dice_roll.wav"))
 	register_sfx("dice_result", preload("res://assets/audio/dicerollresult.wav"))
 	register_sfx("money", preload("res://assets/audio/money.wav"))
+	
+	register_music("menu", preload("res://assets/audio/menu_bg_music.ogg"))
+	register_music("game_bg", preload("res://assets/audio/game_bg_music.ogg"))
 	
 	pass
 
@@ -109,7 +110,13 @@ func play_music(key: String, volume_db := 0.0, fade_in := 0.0) -> void:
 	if stream == null:
 		push_warning("AudioManager: Music key not found: " + key)
 		return
+
+	# Don't restart if already playing this exact track
+	if _music_player != null and _music_player.playing and _music_player.stream == stream:
+		return
+
 	_play_music_stream(stream, volume_db, fade_in)
+
 
 # ==========================================================
 #  Optional: Backwards compatible stream-based calls
@@ -123,6 +130,7 @@ func play_sfx_stream(stream: AudioStream, pitch := 1.0, volume_db := 0.0) -> voi
 
 func play_music_stream(stream: AudioStream, volume_db := 0.0, fade_in := 0.0) -> void:
 	_play_music_stream(stream, volume_db, fade_in)
+	
 
 
 # ==========================================================
@@ -156,6 +164,9 @@ func _play_sfx_stream(stream: AudioStream, pitch := 1.0, volume_db := 0.0) -> vo
 func _play_music_stream(stream: AudioStream, volume_db := 0.0, fade_in := 0.0) -> void:
 	if stream == null:
 		return
+		
+	_ensure_stream_loops(stream)
+
 
 	_music_player.stream = stream
 	_music_player.volume_db = volume_db
@@ -264,9 +275,45 @@ func _load_settings() -> void:
 		set_music_volume(0.7, false)
 		_save_settings()
 		return
+		
+
 
 	set_master_volume(float(cfg.get_value("audio", "master", 1.0)), false)
 	set_sfx_volume(float(cfg.get_value("audio", "sfx", 0.9)), false)
 	set_ui_volume(float(cfg.get_value("audio", "ui", 0.9)), false)
 	set_music_volume(float(cfg.get_value("audio", "music", 0.7)), false)
 	_save_settings()
+	
+func _ensure_stream_loops(stream: AudioStream) -> void:
+	if stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		
+
+func is_music_playing_key(key: String) -> bool:
+	var stream: AudioStream = _music_bank.get(key, null)
+	return _music_player != null and _music_player.playing and _music_player.stream == stream
+	
+func duck_music(target_db: float, time: float = 0.12) -> void:
+	if _music_player == null:
+		return
+
+	# Only capture original volume ONCE
+	if not _is_ducked:
+		_music_restore_db = _music_player.volume_db
+		_is_ducked = true
+
+	# Kill any existing tween on this player volume by starting a new tween
+	var t := create_tween()
+	t.tween_property(_music_player, "volume_db", target_db, time)
+
+
+func unduck_music(time: float = 0.18) -> void:
+	if _music_player == null:
+		return
+	if not _is_ducked:
+		return
+
+	var t := create_tween()
+	t.tween_property(_music_player, "volume_db", _music_restore_db, time)
+
+	_is_ducked = false
