@@ -26,7 +26,7 @@ func _ready() -> void:
 	if settings_menu:
 		settings_menu.hide()
 
-	AudioManager.play_music("menu", 6.0, 0.0)
+	AudioManager.play_music("menu", 12.0, 0.0)
 
 
 # ============================
