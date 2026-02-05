@@ -300,7 +300,7 @@ func _play_roll_sfx(force: bool) -> void:
 	# Update last-played timestamp.
 
 	# Slight boost so dice cuts through background music
-	AudioManager.play_sfx("dice_tick", 1.0, +2.0)
+	AudioManager.play_sfx("dice_tick", -3.0, +0.5)
 
 func _play_result_sfx() -> void:
 	# Plays the final result sound, optionally with slight pitch randomness.
