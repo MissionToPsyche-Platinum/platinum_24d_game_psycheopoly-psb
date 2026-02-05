@@ -309,7 +309,7 @@ func _play_result_sfx() -> void:
 	# randf_range returns a float between min/max.
 
 	# Slight boost so result cuts through background music
-	AudioManager.play_sfx("dice_result", pitch, +20.0) # had to up the pitch to 20 bc the effect vol was so low.
+	AudioManager.play_sfx("dice_result", pitch, +5.5) #
 
 #  figure out current die value from its current texture.
 # If it can't find it, returns 1.
