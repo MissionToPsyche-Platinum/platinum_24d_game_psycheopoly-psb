@@ -59,7 +59,7 @@ const SELECTED_TILE := Vector2i(5, 1) # Highlighted texture
 
 
 func _ready() -> void:
-	AudioManager.play_music("game_bg", -12.0, 0.8)
+	AudioManager.play_music("game_bg", -8.0, 0.8)
 
 	# Get reference to the TileMapLayer first
 	tile_map_layer = $TileMap/TileMapLayer
