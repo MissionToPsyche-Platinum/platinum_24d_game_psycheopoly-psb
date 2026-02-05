@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://bg4e1oscnyeqv"]
+[gd_scene load_steps=9 format=3 uid="uid://bg4e1oscnyeqv"]
 
 [ext_resource type="Script" uid="uid://cq6j5leeq8t2i" path="res://scripts/ui/dice_roll_panel.gd" id="1_gn10m"]
 [ext_resource type="Texture2D" uid="uid://bebuqr8rjcy55" path="res://assets/images/sprites/1dot_dice.png" id="2_uv78u"]
@@ -7,8 +7,6 @@
 [ext_resource type="Texture2D" uid="uid://bwdvo3v58f1ib" path="res://assets/images/sprites/4_dots.png" id="5_yqaqp"]
 [ext_resource type="Texture2D" uid="uid://c4ks35pkir0a7" path="res://assets/images/sprites/5_dot.png" id="6_2tjk1"]
 [ext_resource type="Texture2D" uid="uid://ba1mves43fjhk" path="res://assets/images/sprites/6_dots.png" id="7_kd3ah"]
-[ext_resource type="AudioStream" uid="uid://bchcor57o8nuy" path="res://assets/audio/dice_roll.wav" id="8_rxcad"]
-[ext_resource type="AudioStream" uid="uid://dmdskyl0ekcr8" path="res://assets/audio/dicerollresult.wav" id="9_yqaqp"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.15, 0.15, 0.2, 0.95)
@@ -111,11 +109,3 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "Total: —"
 horizontal_alignment = 1
-
-[node name="RollSound" type="AudioStreamPlayer2D" parent="."]
-stream = ExtResource("8_rxcad")
-volume_db = -12.0
-
-[node name="RollResult" type="AudioStreamPlayer2D" parent="."]
-stream = ExtResource("9_yqaqp")
-volume_db = -6.0

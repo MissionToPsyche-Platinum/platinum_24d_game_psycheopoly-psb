@@ -22,7 +22,7 @@ buses/default_bus_layout="uid://l7mgbby5vgdq"
 [autoload]
 
 GameState="*res://scripts/core/game_state.gd"
-Audio="*res://scripts/core/audio_manager.gd"
+AudioManager="*res://scripts/core/audio_manager.gd"
 
 [display]
 

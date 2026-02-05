@@ -1,14 +1,11 @@
-[gd_scene load_steps=25 format=3 uid="uid://bmvl3imlm0w2"]
+[gd_scene load_steps=22 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
 [ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/ui_background.tscn" id="2_j6af4"]
 [ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_logo"]
 [ext_resource type="Script" uid="uid://d0ne4ghwtfkp0" path="res://scripts/ui/title.gd" id="3_cp7se"]
-[ext_resource type="Script" uid="uid://daqs1c1xj25h1" path="res://scripts/core/asteroid_sprite.gd" id="4_frkif"]
 [ext_resource type="Texture2D" uid="uid://boddmgn7a5uod" path="res://assets/images/sprites/psyche_probe_pixel.png" id="4_kcs48"]
 [ext_resource type="Script" uid="uid://dhx6oudn2fwb0" path="res://scripts/ui/probe_sprite.gd" id="5_aso40"]
-[ext_resource type="AudioStream" uid="uid://daer2kjq6kdv0" path="res://assets/audio/probe_whoosh.wav" id="5_cuvp2"]
-[ext_resource type="Texture2D" uid="uid://ddiym42am7ay3" path="res://assets/images/sprites/asteroid_img.png" id="6_cuvp2"]
 [ext_resource type="PackedScene" uid="uid://byeqtctiiqjkl" path="res://scenes/SettingsMenu.tscn" id="9_sf8pk"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_kcs48"]
@@ -209,91 +206,13 @@ script = ExtResource("1_bx376")
 [node name="UIBackground" parent="." instance=ExtResource("2_j6af4")]
 layout_mode = 1
 
-[node name="Asteroids" type="Sprite2D" parent="UIBackground"]
+[node name="Asteroids2" type="Sprite2D" parent="UIBackground"]
 
-[node name="AsteroidSprite" type="Sprite2D" parent="UIBackground/Asteroids"]
-position = Vector2(0, 72)
-scale = Vector2(0.9, 0.9)
-texture = ExtResource("6_cuvp2")
-script = ExtResource("4_frkif")
-margin = 140.0
-travel_time_min = 5.0
-travel_time_max = 8.0
-min_leg_distance = 650.0
-max_vertical_ratio = 0.75
-fade_in_time = 0.55
-fade_out_time = 0.55
-base_alpha = 0.85
-float_amplitude = 7.0
-float_speed = 0.35
-scale_pulse = 0.015
-scale_speed = 0.18
-
-[node name="AsteroidSprite2" type="Sprite2D" parent="UIBackground/Asteroids"]
-position = Vector2(0, 72)
-scale = Vector2(0.5, 0.5)
-texture = ExtResource("6_cuvp2")
-script = ExtResource("4_frkif")
-margin = 140.0
-travel_time_min = 5.0
-travel_time_max = 8.0
-min_leg_distance = 650.0
-max_vertical_ratio = 0.75
-fade_in_time = 0.55
-fade_out_time = 0.55
-base_alpha = 0.85
-float_amplitude = 7.0
-float_speed = 0.35
-scale_pulse = 0.015
-scale_speed = 0.18
-
-[node name="AsteroidSprite3" type="Sprite2D" parent="UIBackground/Asteroids"]
-position = Vector2(0, 72)
-scale = Vector2(0.6, 0.6)
-texture = ExtResource("6_cuvp2")
-script = ExtResource("4_frkif")
-margin = 140.0
-travel_time_min = 5.0
-travel_time_max = 8.0
-min_leg_distance = 650.0
-max_vertical_ratio = 0.75
-fade_in_time = 0.55
-fade_out_time = 0.55
-base_alpha = 0.85
-float_amplitude = 7.0
-float_speed = 0.35
-scale_pulse = 0.015
-scale_speed = 0.18
-
-[node name="AsteroidSprite4" type="Sprite2D" parent="UIBackground/Asteroids"]
-position = Vector2(0, 72)
-scale = Vector2(0.7, 0.7)
-texture = ExtResource("6_cuvp2")
-script = ExtResource("4_frkif")
-margin = 140.0
-travel_time_min = 5.0
-travel_time_max = 8.0
-min_leg_distance = 650.0
-max_vertical_ratio = 0.75
-fade_in_time = 0.55
-fade_out_time = 0.55
-base_alpha = 0.85
-float_amplitude = 7.0
-float_speed = 0.35
-scale_pulse = 0.015
-scale_speed = 0.18
-
-[node name="ProbeSprite" type="Sprite2D" parent="UIBackground"]
+[node name="ProbeSprite2" type="Sprite2D" parent="UIBackground"]
 position = Vector2(0, 72)
 scale = Vector2(0.8, 0.8)
 texture = ExtResource("4_kcs48")
 script = ExtResource("5_aso40")
-
-[node name="OnScreen" type="VisibleOnScreenNotifier2D" parent="UIBackground/ProbeSprite"]
-
-[node name="ProbeWhoosh" type="AudioStreamPlayer2D" parent="UIBackground/ProbeSprite"]
-stream = ExtResource("5_cuvp2")
-volume_db = -18.0
 
 [node name="CenterBox" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -494,5 +413,3 @@ text = "Close"
 [node name="SettingsMenu" parent="." instance=ExtResource("9_sf8pk")]
 visible = false
 layout_mode = 1
-
-[connection signal="screen_entered" from="UIBackground/ProbeSprite/OnScreen" to="UIBackground/ProbeSprite" method="_on_on_screen_screen_entered"]
