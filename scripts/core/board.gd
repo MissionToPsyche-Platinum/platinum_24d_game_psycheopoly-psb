@@ -198,27 +198,21 @@ func _setup_end_turn_button() -> void:
 
 
 func _setup_auction_popup() -> void:
-	# IMPORTANT:
-	# We add these deferred so their @onready references are guaranteed valid
-	# before we call show_popup()/set_status()/etc.
 	auction_popup = AuctionPopupScene.instantiate()
 	get_tree().root.call_deferred("add_child", auction_popup)
 
 	property_details_popup = PropertyDetailsPopupScene.instantiate()
 	get_tree().root.call_deferred("add_child", property_details_popup)
 
-	# Finish wiring AFTER they actually enter the tree + run _ready()
 	call_deferred("_finish_setup_auction_popup")
 
 
 func _finish_setup_auction_popup() -> void:
-	# Ensure they are fully ready (prevents the “status_label is null” crash)
 	if auction_popup and not auction_popup.is_node_ready():
 		await auction_popup.ready
 	if property_details_popup and not property_details_popup.is_node_ready():
 		await property_details_popup.ready
 
-	# Start hidden safely (now @onready nodes exist)
 	if auction_popup:
 		auction_popup.visible = false
 	if property_details_popup:
@@ -403,9 +397,6 @@ func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 		if auction_popup.has_method("set_high_bid"):
 			auction_popup.call("set_high_bid", high_bid, bidder_name)
 
-		# OPTIONAL POLISH HOOK (see notes below):
-		# If no one has bid yet, you can show “Starting Price: $X”
-		# by setting status accordingly (or adjusting AuctionPopup.set_high_bid).
 		if auction_popup.has_method("set_status"):
 			if high_bidder_index == -1:
 				auction_popup.call("set_status", "Starting Price: $" + str(high_bid))
