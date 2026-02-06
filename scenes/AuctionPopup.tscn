@@ -78,6 +78,7 @@ layout_mode = 2
 color = Color(0.4, 0.7, 1, 1)
 
 [node name="PropertyName" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -93,6 +94,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="PropertyType" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 theme_override_fonts/font = ExtResource("3_0uw6r")
@@ -116,63 +118,23 @@ autowrap_mode = 2
 [node name="HSeparator_Auction" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
 layout_mode = 2
 
-[node name="CurrentBidRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
-layout_mode = 2
-
-[node name="CurrentBidLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/CurrentBidRow"]
-layout_mode = 2
-text = "Current Bid:"
-
-[node name="CurrentBidValue" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/CurrentBidRow"]
-layout_mode = 2
-text = "$0"
-
-[node name="HighestBidderRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
-layout_mode = 2
-
-[node name="HighestBidderLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/HighestBidderRow"]
-layout_mode = 2
-text = "Highest Bidder:"
-
-[node name="HighestBidderValue" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/HighestBidderRow"]
-layout_mode = 2
-text = "None"
-
-[node name="TurnRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
-layout_mode = 2
-
-[node name="TurnLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/TurnRow"]
-layout_mode = 2
-text = "Waiting For:"
-
-[node name="Turn Value" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/TurnRow"]
-layout_mode = 2
-text = "Player 1"
-
 [node name="HSeparator_Bidders" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
 layout_mode = 2
 
-[node name="BiddersTitle" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+[node name="CurrentBidderLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Bidders:"
+text = "Current Bidder: "
 
-[node name="BiddersList" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer"]
+[node name="HighBidLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
+text = "Highest Bid: $0 "
 
-[node name="BidderRow1" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList"]
+[node name="StatusLabel" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
-
-[node name="PlayerName" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList/BidderRow1"]
-layout_mode = 2
-text = "Player 1"
-
-[node name="PlayerCash" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList/BidderRow1"]
-layout_mode = 2
-text = "$500"
-
-[node name="PlayerStatus" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/AuctionContainer/BiddersList/BidderRow1"]
-layout_mode = 2
-text = "Active"
+autowrap_mode = 3
 
 [node name="ButtonsRow" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
 layout_mode = 2
