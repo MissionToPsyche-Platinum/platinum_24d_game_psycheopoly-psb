@@ -23,6 +23,7 @@ buses/default_bus_layout="uid://l7mgbby5vgdq"
 
 GameState="*res://scripts/core/game_state.gd"
 AudioManager="*res://scripts/core/audio_manager.gd"
+AuctionMgr="*res://scripts/core/auction_manager.gd"
 
 [display]
 

@@ -38,11 +38,9 @@ signal action_completed()
 # Signals to be called from space action popup
 # ------------------------------------------------------------------------------
 signal pay_rent(property, player)
-
 signal purchase_property(property, player)
 
 #other signals
-
 signal difficulty_changed(new_value: String)
 signal colorblind_mode_changed(enabled: bool)
 signal setup_changed()
@@ -90,7 +88,6 @@ var colorblind_mode: bool = false
 # Setup selections (filled by GameSetupScreen before starting board)
 # Each: { "name": String, "color_index": int }
 var setup_humans: Array[Dictionary] = []
-
 var setup_human_count: int = 1
 
 
@@ -126,18 +123,45 @@ func _setup_players() -> void:
 			var cfg: Dictionary = setup_humans[i]
 
 			player.player_name = str(cfg.get("name", "Player " + str(i + 1)))
-		
+
 			var color_index: int = int(cfg.get("color_index", i))
 			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
 			player.player_color = PLAYER_COLORS[color_index]
 		else:
-	# AI player
+			# AI player
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
 
-
 		players.append(player)
 		add_child(player)
+
+
+
+# ------------------------------------------------------------------------------
+# Money helpers (centralize all balance changes so "math doesn't go wonky")
+# ------------------------------------------------------------------------------
+
+func debit(player_index: int, amount: int, reason: String = "") -> void:
+	if amount <= 0:
+		return
+	if player_index < 0 or player_index >= players.size():
+		return
+	players[player_index].balance -= amount
+	print("DEBIT ", players[player_index].player_name, " -$", amount, " ", reason, " => $", players[player_index].balance)
+	player_money_updated.emit(players[player_index])
+
+func credit(player_index: int, amount: int, reason: String = "") -> void:
+	if amount <= 0:
+		return
+	if player_index < 0 or player_index >= players.size():
+		return
+	players[player_index].balance += amount
+	print("CREDIT ", players[player_index].player_name, " +$", amount, " ", reason, " => $", players[player_index].balance)
+	player_money_updated.emit(players[player_index])
+
+func transfer(from_index: int, to_index: int, amount: int, reason: String = "") -> void:
+	debit(from_index, amount, reason)
+	credit(to_index, amount, reason)
 
 
 
@@ -150,63 +174,70 @@ func _transfer_property(property: Ownable, player: int) -> void:
 
 ## Purchases a property - called by the purchase property signal
 func _purchase_property(property: Ownable, player: int) -> void:
-	if (property._is_owned):
-		_purchase_owned_property(property, player, property._player_owner, property._initial_price) # currently we assume that the purchase price is the same as the default, though this will not always be the case
-	else:
-		_purchase_unowned_property(property, player, property._initial_price)
+	# If already owned, you cannot purchase it again.
+	if property._is_owned:
+		# If it's yours, nothing to do (later: manage upgrades/mortgage)
+		if property._player_owner == player:
+			print("Purchase blocked: player already owns this property.")
+			return
+
+		# If someone else owns it, this should be rent — not purchase.
+		print("Purchase blocked: property already owned by player ", property._player_owner, ". Pay rent instead.")
+		return
+
+	# Unowned -> normal purchase
+	_purchase_unowned_property(property, player, property._initial_price)
 
 
 ## Purchases an unowned property - deducts balance and transfers ownership
 func _purchase_unowned_property(property: Ownable, player: int, purchase_price: int) -> void:
-	players[player].balance -= purchase_price
-	player_money_updated.emit(players[player])
+	debit(player, purchase_price, "purchase unowned")
 	_transfer_property(property, player)
 
 
 ## Purchases an owned property - handles money transfer between players
+## (kept for future trading / special rules, NOT used by normal "Purchase" now)
 func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purchase_price: int) -> void:
-	players[buyer].balance -= purchase_price
-	player_money_updated.emit(players[buyer])
-	players[seller].balance += purchase_price
-	player_money_updated.emit(players[seller])
+	transfer(buyer, seller, purchase_price, "purchase owned")
 	_transfer_property(property, buyer)
+
 
 func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
 		return
-		
-	var rent = 0
+
+	var rent := 0
 	match property.get_script().get_global_name():
 		"PropertySpace":
 			match property._current_upgrades:
-				0:  
+				0:
 					rent = property._default_rent
-				1:  
+				1:
 					rent = property._one_data_rent
-				2:  
+				2:
 					rent = property._two_data_rent
-				3:  
+				3:
 					rent = property._three_data_rent
-				4:  
+				4:
 					rent = property._four_data_rent
-				5:  
+				5:
 					rent = property._discovery_rent
-				_:  
+				_:
 					rent = 0
 		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
 			rent = 0
 		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
 			rent = 0
-	players[player].balance -= rent
-	players[property._player_owner].balance += rent
-	player_money_updated.emit(players[player])
-	player_money_updated.emit(players[property._player_owner])
+
+	transfer(player, property._player_owner, rent, "rent")
+
 
 
 func set_difficulty(new_difficulty: String) -> void:
 	difficulty = new_difficulty
 	emit_signal("difficulty_changed", difficulty)
 	print("GameState difficulty set to: ", difficulty)
+
 
 func set_colorblind_mode(enabled: bool) -> void:
 	if enabled == colorblind_mode:
@@ -215,15 +246,20 @@ func set_colorblind_mode(enabled: bool) -> void:
 	emit_signal("colorblind_mode_changed", colorblind_mode)
 	emit_signal("setup_changed")
 
+
 func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	player_count = total_players
 	setup_humans = humans.duplicate(true)
 	setup_human_count = setup_humans.size()
 
-	current_player_index = 0  
-	game_active = false       
+	current_player_index = 0
+	game_active = false
 
 	_setup_players()
+
+	# Keep player_count consistent with the actual player objects created
+	player_count = players.size()
+
 	emit_signal("setup_changed")
 
 
@@ -257,13 +293,16 @@ func next_player() -> void:
 	## Advance to the next player's turn
 	if not game_active:
 		return
-	
+
 	# Emit turn ended for current player
 	emit_signal("turn_ended", current_player_index)
-	
-	# Advance to next player
-	current_player_index = (current_player_index + 1) % player_count
-	
+
+	# Advance to next player (use actual players array size)
+	var total := players.size()
+	if total <= 0:
+		return
+	current_player_index = (current_player_index + 1) % total
+
 	# Emit signals for new player
 	var current_player = get_current_player()
 	if current_player:
@@ -278,3 +317,21 @@ func change_player_cash(player: PlayerState, delta: int) -> void:
 		player.balance += delta
 		print(player.player_name, " cash changed by ", delta, " (new balance: $", player.balance, ")")
 		emit_signal("player_money_updated", player)
+
+
+# Public helper: return a player's balance safely
+func get_player_balance(player_index: int) -> int:
+	if player_index < 0 or player_index >= players.size():
+		return 0
+	return players[player_index].balance
+
+
+# Public helper: set ownership without using private methods from other scripts
+func transfer_property_to_player(property: Ownable, player_index: int) -> void:
+	_transfer_property(property, player_index)
+
+
+func charge_player(player_index: int, amount: int) -> void:
+	# Keep as a wrapper so existing code continues to work
+	debit(player_index, amount, "charge_player")
+	print("DEBIT ", players[player_index].player_name, " -$", amount, " charge_player => $", players[player_index].balance)
