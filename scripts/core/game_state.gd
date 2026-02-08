@@ -201,6 +201,18 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 	transfer(buyer, seller, purchase_price, "purchase owned")
 	_transfer_property(property, buyer)
 
+## Returns the numner of instrument spaces owned by the player
+func _checkOwnedInstruments(player: int) -> int:
+	var instruments = 0;
+	for i in range(board.size()):
+		print("check space ", i)
+		if board[i].get_script().get_global_name() == "InstrumentSpace":
+			print("check player on space ", i, "player is ", board[i]._player_owner, "player we are looking for is ", player)
+			if board[i]._is_owned && board[i]._player_owner == player:
+				instruments += 1
+	return instruments
+			
+
 
 func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
@@ -225,7 +237,18 @@ func _pay_rent(property: Ownable, player: int) -> void:
 				_:
 					rent = 0
 		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
-			rent = 0
+			var instruments = _checkOwnedInstruments(property._player_owner)
+			match instruments:
+				1: 
+					rent = property._default_rent
+				2:
+					rent = property._two_instrument_rent
+				3:
+					rent = property._three_instrument_rent
+				4:
+					rent = property._four_instrument_rent
+				_:
+					rent = 0
 		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
 			rent = 0
 
