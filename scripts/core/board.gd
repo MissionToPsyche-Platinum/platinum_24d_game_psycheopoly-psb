@@ -665,7 +665,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			if is_doubles:
 				current_player.doubles_count += 1
 			# Notify that player has rolled
-			GameState.player_rolled.emit(current_player)
+			GameState.player_rolled.emit(current_player, total)
 
 
 func _clear_pieces() -> void:
