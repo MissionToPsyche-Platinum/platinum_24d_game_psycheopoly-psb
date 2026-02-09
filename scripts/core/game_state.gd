@@ -66,7 +66,7 @@ var player_count: int = 6
 # Holds the player state data models
 var players: Array[PlayerState] = []
 
-var lastRoll = 0
+var last_roll = 0
 
 # Player colors for pieces and UI
 const PLAYER_COLORS: Array[Color] = [
@@ -97,7 +97,7 @@ var setup_human_count: int = 1
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
 	purchase_property.connect(_purchase_property)
-	player_rolled.connect(_updateLastRoll)
+	player_rolled.connect(_update_last_roll)
 
 	_setup_board()
 	# Don't call _setup_players() here.
@@ -205,7 +205,7 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 	_transfer_property(property, buyer)
 
 ## Returns the numner of instrument or planet spaces owned by the player
-func _checkSimilarProperties(property: Ownable) -> int:
+func _check_similar_properties(property: Ownable) -> int:
 	var properties = 0;
 	for i in range(board.size()):
 		if board[i].get_script().get_global_name() == property.get_script().get_global_name():
@@ -213,12 +213,8 @@ func _checkSimilarProperties(property: Ownable) -> int:
 				properties += 1
 	return properties
 
-## Returns the numner of instrument spaces owned by the player
-
-
-	
-func _updateLastRoll(player: PlayerState, total: int):
-	lastRoll = total
+func _update_last_roll(player: PlayerState, total: int):
+	last_roll = total
 
 func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
@@ -243,7 +239,7 @@ func _pay_rent(property: Ownable, player: int) -> void:
 				_:
 					rent = 0
 		"InstrumentSpace": 
-			var instruments = _checkSimilarProperties(property)
+			var instruments = _check_similar_properties(property)
 			match instruments:
 				1: 
 					rent = property._default_rent
@@ -256,12 +252,12 @@ func _pay_rent(property: Ownable, player: int) -> void:
 				_:
 					rent = 0
 		"PlanetSpace":
-			var planets = _checkSimilarProperties(property)
+			var planets = _check_similar_properties(property)
 			match planets:
 				1:
-					rent = property._default_multiplier * lastRoll
+					rent = property._default_multiplier * last_roll
 				2:
-					rent = property._two_planet_multiplier * lastRoll
+					rent = property._two_planet_multiplier * last_roll
 				_:
 					rent = 0
 
