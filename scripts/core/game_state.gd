@@ -29,7 +29,7 @@ signal turn_started(player_index: int)
 signal turn_ended(player_index: int)
 
 ## Emitted when a player rolls the dice
-signal player_rolled(player: PlayerState)
+signal player_rolled(player: PlayerState, total: int)
 
 ## Emitted when a player completes an action (purchase, pay, etc.)
 signal action_completed()
@@ -66,6 +66,8 @@ var player_count: int = 6
 # Holds the player state data models
 var players: Array[PlayerState] = []
 
+var last_roll = 0
+
 # Player colors for pieces and UI
 const PLAYER_COLORS: Array[Color] = [
 	Color(0.9, 0.2, 0.2),   # Red
@@ -95,6 +97,7 @@ var setup_human_count: int = 1
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
 	purchase_property.connect(_purchase_property)
+	player_rolled.connect(_update_last_roll)
 
 	_setup_board()
 	# Don't call _setup_players() here.
@@ -201,6 +204,17 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 	transfer(buyer, seller, purchase_price, "purchase owned")
 	_transfer_property(property, buyer)
 
+## Returns the numner of instrument or planet spaces owned by the player
+func _check_similar_properties(property: Ownable) -> int:
+	var properties = 0;
+	for i in range(board.size()):
+		if board[i].get_script().get_global_name() == property.get_script().get_global_name():
+			if board[i]._is_owned && board[i]._player_owner == property._player_owner:
+				properties += 1
+	return properties
+
+func _update_last_roll(player: PlayerState, total: int):
+	last_roll = total
 
 func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
@@ -224,10 +238,28 @@ func _pay_rent(property: Ownable, player: int) -> void:
 					rent = property._discovery_rent
 				_:
 					rent = 0
-		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
-			rent = 0
-		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
-			rent = 0
+		"InstrumentSpace": 
+			var instruments = _check_similar_properties(property)
+			match instruments:
+				1: 
+					rent = property._default_rent
+				2:
+					rent = property._two_instrument_rent
+				3:
+					rent = property._three_instrument_rent
+				4:
+					rent = property._four_instrument_rent
+				_:
+					rent = 0
+		"PlanetSpace":
+			var planets = _check_similar_properties(property)
+			match planets:
+				1:
+					rent = property._default_multiplier * last_roll
+				2:
+					rent = property._two_planet_multiplier * last_roll
+				_:
+					rent = 0
 
 	transfer(player, property._player_owner, rent, "rent")
 
