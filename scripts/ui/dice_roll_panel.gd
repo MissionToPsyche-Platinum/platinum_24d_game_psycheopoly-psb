@@ -52,7 +52,6 @@ signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
 # slight pitch variety on result sound (subtle) so the sounds doesn't sound the exact smae all the time
 @export var result_pitch_min: float = 0.96
 @export var result_pitch_max: float = 1.08
-# Range for random pitch variation on the result sound
 
 
 @export var die1_path: NodePath
@@ -71,13 +70,6 @@ signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
 # Grabs the roll button node and casts it to Button.
 
 @onready var total_label: Label = get_node(total_label_path) as Label
-# Grabs the label used to display the TOTAL.
-
-@onready var roll_sound_node: Node = get_node_or_null("RollSound")
-# Tries to find a child named "RollSound". If missing, returns null instead of crashing.
-
-@onready var result_sound_node: Node = get_node_or_null("RollResult")
-# Tries to find a child named "RollResult".
 
 
 var rng := RandomNumberGenerator.new()
@@ -134,7 +126,9 @@ func _ready() -> void:
 	# Initialize button states for first player
 	_update_button_states()
 
+
 func _on_roll_pressed() -> void:
+	AudioManager.play_ui("click")
 	# Runs when the Roll button is clicked/pressed.
 	roll_dice()
 	# Calls the main roll function.
@@ -154,6 +148,10 @@ func roll_dice() -> void:
 
 	is_rolling = true
 	# Lock input so you can’t trigger another roll during this roll.
+	
+	# Lower game bg music while dice is rolling.
+	AudioManager.duck_music(-20.0, 0.12)
+
 
 	roll_button.disabled = true
 	# Disables the button in UI so user can’t click it again.
@@ -242,6 +240,10 @@ func roll_dice() -> void:
 	_play_result_sfx()
 	# Play the final result sound (with optional pitch variance).
 
+	# Return game bg music to normal AFTER the roll finishes.
+	AudioManager.unduck_music(0.18)
+
+
 	# Notify listeners (like GameBoard) that the roll is finished
 	dice_rolled.emit(final1, final2, total, final1 == final2)
 
@@ -285,11 +287,7 @@ func _pop(node: Control) -> void:
 	# Wait for tween to fully finish before returning.
 
 func _play_roll_sfx(force: bool) -> void:
-	# Plays the rolling tick sound (RollSound), but throttles it to avoid spam.
-
-	if roll_sound_node == null:
-		# If the scene does not have the RollSound node, do nothing.
-		return
+	# Plays the rolling tick sound, but throttles it to avoid spam.
 
 	var now := Time.get_ticks_msec() / 1000.0
 	# Current time in seconds (ticks_msec gives milliseconds since engine start).
@@ -301,38 +299,17 @@ func _play_roll_sfx(force: bool) -> void:
 	_last_roll_sfx_time = now
 	# Update last-played timestamp.
 
-	# Works for AudioStreamPlayer and AudioStreamPlayer2D
-	if roll_sound_node.has_method("stop"):
-		
-		roll_sound_node.call("stop")
-
-	if roll_sound_node.has_method("play"):
-		
-		roll_sound_node.call("play")
+	# Slight boost so dice cuts through background music
+	AudioManager.play_sfx("dice_tick", -3.0, +0.5)
 
 func _play_result_sfx() -> void:
-	# Plays the final result sound (RollResult), optionally with slight pitch randomness.
+	# Plays the final result sound, optionally with slight pitch randomness.
 
-	if result_sound_node == null:
-		# If the scene does not have the result sound node, do nothing.
-		return
+	var pitch := rng.randf_range(result_pitch_min, result_pitch_max)
+	# randf_range returns a float between min/max.
 
-	# Optional subtle pitch variation if the node supports it
-	if result_sound_node.has_method("set"):
-		# Generic check: if the node can set properties dynamically...
-		# Only set pitch if property exists (AudioStreamPlayer / 2D)
-		if result_sound_node.get("pitch_scale") != null:
-			# If the node has a pitch_scale property, randomize it.
-			result_sound_node.set("pitch_scale", rng.randf_range(result_pitch_min, result_pitch_max))
-			# randf_range returns a float between min/max.
-
-	if result_sound_node.has_method("stop"):
-		# Stop current playback before playing (clean retrigger).
-		result_sound_node.call("stop")
-
-	if result_sound_node.has_method("play"):
-		# Play the result sound.
-		result_sound_node.call("play")
+	# Slight boost so result cuts through background music
+	AudioManager.play_sfx("dice_result", pitch, +1.0) #
 
 #  figure out current die value from its current texture.
 # If it can't find it, returns 1.

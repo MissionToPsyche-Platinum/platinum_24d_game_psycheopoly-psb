@@ -54,7 +54,6 @@ var colorblind_mode: bool = false
 # Setup selections (filled by GameSetupScreen before starting board)
 # Each: { "name": String, "color_index": int }
 var setup_humans: Array[Dictionary] = []
-
 var setup_human_count: int = 1
 
 
@@ -87,7 +86,7 @@ func _setup_players() -> void:
 			var cfg: Dictionary = setup_humans[i]
 
 			player.player_name = str(cfg.get("name", "Player " + str(i + 1)))
-		
+
 			var color_index: int = int(cfg.get("color_index", i))
 			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
 			player.player_color = PLAYER_COLORS[color_index]
@@ -95,7 +94,6 @@ func _setup_players() -> void:
 			# AI player
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
-
 
 		players.append(player)
 		add_child(player)
@@ -105,8 +103,11 @@ func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	setup_humans = humans.duplicate(true)
 	setup_human_count = setup_humans.size()
 
-	current_player_index = 0  
-	game_active = false       
+	current_player_index = 0
+	game_active = false
 
 	_setup_players()
+	player_count = players.size()
+
+	emit_signal("setup_changed")
 	GameController.emit_signal("setup_changed")

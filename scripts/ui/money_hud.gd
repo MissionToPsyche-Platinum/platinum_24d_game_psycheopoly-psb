@@ -70,9 +70,10 @@ func _ready() -> void:
 		push_warning("GameState autoload not found. " +
 					 "HUD will only update if set_cash/set_assets are called manually.")
 
-	# Update the starting balance if players are ready
-	if GameState.players.size() > 0:
-		GameController.player_money_updated.emit(GameState.players[0])
+	# Initialize HUD with the current player right away (safe, no fake signal emit)
+	if GameState and GameState.players.size() > 0:
+		update_from_player(GameState.get_current_player())
+
 
 # ---------------------------------------------------------------------------
 #  other scripts should be able  call these directly if we want
@@ -143,6 +144,22 @@ func _on_current_player_changed(player: Object) -> void:
 
 func _on_player_money_updated(player: Object) -> void:
 	## Called when GameState emits "player_money_updated".
+	##
+	## IMPORTANT:
+	## Auctions / rent / other events can change a NON-current player's money
+	## during someone else's turn. We should only update this HUD if the money
+	## update belongs to the current player being displayed.
+	if not GameState:
+		return
+
+	var current_player := GameState.get_current_player()
+	if current_player == null:
+		return
+
+	# Only update HUD if this update belongs to the current player
+	if player != current_player:
+		return
+
 	update_from_player(player)
 
 
