@@ -72,7 +72,7 @@ func _ready() -> void:
 
 	# Initialize HUD with the current player right away (safe, no fake signal emit)
 	if GameState and GameState.players.size() > 0:
-		update_from_player(GameState.get_current_player())
+		update_from_player(GameController.get_current_player())
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ func _on_player_money_updated(player: Object) -> void:
 	if not GameState:
 		return
 
-	var current_player := GameState.get_current_player()
+	var current_player := GameController.get_current_player()
 	if current_player == null:
 		return
 

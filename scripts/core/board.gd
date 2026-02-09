@@ -426,7 +426,7 @@ func _on_auction_ended(winner_index: int, winning_bid: int, _space_num: int, _pr
 		auction_popup.hide_popup()
 
 	# tell the game flow we’re done with this action and move on.
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_move_pressed(space_num: int) -> void:
@@ -461,7 +461,7 @@ func _on_pay_pressed(space_num: int) -> void:
 		GameState.charge_player(GameState.current_player_index, amount)
 		print("Paid $%d for %s" % [amount, space_info.name])
 		# Update HUD
-		GameController.player_money_updated.emit(GameState.players[player_idx])
+		GameController.player_money_updated.emit(GameState.players[GameState.player_idx])
 	GameController.action_completed.emit()
 
 

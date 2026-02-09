@@ -109,5 +109,4 @@ func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	_setup_players()
 	player_count = players.size()
 
-	emit_signal("setup_changed")
 	GameController.emit_signal("setup_changed")
