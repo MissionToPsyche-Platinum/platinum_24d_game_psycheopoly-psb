@@ -144,7 +144,7 @@ func _on_purchase_pressed() -> void:
 	# Previously this was hard-coded to 0, which caused Player 1 to be charged
 	# even when Player 2/3/etc made the purchase.
 	# now using the current active player index from GameState.
-	GameState.purchase_property.emit(GameState.board[current_space_num], GameState.current_player_index)
+	GameController.purchase_property.emit(GameState.board[current_space_num], GameState.current_player_index)
 
 	hide_popup()
 
@@ -154,7 +154,7 @@ func _on_pay_pressed() -> void:
 	# Previously this was hard-coded to 0, which caused Player 1 to pay/owe rent
 	# even when Player 2/3/etc landed here.
 	# now using the current active player index from GameState.
-	GameState.pay_rent.emit(GameState.board[current_space_num], GameState.current_player_index)
+	GameController.pay_rent.emit(GameState.board[current_space_num], GameState.current_player_index)
 
 	hide_popup()
 

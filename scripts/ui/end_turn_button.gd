@@ -12,9 +12,9 @@ func _ready() -> void:
 		end_turn_button.pressed.connect(_on_end_turn_pressed)
 	
 	# Connect to GameState turn signals
-	if GameState:
-		GameState.turn_started.connect(_on_turn_started)
-		GameState.action_completed.connect(_on_action_completed)
+	if GameController:
+		GameController.turn_started.connect(_on_turn_started)
+		GameController.action_completed.connect(_on_action_completed)
 	
 	# Initialize button state (hidden at start)
 	if ui_container:
@@ -23,7 +23,7 @@ func _ready() -> void:
 
 func _on_end_turn_pressed() -> void:
 	## Called when player presses End Turn button
-	var current_player = GameState.get_current_player()
+	var current_player = GameController.get_current_player()
 	if not current_player:
 		return
 	
@@ -32,7 +32,7 @@ func _on_end_turn_pressed() -> void:
 		return
 	
 	# End the turn
-	GameState.next_player()
+	GameController.next_player()
 
 
 func _on_turn_started(_player_index: int) -> void:
@@ -43,10 +43,9 @@ func _on_turn_started(_player_index: int) -> void:
 
 func _on_action_completed() -> void:
 	## Called when player completes an action - show button
-	var current_player = GameState.get_current_player()
+	var current_player = GameController.get_current_player()
 	if not current_player:
 		return
 	
 	if current_player.has_rolled and ui_container:
 		ui_container.visible = true
-

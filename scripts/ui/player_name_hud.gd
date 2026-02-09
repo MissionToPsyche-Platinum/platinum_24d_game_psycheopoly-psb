@@ -7,12 +7,12 @@ extends Control
 @onready var color_indicator: ColorRect = $Panel/MarginContainer/HBox/ColorIndicator
 
 func _ready() -> void:
-	if GameState:
-		if not GameState.current_player_changed.is_connected(_on_current_player_changed):
-			GameState.current_player_changed.connect(_on_current_player_changed)
-
-		# Initial update
-		var current = GameState.get_current_player()
+	if GameController:
+		if not GameController.current_player_changed.is_connected(_on_current_player_changed):
+			GameController.current_player_changed.connect(_on_current_player_changed)
+		
+		# Initial update if game already started
+		var current = GameController.get_current_player()
 		if current:
 			_on_current_player_changed(current)
 

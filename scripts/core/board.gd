@@ -68,8 +68,9 @@ func _ready() -> void:
 	highlight_layer = $TileMap/HighlightLayer
 
 	# Listen for setup changes (important if GameState rebuilds players)
-	if not GameState.setup_changed.is_connected(_on_setup_changed):
-		GameState.setup_changed.connect(_on_setup_changed)
+	if not GameController.setup_changed.is_connected(_on_setup_changed):
+		GameController.setup_changed.connect(_on_setup_changed)
+
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -106,13 +107,13 @@ func _ready() -> void:
 			current_piece.space_changed.connect(_on_piece_space_changed)
 		if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
 			current_piece.movement_finished.connect(_on_piece_movement_finished)
-
-	# Connect to GameState turn signals
-	if not GameState.turn_started.is_connected(_on_turn_started):
-		GameState.turn_started.connect(_on_turn_started)
-	if not GameState.turn_ended.is_connected(_on_turn_ended):
-		GameState.turn_ended.connect(_on_turn_ended)
-
+	
+	# Connect to GameController turn signals
+	if not GameController.turn_started.is_connected(_on_turn_started):
+		GameController.turn_started.connect(_on_turn_started)
+	if not GameController.turn_ended.is_connected(_on_turn_ended):
+		GameController.turn_ended.connect(_on_turn_ended)
+	
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
 
@@ -122,7 +123,7 @@ func _ready() -> void:
 
 func _start_game_deferred() -> void:
 	## Deferred game start to ensure all UI components are initialized
-	GameState.start_game()
+	GameController.start_game()
 
 
 func _setup_dice_roll_ui() -> void:
@@ -294,7 +295,7 @@ func _on_turn_ended(player_index: int) -> void:
 
 func end_turn() -> void:
 	## Called when player wants to end their turn
-	GameState.next_player()
+	GameController.next_player()
 
 
 # Update piece layouts (offsets) for all pieces on a specific space
@@ -320,7 +321,7 @@ func _on_piece_movement_finished(space_num: int) -> void:
 func _on_purchase_pressed(space_num: int) -> void:
 	print("Player wants to purchase space: ", space_num)
 	# TODO: Implement actual purchase logic
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_auction_pressed(space_num: int) -> void:
@@ -372,8 +373,8 @@ func _on_auction_turn_changed(player_index: int) -> void:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
 
-	var name := GameState.players[player_index].player_name
-	print("Auction turn:", name)
+	var player_name := GameState.players[player_index].player_name
+	print("Auction turn:", player_name)
 
 	if auction_popup:
 		# update the “current bidder” line with the REAL name
@@ -425,7 +426,7 @@ func _on_auction_ended(winner_index: int, winning_bid: int, _space_num: int, _pr
 		auction_popup.hide_popup()
 
 	# tell the game flow we’re done with this action and move on.
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_move_pressed(space_num: int) -> void:
@@ -439,7 +440,7 @@ func _on_move_pressed(space_num: int) -> void:
 			# Update both spaces
 			update_piece_layouts_at(old_space)
 			update_piece_layouts_at(10)
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_draw_card_pressed(space_num: int) -> void:
@@ -447,7 +448,7 @@ func _on_draw_card_pressed(space_num: int) -> void:
 	# TODO: Implement card deck system
 	var space_info = SpaceDataRef.get_space_info(space_num)
 	print("Card type: ", space_info.name)
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_pay_pressed(space_num: int) -> void:
@@ -459,13 +460,14 @@ func _on_pay_pressed(space_num: int) -> void:
 	if amount > 0:
 		GameState.charge_player(GameState.current_player_index, amount)
 		print("Paid $%d for %s" % [amount, space_info.name])
-
-	GameState.action_completed.emit()
+		# Update HUD
+		GameController.player_money_updated.emit(GameState.players[GameState.player_idx])
+	GameController.action_completed.emit()
 
 
 func _on_close_pressed() -> void:
 	print("Player closed the action popup")
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_piece_space_changed(space_num: int) -> void:
@@ -659,13 +661,13 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
 
 		# Mark player as having rolled
-		var current_player = GameState.get_current_player()
+		var current_player = GameController.get_current_player()
 		if current_player:
 			current_player.has_rolled = true
 			if is_doubles:
 				current_player.doubles_count += 1
 			# Notify that player has rolled
-			GameState.player_rolled.emit(current_player, total)
+			GameController.emit_signal("player_rolled", current_player)
 
 
 func _clear_pieces() -> void:
@@ -738,3 +740,6 @@ func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
 func _on_setup_changed() -> void:
 	print("Board: setup_changed -> rebuilding pieces")
 	_spawn_pieces_from_gamestate()
+	# If setup happens after board load, start the game once players exist
+	if not GameState.game_active and GameState.players.size() > 0:
+		call_deferred("_start_game_deferred")
