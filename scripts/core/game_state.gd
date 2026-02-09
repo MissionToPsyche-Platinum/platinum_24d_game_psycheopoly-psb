@@ -32,6 +32,8 @@ var player_count: int = 6
 # Holds the player state data models
 var players: Array[PlayerState] = []
 
+var last_roll = 0
+
 # Player colors for pieces and UI
 const PLAYER_COLORS: Array[Color] = [
 	Color(0.9, 0.2, 0.2),   # Red
