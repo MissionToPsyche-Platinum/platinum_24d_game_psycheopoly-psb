@@ -373,8 +373,8 @@ func _on_auction_turn_changed(player_index: int) -> void:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
 
-	var name := GameState.players[player_index].player_name
-	print("Auction turn:", name)
+	var player_name := GameState.players[player_index].player_name
+	print("Auction turn:", player_name)
 
 	if auction_popup:
 		# update the “current bidder” line with the REAL name
@@ -667,7 +667,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			if is_doubles:
 				current_player.doubles_count += 1
 			# Notify that player has rolled
-			GameState.player_rolled.emit(current_player, total)
+			GameController.emit_signal("player_rolled", current_player)
 
 
 func _clear_pieces() -> void:
