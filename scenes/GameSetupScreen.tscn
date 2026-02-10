@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://bx8ec1enup4gj"]
 
 [ext_resource type="Script" uid="uid://dfj0guqdndb4m" path="res://scripts/core/game_setup_screen.gd" id="1_086pk"]
-[ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/ui_background.tscn" id="2_fdyvb"]
+[ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/Background.tscn" id="2_fdyvb"]
 
 [node name="GameSetupScreen" type="Control"]
 layout_mode = 3
