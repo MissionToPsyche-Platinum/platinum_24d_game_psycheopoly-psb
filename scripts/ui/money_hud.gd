@@ -21,12 +21,9 @@ extends Control
 ## -----------------------------------------------------------------------------
 
 
-@onready var money_label: Label = $Panel/ContentMargin/HBoxContainer/MoneyBox/MoneyLabel
-@onready var asset_label: Label = $Panel/ContentMargin/HBoxContainer/AssetBox/AssetLabel
+@onready var money_label: Label = $Panel/ContentMargin/MoneyBox/MoneyLabel
 
-@onready var money_title_label: Label = $Panel/ContentMargin/HBoxContainer/MoneyBox/MoneyTitleLabel
-@onready var asset_title_label: Label = $Panel/ContentMargin/HBoxContainer/AssetBox/AssetTitleLabel
-
+@onready var money_title_label: Label = $Panel/ContentMargin/MoneyBox/MoneyTitleLabel
 
 func _ready() -> void:
 	## Called when the HUD is added to the scene tree.
@@ -34,12 +31,6 @@ func _ready() -> void:
 	##    initialize default text
 	##    connect to the global GameState autoload so the HUD updates
 	##    automatically when the current player changes or their money or assets change.
-
-	# Initial text for the HUD 
-	money_title_label.text = "Cash"
-	asset_title_label.text = "Assets"
-	money_label.text = "$0"
-	asset_label.text = "$0"
 
 	# This prevents talking to GameState while editing someting in the scene view
 	if Engine.is_editor_hint():
@@ -85,12 +76,6 @@ func set_cash(amount: int) -> void:
 	money_label.text = "$" + str(amount)
 
 
-func set_assets(amount: int) -> void:
-	## Updates the displayed assets (total wealth including properties).
-	## GameState calls this when the active player's asset value changes.
-	asset_label.text = "$" + str(amount)
-
-
 func update_from_player(player: Object) -> void:
 	## Method for convenience: update HUD from a "player" object or dictionary.
 	##
@@ -105,14 +90,11 @@ func update_from_player(player: Object) -> void:
 		return
 
 	var cash := 0
-	var assets := 0
 
 	# Dictionary-style player data
 	if typeof(player) == TYPE_DICTIONARY:
 		if "balance" in player:
 			cash = int(player["balance"])
-		if "assets_value" in player:
-			assets = int(player["assets_value"])
 	else:
 		# Node/Resource-style player data
 		if "balance" in player:
@@ -120,14 +102,7 @@ func update_from_player(player: Object) -> void:
 		elif player.has_method("get_cash"):
 			cash = int(player.get_cash())
 
-		if "assets_value" in player:
-			assets = int(player.assets_value)
-		elif player.has_method("get_assets_value"):
-			assets = int(player.get_assets_value())
-
 	set_cash(cash)
-	set_assets(assets)
-
 
 # ---------------------------------------------------------------------------
 # Signal Handling – called when GameState emits updates
@@ -170,7 +145,6 @@ func _on_player_money_updated(player: Object) -> void:
 # ---------------------------------------------------------------------------
 
 var _debug_cash := 0        # placeholder  value
-var _debug_assets := 0      # placeholder  value
 
 func _unhandled_input(event: InputEvent) -> void:
 	## Lets us test the HUD in-game without involving GameState.
@@ -185,6 +159,3 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_C:
 				_debug_cash += 10
 				set_cash(_debug_cash)
-			KEY_A:
-				_debug_assets += 50
-				set_assets(_debug_assets)
