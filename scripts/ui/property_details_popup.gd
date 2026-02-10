@@ -46,7 +46,7 @@ func _ready() -> void:
 	# Start hidden
 	visible = false
 # Show the popup with information about a space
-func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
+func show_space_details(space_num: int, owner_name: String = "Unowned", owner_color: Color = Color(0.7, 0.7, 0.7, 1)) -> void:
 	current_space = space_num
 	var space_info = SpaceData.get_space_info(space_num)
 	
@@ -90,10 +90,7 @@ func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
 	
 	# Set owner
 	owner_label.text = owner_name
-	if owner_name == "Unowned":
-		owner_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
-	else:
-		owner_label.add_theme_color_override("font_color", Color(1, 0.8, 0, 1))
+	owner_label.add_theme_color_override("font_color", owner_color)
 	
 	# Show the popup and bring to front
 	visible = true

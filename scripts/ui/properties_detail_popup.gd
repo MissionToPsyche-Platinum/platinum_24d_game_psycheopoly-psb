@@ -55,7 +55,8 @@ func _show_player_by_index(player_index: int) -> void:
 	var player = GameState.players[_current_player_index]
 	
 	# Update title with player name
-	title_label.text = "%s's Properties" % player.player_name
+	var display_name := _get_player_display_name(player, _current_player_index)
+	title_label.text = "%s's Properties" % display_name
 	
 	# Clear existing list
 	for child in properties_list.get_children():
@@ -114,12 +115,30 @@ func _set_current_player_index(player) -> void:
 		_current_player_index = 0
 		return
 
-	if "player_id" in player:
+	if player is PlayerState:
 		_current_player_index = int(player.player_id)
 		return
 
 	var idx := GameState.players.find(player)
 	_current_player_index = max(idx, 0)
+
+
+func _get_player_display_name(player, player_index: int) -> String:
+	var player_name := ""
+	if player != null:
+		player_name = str(player.player_name).strip_edges()
+	if player_name != "" and player_name != "Player" and not player_name.begins_with("Player "):
+		return player_name
+
+	if GameState and player_index >= 0 and player_index < GameState.setup_humans.size():
+		var setup_name := str(GameState.setup_humans[player_index].get("name", "")).strip_edges()
+		if setup_name != "":
+			return setup_name
+
+	if player_name != "":
+		return player_name
+
+	return "Player %d" % (player_index + 1)
 
 
 func _create_property_item(prop: Dictionary) -> HBoxContainer:

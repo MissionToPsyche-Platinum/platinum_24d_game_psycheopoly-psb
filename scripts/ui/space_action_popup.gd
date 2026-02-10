@@ -133,10 +133,16 @@ func _on_details_pressed() -> void:
 	# Show the popup with current space details
 	var property = GameState.board[current_space_num]
 	var owner_str = "Unowned"
+	var owner_color: Color = Color(0.7, 0.7, 0.7, 1)
 	if property is Ownable and property._is_owned:
-		owner_str = "Player %d" % (property._player_owner + 1)
+		var owner_index := int(property._player_owner)
+		if owner_index >= 0 and owner_index < GameState.players.size():
+			owner_str = GameState.players[owner_index].player_name
+			owner_color = GameState.players[owner_index].player_color
+		else:
+			owner_str = "Player %d" % (owner_index + 1)
 		
-	_details_popup.show_space_details(current_space_num, owner_str)
+	_details_popup.show_space_details(current_space_num, owner_str, owner_color)
 
 func _on_purchase_pressed() -> void:
 	purchase_pressed.emit(current_space_num)
