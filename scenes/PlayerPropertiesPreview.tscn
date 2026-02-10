@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://dq8k5ve7m2pct"]
 
-[ext_resource type="Script" uid="uid://c3m4r8kkal1tx" path="res://scripts/ui/player_properties_preview.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://c3m4r8kj9l1tx" path="res://scripts/ui/player_properties_preview.gd" id="1_script"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_properties"]
