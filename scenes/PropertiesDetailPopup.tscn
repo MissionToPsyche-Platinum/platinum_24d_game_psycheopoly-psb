@@ -51,6 +51,14 @@ theme_override_constants/separation = 10
 
 [node name="HeaderHBox" type="HBoxContainer" parent="Control/PopupPanel/MarginContainer/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PrevButton" type="Button" parent="Control/PopupPanel/MarginContainer/VBox/HeaderHBox"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font_bold")
+theme_override_font_sizes/font_size = 14
+text = "<"
 
 [node name="TitleLabel" type="Label" parent="Control/PopupPanel/MarginContainer/VBox/HeaderHBox"]
 layout_mode = 2
@@ -58,6 +66,13 @@ size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2_font_bold")
 theme_override_font_sizes/font_size = 18
 text = "Your Properties"
+
+[node name="NextButton" type="Button" parent="Control/PopupPanel/MarginContainer/VBox/HeaderHBox"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font_bold")
+theme_override_font_sizes/font_size = 14
+text = ">"
 
 [node name="CloseButton" type="Button" parent="Control/PopupPanel/MarginContainer/VBox/HeaderHBox"]
 custom_minimum_size = Vector2(80, 0)

@@ -4,10 +4,14 @@ extends CanvasLayer
 
 @onready var properties_list: VBoxContainer = $Control/PopupPanel/MarginContainer/VBox/ScrollContainer/PropertiesList
 @onready var title_label: Label = $Control/PopupPanel/MarginContainer/VBox/HeaderHBox/TitleLabel
+@onready var prev_button: Button = $Control/PopupPanel/MarginContainer/VBox/HeaderHBox/PrevButton
+@onready var next_button: Button = $Control/PopupPanel/MarginContainer/VBox/HeaderHBox/NextButton
 @onready var close_button: Button = $Control/PopupPanel/MarginContainer/VBox/HeaderHBox/CloseButton
 @onready var total_value_label: Label = $Control/PopupPanel/MarginContainer/VBox/TotalValueLabel
 @onready var popup_panel: PanelContainer = $Control/PopupPanel
 @onready var control: Control = $Control
+
+var _current_player_index: int = 0
 
 func _ready() -> void:
 	# Hide initially
@@ -16,6 +20,10 @@ func _ready() -> void:
 	# Connect close button
 	if close_button:
 		close_button.pressed.connect(_on_close_pressed)
+	if prev_button:
+		prev_button.pressed.connect(_on_prev_pressed)
+	if next_button:
+		next_button.pressed.connect(_on_next_pressed)
 
 
 func show_popup() -> void:
@@ -31,6 +39,20 @@ func hide_popup() -> void:
 func show_properties(player) -> void:
 	if player == null:
 		return
+	_set_current_player_index(player)
+	_show_player_by_index(_current_player_index)
+
+
+func _show_player_by_index(player_index: int) -> void:
+	if not GameState or GameState.players.is_empty():
+		return
+
+	var clamped_index := player_index % GameState.players.size()
+	if clamped_index < 0:
+		clamped_index = GameState.players.size() - 1
+
+	_current_player_index = clamped_index
+	var player = GameState.players[_current_player_index]
 	
 	# Update title with player name
 	title_label.text = "%s's Properties" % player.player_name
@@ -85,6 +107,19 @@ func show_properties(player) -> void:
 	
 	# Update total value
 	total_value_label.text = "Total Property Value: $%d" % total_value
+
+
+func _set_current_player_index(player) -> void:
+	if not GameState or GameState.players.is_empty():
+		_current_player_index = 0
+		return
+
+	if "player_id" in player:
+		_current_player_index = int(player.player_id)
+		return
+
+	var idx := GameState.players.find(player)
+	_current_player_index = max(idx, 0)
 
 
 func _create_property_item(prop: Dictionary) -> HBoxContainer:
@@ -170,3 +205,11 @@ func _sort_properties(a: Dictionary, b: Dictionary) -> bool:
 
 func _on_close_pressed() -> void:
 	hide_popup()
+
+
+func _on_prev_pressed() -> void:
+	_show_player_by_index(_current_player_index - 1)
+
+
+func _on_next_pressed() -> void:
+	_show_player_by_index(_current_player_index + 1)
