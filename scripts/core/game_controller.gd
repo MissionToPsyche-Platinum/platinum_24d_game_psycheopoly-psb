@@ -11,10 +11,10 @@ extends Node
 # ------------------------------------------------------------------------------
 # Global Signals 
 # ------------------------------------------------------------------------------
-## Emitted when the active player changes (MoneyHUD should listen to this).
+## Emitted when the active player changes.
 signal current_player_changed(player)
 
-## Emitted when a player's money changes (MoneyHUD should listen to this).
+## Emitted when a player's money changes
 signal player_money_updated(player)
 
 ## Emitted when a player's turn starts
@@ -28,6 +28,9 @@ signal player_rolled(player: PlayerState)
 
 ## Emitted when a player completes an action (purchase, pay, etc.)
 signal action_completed()
+
+## Emitted when property ownership changes
+signal property_ownership_changed()
 
 # ------------------------------------------------------------------------------
 # Signals to be called from space action popup
@@ -76,6 +79,7 @@ func _transfer_property(property: Ownable, player: int) -> void:
 	if not property._is_owned:
 		property._is_owned = true
 	property._player_owner = player
+	property_ownership_changed.emit()
 
 
 ## Purchases a property - called by the purchase property signal

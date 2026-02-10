@@ -104,10 +104,6 @@ func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
 func _show_property_details(space_info: Dictionary) -> void:
 	details_container.visible = true
 	
-	# Parse rent from description (e.g., "Research Funding $2")
-	if space_info.has("description"):
-		var desc: String = space_info.description
-	
 	# Calculate rent values (typical Monopoly progression)
 	rent_value.text = "$" + str(space_info.rent)
 	rent1_value.text = "$" + str(space_info.rent1data)

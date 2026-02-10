@@ -38,6 +38,10 @@ var money_hud: Control = null
 const PlayerNameHUDScene = preload("res://scenes/PlayerNameHUD.tscn")
 var player_name_hud: Control = null
 
+# Player properties preview reference and scene
+const PlayerPropertiesPreviewScene = preload("res://scenes/PlayerPropertiesPreview.tscn")
+var player_properties_preview: Control = null
+
 # Space action popup reference and scene
 const SpaceActionPopupScene = preload("res://scenes/SpaceActionPopup.tscn")
 var space_action_popup: CanvasLayer = null
@@ -91,6 +95,9 @@ func _ready() -> void:
 
 	# Instantiate the player name HUD
 	_setup_player_name_hud()
+
+	# Instantiate the player properties preview
+	_setup_player_properties_preview()
 
 	# Instantiate space action popup
 	_setup_space_action_popup()
@@ -166,6 +173,20 @@ func _setup_player_name_hud() -> void:
 	# Instantiate the player name HUD
 	player_name_hud = PlayerNameHUDScene.instantiate()
 	canvas_layer.add_child(player_name_hud)
+
+	# Add to scene tree
+	get_tree().root.call_deferred("add_child", canvas_layer)
+
+
+func _setup_player_properties_preview() -> void:
+	# Create a CanvasLayer to hold the player properties preview
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "PlayerPropertiesPreviewLayer"
+	canvas_layer.layer = 9
+
+	# Instantiate the player properties preview
+	player_properties_preview = PlayerPropertiesPreviewScene.instantiate()
+	canvas_layer.add_child(player_properties_preview)
 
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)

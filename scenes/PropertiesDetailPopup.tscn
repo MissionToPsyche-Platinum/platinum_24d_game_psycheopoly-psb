@@ -1,0 +1,90 @@
+[gd_scene load_steps=3 format=3 uid="uid://ccwx7m5prahlt"]
+
+[ext_resource type="Script" uid="uid://bjd5k8r7t3mwx" path="res://scripts/ui/properties_detail_popup.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_font_bold"]
+
+[node name="PropertiesDetailPopup" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_script")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Overlay" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="PopupPanel" type="PanelContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -155.0
+offset_right = 250.0
+offset_bottom = 251.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/PopupPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="Control/PopupPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderHBox" type="HBoxContainer" parent="Control/PopupPanel/MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Control/PopupPanel/MarginContainer/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_font_bold")
+theme_override_font_sizes/font_size = 18
+text = "Your Properties"
+
+[node name="CloseButton" type="Button" parent="Control/PopupPanel/MarginContainer/VBox/HeaderHBox"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font_bold")
+theme_override_font_sizes/font_size = 14
+text = "Close"
+
+[node name="HSeparator" type="HSeparator" parent="Control/PopupPanel/MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Control/PopupPanel/MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 280)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PropertiesList" type="VBoxContainer" parent="Control/PopupPanel/MarginContainer/VBox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HSeparator2" type="HSeparator" parent="Control/PopupPanel/MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="TotalValueLabel" type="Label" parent="Control/PopupPanel/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font_bold")
+theme_override_font_sizes/font_size = 14
+text = "Total Property Value: $0"
+horizontal_alignment = 2
