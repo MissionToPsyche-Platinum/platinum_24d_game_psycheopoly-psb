@@ -14,8 +14,7 @@ extends Control
 ##
 ##  Placeholder notes.
 ##   - update_from_player() assumes the player object has cash and
-##     assets_value fields (or getters). If we decide to use different names,
-##     we have to change them inside that function.
+##     If we decide to use different names, we have to change them inside that function.
 ##   - The debug input handler (_unhandled_input) is just for quick testing 
 ##    on the HUD and can be removed later
 ## -----------------------------------------------------------------------------
@@ -30,7 +29,7 @@ func _ready() -> void:
 	## Here we:
 	##    initialize default text
 	##    connect to the global GameState autoload so the HUD updates
-	##    automatically when the current player changes or their money or assets change.
+	##    automatically when the current player changes or their money changes.
 
 	# This prevents talking to GameState while editing someting in the scene view
 	if Engine.is_editor_hint():
@@ -59,7 +58,7 @@ func _ready() -> void:
 						 "HUD will not auto-update on money changes.")
 	else:
 		push_warning("GameState autoload not found. " +
-					 "HUD will only update if set_cash/set_assets are called manually.")
+					 "HUD will only update if set_cash are called manually.")
 
 	# Initialize HUD with the current player right away (safe, no fake signal emit)
 	if GameState and GameState.players.size() > 0:
@@ -81,7 +80,6 @@ func update_from_player(player: Object) -> void:
 	##
 	## PLACEHOLDER ASSUMPTIONS I AM HAVING ABOUT THE PLAYER
 	##   - player.balance       : int value
-	##   - player.assets_value  : int (cash + property values, etc.) value
 	##
 	## If our Player uses different names, change only the field access modifier here
 	## (so for example `player.balance` instead of `player.cash`).
@@ -136,26 +134,3 @@ func _on_player_money_updated(player: Object) -> void:
 		return
 
 	update_from_player(player)
-
-
-# ---------------------------------------------------------------------------
-# Quick keyboard test – can be removed once GameState integration is functional
-# Just made this to visually see updates to the values in the HUD
-# without the need to have the GameState, Player, etc created.
-# ---------------------------------------------------------------------------
-
-var _debug_cash := 0        # placeholder  value
-
-func _unhandled_input(event: InputEvent) -> void:
-	## Lets us test the HUD in-game without involving GameState.
-	##  - Press "C" to add +10 cash
-	##  - Press "A" to add +50 assets
-	##
-	## We are good to delete this once
-	##  - GameState is fully wired to the HUD, and
-	##  - We no longer need quick testing.
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_C:
-				_debug_cash += 10
-				set_cash(_debug_cash)
