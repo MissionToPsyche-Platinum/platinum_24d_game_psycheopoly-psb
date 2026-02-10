@@ -76,9 +76,7 @@ func transfer(from_index: int, to_index: int, amount: int, reason: String = "") 
 
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
-	if not property._is_owned:
-		property._is_owned = true
-	property._player_owner = player
+	property.set_property_owner(player)	
 	property_ownership_changed.emit()
 
 
