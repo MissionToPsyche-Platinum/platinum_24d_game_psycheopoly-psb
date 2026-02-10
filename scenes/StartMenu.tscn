@@ -1,7 +1,7 @@
 [gd_scene load_steps=22 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
-[ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/ui_background.tscn" id="2_j6af4"]
+[ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/Background.tscn" id="2_j6af4"]
 [ext_resource type="Texture2D" uid="uid://bdbtglxjaliah" path="res://assets/images/sprites/psyche_logo.png" id="2_logo"]
 [ext_resource type="Script" uid="uid://d0ne4ghwtfkp0" path="res://scripts/ui/title.gd" id="3_cp7se"]
 [ext_resource type="Texture2D" uid="uid://boddmgn7a5uod" path="res://assets/images/sprites/psyche_probe_pixel.png" id="4_kcs48"]
