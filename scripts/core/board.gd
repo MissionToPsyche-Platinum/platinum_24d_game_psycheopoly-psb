@@ -54,6 +54,17 @@ var end_turn_button: Control = null
 const AuctionPopupScene = preload("res://scenes/AuctionPopup.tscn")
 var auction_popup: CanvasLayer = null
 
+# Bankruptcy popup reference and scene
+const BankruptcyPopupScene = preload("res://scenes/BankruptcyPopup.tscn")
+var bankruptcy_popup: BankruptcyPopup = null
+
+# Pending debt info while player is resolving bankruptcy
+var pending_debtor_index: int = -1
+var pending_creditor_index: int = -1
+var pending_amount_owed: int = 0
+var pending_reason: String = ""
+
+
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
 var selected_tile: Vector2i = Vector2i(-1, -1)
@@ -107,6 +118,9 @@ func _ready() -> void:
 
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
+	
+	_setup_bankruptcy_popup()
+
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -120,6 +134,9 @@ func _ready() -> void:
 		GameController.turn_started.connect(_on_turn_started)
 	if not GameController.turn_ended.is_connected(_on_turn_ended):
 		GameController.turn_ended.connect(_on_turn_ended)
+	if not GameController.bankruptcy_needed.is_connected(_on_bankruptcy_needed):
+		GameController.bankruptcy_needed.connect(_on_bankruptcy_needed)
+
 	
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
@@ -262,6 +279,29 @@ func _finish_setup_auction_popup() -> void:
 		AuctionMgr.message.connect(_on_auction_message)
 	if not AuctionMgr.auction_ended.is_connected(_on_auction_ended):
 		AuctionMgr.auction_ended.connect(_on_auction_ended)
+		
+func _setup_bankruptcy_popup() -> void:
+	bankruptcy_popup = BankruptcyPopupScene.instantiate()
+	get_tree().root.add_child(bankruptcy_popup) 
+
+	await bankruptcy_popup.ready
+
+	push_warning("BOARD: connected to popup id=" + str(bankruptcy_popup.get_instance_id()))
+
+	# connect signals 
+	if not bankruptcy_popup.open_assets_requested.is_connected(_on_bankruptcy_open_assets_requested):
+		bankruptcy_popup.open_assets_requested.connect(_on_bankruptcy_open_assets_requested)
+
+	if not bankruptcy_popup.attempt_pay_requested.is_connected(_on_bankruptcy_attempt_pay_requested):
+		bankruptcy_popup.attempt_pay_requested.connect(_on_bankruptcy_attempt_pay_requested)
+
+	if not bankruptcy_popup.bankruptcy_declared.is_connected(_on_bankruptcy_declared):
+		bankruptcy_popup.bankruptcy_declared.connect(_on_bankruptcy_declared)
+
+	bankruptcy_popup.hide_popup()
+
+
+
 
 
 func _initial_panel_update() -> void:
@@ -473,17 +513,19 @@ func _on_draw_card_pressed(space_num: int) -> void:
 
 
 func _on_pay_pressed(space_num: int) -> void:
-	print("Player paying for space:", space_num)
+	print("Player pressed PAY on space:", space_num)
 
-	var space_info = SpaceDataRef.get_space_info(space_num)
-	var amount: int = int(space_info.get("amount", 0))
+	var space := GameState.board[space_num]
 
-	if amount > 0:
-		GameState.charge_player(GameState.current_player_index, amount)
-		print("Paid $%d for %s" % [amount, space_info.name])
-		# Update HUD
-		GameController.player_money_updated.emit(GameState.players[GameState.player_idx])
+	if space is Ownable:
+		var property := space as Ownable
+		var current_player := GameState.current_player_index
+
+		print("PAY DEBUG: script=", property.get_script(), " global_name=", property.get_script().get_global_name())
+		GameController.pay_rent.emit(property, current_player)
+
 	GameController.action_completed.emit()
+
 
 
 func _on_close_pressed() -> void:
@@ -764,3 +806,90 @@ func _on_setup_changed() -> void:
 	# If setup happens after board load, start the game once players exist
 	if not GameState.game_active and GameState.players.size() > 0:
 		call_deferred("_start_game_deferred")
+		
+		
+## Bankruptcy Functions
+
+func _on_bankruptcy_open_assets_requested(debtor_id: int) -> void:
+	print("Bankruptcy: Open assets for debtor:", debtor_id)
+
+	var player = GameState.players[debtor_id] # or GameController.get_player_by_id(...)
+	if player_properties_preview and player_properties_preview.has_method("open_details_for_player"):
+		player_properties_preview.open_details_for_player(player)
+
+
+func _on_bankruptcy_attempt_pay_requested() -> void:
+	print("Board: Attempting to pay debt")
+
+	# Safety: make sure we are actually in a bankruptcy state
+	if pending_debtor_index == -1 or pending_amount_owed <= 0:
+		push_warning("Board: attempt pay pressed but no pending bankruptcy debt")
+		return
+
+	var debtor := pending_debtor_index
+	var amount := pending_amount_owed
+
+	var current_cash := GameController.get_player_balance(debtor)
+
+	if current_cash >= amount:
+		print("Board: Player can afford payment now. Paying $%d" % amount)
+
+		GameState.charge_player(debtor, amount)
+
+		# TODO later: credit creditor 
+
+		if bankruptcy_popup:
+			bankruptcy_popup.hide_popup()
+
+		_clear_pending_bankruptcy()
+
+		GameController.action_completed.emit()
+
+	else:
+		print("Board: Still not enough. cash=%d owed=%d" % [current_cash, amount])
+		if bankruptcy_popup:
+			bankruptcy_popup.update_cash(current_cash)
+
+
+
+
+func _on_bankruptcy_declared() -> void:
+	print("BOARD: bankruptcy declared for player ", pending_debtor_index)
+
+	bankruptcy_popup.hide_popup()
+	_clear_pending_bankruptcy()
+
+	# so the game flow doesn't hang waiting on an action
+	GameController.action_completed.emit()
+
+
+
+func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
+	pending_debtor_index = debtor_idx
+	pending_creditor_index = creditor_idx
+	pending_amount_owed = amount
+	pending_reason = reason
+
+	var creditor_name := "Bank"
+	if creditor_idx >= 0 and creditor_idx < GameState.players.size():
+		creditor_name = GameState.players[creditor_idx].player_name
+
+	bankruptcy_popup.show_popup(
+		debtor_idx,
+		creditor_name,
+		reason,
+		amount,
+		GameController.get_player_balance(debtor_idx)
+	)
+
+func _clear_pending_bankruptcy() -> void:
+	pending_debtor_index = -1
+	pending_creditor_index = -1
+	pending_amount_owed = 0
+	pending_reason = ""
+	
+func _on_bankruptcy_needed(debtor: int, creditor: int, amount: int, reason: String) -> void:
+	print("Board: Bankruptcy needed for player", debtor, "amount", amount)
+	enter_bankruptcy(debtor, creditor, amount, reason)
+
+	

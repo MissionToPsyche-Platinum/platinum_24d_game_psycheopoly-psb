@@ -127,3 +127,16 @@ func _on_view_details_pressed() -> void:
 	
 	if properties_detail_popup.has_method("show_popup"):
 		properties_detail_popup.show_popup()
+		
+		
+#using this for the Bankruptcy open asset button
+func open_details_for_player(player) -> void:
+	if not properties_detail_popup:
+		properties_detail_popup = PropertiesDetailPopupScene.instantiate()
+		get_tree().root.add_child(properties_detail_popup)
+
+	if properties_detail_popup.has_method("show_properties"):
+		properties_detail_popup.show_properties(player)
+
+	if properties_detail_popup.has_method("show_popup"):
+		properties_detail_popup.show_popup()

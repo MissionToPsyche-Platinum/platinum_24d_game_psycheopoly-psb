@@ -32,6 +32,9 @@ signal action_completed()
 ## Emitted when property ownership changes
 signal property_ownership_changed()
 
+signal bankruptcy_needed(debtor_index: int, creditor_index: int, amount: int, reason: String)
+
+
 # ------------------------------------------------------------------------------
 # Signals to be called from space action popup
 # ------------------------------------------------------------------------------
@@ -118,26 +121,25 @@ func _pay_rent(property: Ownable, player: int) -> void:
 	match property.get_script().get_global_name():
 		"PropertySpace":
 			match property._current_upgrades:
-				0:
-					rent = property._default_rent
-				1:
-					rent = property._one_data_rent
-				2:
-					rent = property._two_data_rent
-				3:
-					rent = property._three_data_rent
-				4:
-					rent = property._four_data_rent
-				5:
-					rent = property._discovery_rent
-				_:
-					rent = 0
-		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
+				0: rent = property._default_rent
+				1: rent = property._one_data_rent
+				2: rent = property._two_data_rent
+				3: rent = property._three_data_rent
+				4: rent = property._four_data_rent
+				5: rent = property._discovery_rent
+				_: rent = 0
+		"InstrumentSpace":
 			rent = 0
-		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
+		"PlanetSpace":
 			rent = 0
 
+	# If they can’t afford, trigger bankruptcy instead of transferring
+	if get_player_balance(player) < rent:
+		emit_signal("bankruptcy_needed", player, property._player_owner, rent, "Rent")
+		return
+
 	transfer(player, property._player_owner, rent, "rent")
+
 
 
 
