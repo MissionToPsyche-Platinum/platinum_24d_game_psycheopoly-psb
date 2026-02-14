@@ -72,7 +72,23 @@ func transfer(from_index: int, to_index: int, amount: int, reason: String = "") 
 	debit(from_index, amount, reason)
 	credit(to_index, amount, reason)
 
+func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
+	property._current_upgrades += amount
+	if property._current_upgrades > 5:
+		print("Error, property upgrades exceeded 5")
+		property._current_upgrades = 5
+	if property._current_upgrades < 0:
+		print("Error, property upgrades is negative")
+		property._current_upgrades = 0
 
+func _upgrade_property(property:PropertySpace) -> void:
+	debit(property._player_owner, property._upgrade_cost, "property upgrade")
+	_adjust_upgrade_level(property, 1)
+
+func _downgrade_property(property:PropertySpace) -> void:
+	var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
+	credit(property._player_owner, downgradeRefund, "property downgrade")
+	_adjust_upgrade_level(property, -1)
 
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
