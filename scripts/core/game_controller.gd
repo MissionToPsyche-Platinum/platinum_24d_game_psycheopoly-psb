@@ -39,6 +39,10 @@ signal pay_rent(property, player)
 
 signal purchase_property(property, player)
 
+signal upgrade_property(property, player)
+
+signal downgrade_property(property, player)
+
 #other signals
 
 signal difficulty_changed(new_value: String)
@@ -48,6 +52,8 @@ signal setup_changed()
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
 	purchase_property.connect(_purchase_property)
+	upgrade_property.connect(_upgrade_property)
+	downgrade_property.connect(_downgrade_property)
 
 
 func debit(player_index: int, amount: int, reason: String = "") -> void:
@@ -81,14 +87,20 @@ func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
 		print("Error, property upgrades is negative")
 		property._current_upgrades = 0
 
-func _upgrade_property(property:PropertySpace) -> void:
-	debit(property._player_owner, property._upgrade_cost, "property upgrade")
-	_adjust_upgrade_level(property, 1)
+func _upgrade_property(property:PropertySpace, player: int) -> void:
+	if (player == property._player_owner):
+		debit(property._player_owner, property._upgrade_cost, "property upgrade")
+		_adjust_upgrade_level(property, 1)
+	else:
+		print("Error, incorrect player attempted to upgrade property")
 
-func _downgrade_property(property:PropertySpace) -> void:
-	var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
-	credit(property._player_owner, downgradeRefund, "property downgrade")
-	_adjust_upgrade_level(property, -1)
+func _downgrade_property(property:PropertySpace, player: int) -> void:
+	if (player == property._player_owner):
+		var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
+		credit(property._player_owner, downgradeRefund, "property downgrade")
+		_adjust_upgrade_level(property, -1)
+	else:
+		print("Error, incorrect player attempted to downgrade property")
 
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
