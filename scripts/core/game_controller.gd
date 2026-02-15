@@ -1,6 +1,6 @@
 extends Node
 ##
-## game_contropller.gd  (An autoload singleton)
+## game_controller.gd  (An autoload singleton)
 ## ============================================================================
 ##  PURPOSE:
 ##    - Manage global signals and control interactions between views, models, itself (controller)
@@ -87,20 +87,65 @@ func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
 		print("Error, property upgrades is negative")
 		property._current_upgrades = 0
 
+func _get_property_set(property:PropertySpace) -> Array[PropertySpace]:
+	var property_set: Array[PropertySpace]
+	for i in range(GameState.board.size()): 
+		if (GameState.board[i].get_script().get_global_name() == "PropertySpace"):
+			if (GameState.board[i]._property_set == property._property_set):
+				property_set.append(GameState.board[i])
+	return property_set
+	
+
+func _check_if_upgrade_is_valid(property:PropertySpace, player: int) -> bool:
+	# There are 5 conditions for this 
+	# 1: The player must own the property
+	# 2: The player cannot upgrade past upgrade level 5 (discovery)
+	# 3: The player must be able to afford the upgrade
+	# 4: The player must own all properties of the set they are trying to upgrade
+	# 5: The property that the player is upgrading must have less or equal upgrades to each other property of the set
+	var upgrade_valid = true
+	var property_set: Array[PropertySpace] = _get_property_set(property)
+	for i in range(property_set.size()):
+		if (!property_set[i].is_owned() || property_set[i]._player_owner != player):
+			upgrade_valid = false
+		elif (property._current_upgrades > property_set[i]._current_upgrades):
+			upgrade_valid = false
+	if (property._current_upgrades > 4):
+		upgrade_valid = false
+	if (property._upgrade_cost > GameState.players[player].balance):
+		upgrade_valid = false
+	return upgrade_valid
+
+func _check_if_downgrade_is_valid(property:PropertySpace, player: int) -> bool:
+	# There are 3 conditions for this 
+	# 1: The player must own the property
+	# 2: The player cannot downgrade if there are no upgrades on the property
+	# 3: The property that the player is downgrading must have equal or more upgrades to each other property of the set
+	var downgrade_valid = true
+	var property_set: Array[PropertySpace] = _get_property_set(property)
+	if (property._player_owner != player):
+			downgrade_valid = false
+	for i in range(property_set.size()):
+		if (property._current_upgrades < property_set[i]._current_upgrades):
+			downgrade_valid = false
+	if (property._current_upgrades < 1):
+		downgrade_valid = false
+	return downgrade_valid
+
 func _upgrade_property(property:PropertySpace, player: int) -> void:
-	if (player == property._player_owner):
+	if (player == property._player_owner && property.is_owned()):
 		debit(property._player_owner, property._upgrade_cost, "property upgrade")
 		_adjust_upgrade_level(property, 1)
 	else:
-		print("Error, incorrect player attempted to upgrade property")
+		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
 func _downgrade_property(property:PropertySpace, player: int) -> void:
-	if (player == property._player_owner):
+	if (player == property._player_owner && property.is_owned()):
 		var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
 		credit(property._player_owner, downgradeRefund, "property downgrade")
 		_adjust_upgrade_level(property, -1)
 	else:
-		print("Error, incorrect player attempted to downgrade property")
+		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:

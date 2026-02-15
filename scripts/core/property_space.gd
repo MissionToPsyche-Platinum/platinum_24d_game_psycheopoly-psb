@@ -12,6 +12,8 @@ var _discovery_rent: int
 var _upgrade_cost: int
 var _mortgage_value: int
 
+var _property_set: String
+
 var _current_upgrades: int
 
 func _init(data: Dictionary) -> void:
@@ -25,5 +27,7 @@ func _init(data: Dictionary) -> void:
 	_discovery_rent = data.get("rentDiscovery", 0)
 	_upgrade_cost = data.get("dataCost", 0)
 	_mortgage_value = data.get("mortgage", 0)
+
+	_property_set = data.get("set", 0)
 
 	_current_upgrades = 0
