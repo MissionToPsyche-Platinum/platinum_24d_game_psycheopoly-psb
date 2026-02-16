@@ -118,6 +118,8 @@ func _on_view_details_pressed() -> void:
 	# Show detailed properties popup
 	if not properties_detail_popup:
 		properties_detail_popup = PropertiesDetailPopupScene.instantiate()
+		# Ensure the details popup renders above BankruptcyPopup overlay
+		properties_detail_popup.layer = 200
 		get_tree().root.add_child(properties_detail_popup)
 	
 	# Update the popup with current player
@@ -133,6 +135,8 @@ func _on_view_details_pressed() -> void:
 func open_details_for_player(player) -> void:
 	if not properties_detail_popup:
 		properties_detail_popup = PropertiesDetailPopupScene.instantiate()
+		# Ensure the details popup renders above BankruptcyPopup overlay
+		properties_detail_popup.layer = 200
 		get_tree().root.add_child(properties_detail_popup)
 
 	if properties_detail_popup.has_method("show_properties"):
@@ -140,3 +144,5 @@ func open_details_for_player(player) -> void:
 
 	if properties_detail_popup.has_method("show_popup"):
 		properties_detail_popup.show_popup()
+		
+	print("OPEN DETAILS FOR:", player.player_name)
