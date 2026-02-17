@@ -49,4 +49,3 @@ func _on_action_completed() -> void:
 	
 	if current_player.has_rolled and ui_container:
 		ui_container.visible = true
-

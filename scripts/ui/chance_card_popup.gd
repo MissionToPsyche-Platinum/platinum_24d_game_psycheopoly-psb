@@ -1,7 +1,6 @@
 extends CanvasLayer
 
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
-const ChanceCardManager	= preload("res://scripts/core/chance_card_manager.gd")
 
 #Reference for Card Information
 @onready var card_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardType

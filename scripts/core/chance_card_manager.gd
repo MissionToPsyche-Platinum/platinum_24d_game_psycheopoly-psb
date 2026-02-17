@@ -102,22 +102,13 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 	elif card_num == 34: #get out of jail card (needs a lock for inventory)
 		go_for_launch1_available = false
 		go_for_launch1_owner = current_player
-		##player_data[current_player].go_for_launch_cards += 1
+		var player = GameState.players[current_player]
+		player.go_for_launch_cards += 1
 	
 	elif card_num == 35: #get out of jail card (needs a lock for inventory)
 		go_for_launch2_available = false
 		go_for_launch2_owner = current_player
-		##player_data[current_player].go_for_launch_cards += 1
+		var player = GameState.players[current_player]
+		player.go_for_launch_cards += 1
 	else: #in place of an error
 		pass
-
-
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass

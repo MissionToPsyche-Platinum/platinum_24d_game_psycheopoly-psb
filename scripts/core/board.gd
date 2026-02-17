@@ -687,11 +687,11 @@ func _card_forward_movement(move_spaces: int) -> void:
 
 func _card_teleport_movement(space_location: int) -> void:
 	if current_piece:
-			var old_space = current_piece.board_space
-			current_piece.teleport_to_space(space_location)
-			# Update both spaces
-			update_piece_layouts_at(old_space)
-			update_piece_layouts_at(space_location)
+		var old_space = current_piece.board_space
+		current_piece.teleport_to_space(space_location)
+		# Update both spaces
+		update_piece_layouts_at(old_space)
+		update_piece_layouts_at(space_location)
 			
 
 func _clear_pieces() -> void:
