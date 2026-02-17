@@ -21,25 +21,25 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 	var passed_go = 200
 
 	if card_num in range(0, 10): #cards with a flat earning
-		GameState.credit(current_player,money_value) 
+		GameController.credit(current_player,money_value) 
 	elif card_num in range(10,14): #cards with a flat loss
-		GameState.debit(current_player,money_value) 
+		GameController.debit(current_player,money_value) 
 	elif card_num == 14: #pay each player 50
 		var pay_opponents = (player_count - 1) * 50
-		GameState.debit(current_player,pay_opponents) 
+		GameController.debit(current_player,pay_opponents) 
 		
 		var paid_player = (current_player + 1) % player_count
 		while paid_player != current_player:
-			GameState.credit(paid_player, 50) 
+			GameController.credit(paid_player, 50) 
 			paid_player = (paid_player + 1) % player_count
 
 	elif card_num == 15: #earn 10 from each player
 		var earn_from_opponents = (player_count - 1) * 10
-		GameState.credit(current_player,earn_from_opponents) 
+		GameController.credit(current_player,earn_from_opponents) 
 		
 		var losing_player = (current_player + 1) % player_count
 		while losing_player != current_player:
-			GameState.debit(losing_player, 10) 
+			GameController.debit(losing_player, 10) 
 			losing_player = (losing_player + 1) % player_count
 			
 	elif card_num == 16: #pay 45 per data point, pay 120 per discovery
@@ -57,7 +57,7 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		
 		elif space_number > movement_value:
 			forward_movement = (40 - space_number) + movement_value
-			GameState.credit(current_player, passed_go) 
+			GameController.credit(current_player, passed_go) 
 		
 		emit_signal ("request_move_forward", forward_movement)
 		
