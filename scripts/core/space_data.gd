@@ -35,7 +35,7 @@ const SPACE_INFO = [
 		"name": "Silicate",
 		"description": "Draw a Silicate card",
 		"cardType": "Silicate",
-		"color": Color.LIGHT_BLUE
+		"color": Color.ORANGE
 	},
 	{
 		"type": "property",
@@ -94,7 +94,7 @@ const SPACE_INFO = [
 		"name": "Metal",
 		"description": "Draw a Metal card",
 		"cardType": "Metal",
-		"color": Color.ORANGE
+		"color": Color.LIGHT_BLUE
 	},
 	{
 		"type": "property",
@@ -228,7 +228,7 @@ const SPACE_INFO = [
 		"name": "Silicate",
 		"description": "Draw a Silicate card",
 		"cardType": "Silicate",
-		"color": Color.LIGHT_BLUE
+		"color": Color.ORANGE
 	},
 	{
 		"type": "property",
@@ -292,7 +292,7 @@ const SPACE_INFO = [
 		"name": "Metal",
 		"description": "Draw a Metal card",
 		"cardType": "Metal",
-		"color": Color.ORANGE
+		"color": Color.LIGHT_BLUE
 	},
 	{
 		"type": "property",
@@ -426,7 +426,7 @@ const SPACE_INFO = [
 		"name": "Silicate",
 		"description": "Draw a Silicate card",
 		"cardType": "Silicate",
-		"color": Color.LIGHT_BLUE
+		"color": Color.ORANGE
 	},
 		{
 		"type": "property",
@@ -477,7 +477,7 @@ const SPACE_INFO = [
 		"name": "Metal",
 		"description": "Draw a Metal card",
 		"cardType": "Metal",
-		"color": Color.ORANGE
+		"color": Color.LIGHT_BLUE
 	},
 	{
 		"type": "property",
