@@ -10,6 +10,8 @@ const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 @onready var price_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/PriceLabel
 @onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
 @onready var details_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
+@onready var upgrade_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/UpgradeButton
+@onready var downgrade_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DowngradeButton
 
 # Current space being displayed
 var current_space: int = 0
@@ -21,10 +23,18 @@ var _details_popup: CanvasLayer = null
 func _ready() -> void:
 	# Connect button signals
 	details_button.pressed.connect(_on_details_pressed)
+	upgrade_button.pressed.connect(_on_upgrade_pressed)
+	downgrade_button.pressed.connect(_on_downgrade_pressed)
+	
+	# connect space display update to property purchase signal
+	GameController.property_ownership_changed.connect(trigger_display_update)
 	
 	# Update display with initial space
 	update_space_display(0)
 
+# function to trigger an update from the purchase property signal
+func trigger_display_update():
+	update_space_display(current_space)
 
 # Update the display with information about a space
 func update_space_display(space_num: int) -> void:
@@ -82,6 +92,23 @@ func update_space_display(space_num: int) -> void:
 	var has_details: bool = space_info.type in ["property", "instrument", "planet"]
 	details_button.visible = has_details
 	
+	# Show upgrade/downgrade buttons only for properties that are owned by the current player
+	var show_upgrade: bool = space_info.type in ["property"]
+	var can_upgrade = show_upgrade
+	var can_downgrade = show_upgrade
+	if show_upgrade:
+		show_upgrade = (GameState.board[current_space]._is_owned && GameState.board[current_space]._player_owner == GameState.current_player_index)
+		can_upgrade = GameController._check_if_upgrade_is_valid(GameState.board[current_space], GameState.current_player_index)
+		can_downgrade = GameController._check_if_downgrade_is_valid(GameState.board[current_space], GameState.current_player_index)
+	upgrade_button.visible = show_upgrade
+	downgrade_button.visible = show_upgrade
+
+	# Only enable the buttons if the player can currently upgrade/downgrade the property
+	upgrade_button.disabled = !can_upgrade
+	downgrade_button.disabled = !can_downgrade
+
+
+	
 	# Set color bar
 	if space_info.has("color"):
 		color_bar.color = space_info.color
@@ -112,3 +139,13 @@ func _on_details_pressed() -> void:
 		else:
 			owner_str = "Player %d" % (owner_index + 1)
 	_details_popup.show_space_details(current_space, owner_str, owner_color)  
+
+func _on_upgrade_pressed() -> void:
+	GameController.upgrade_property.emit(GameState.board[current_space], GameState.current_player_index)
+	print("upgrade pressed")
+	update_space_display(current_space)
+
+func _on_downgrade_pressed() -> void:
+	GameController.downgrade_property.emit(GameState.board[current_space], GameState.current_player_index)
+	print("downgrade pressed")
+	update_space_display(current_space)

@@ -27,6 +27,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 250,
 		"dataCost": 50,
 		"mortgage": 30,
+		"set": "Yellow",
 		"color": Color(1.0, 1.0, 0.0)  # Yellow
 	},
 	{
@@ -49,6 +50,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 450,
 		"dataCost": 50,
 		"mortgage": 30,
+		"set": "Yellow",
 		"color": Color(1.0, 1.0, 0.0)  # Yellow
 	},
 	{
@@ -83,6 +85,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 550,
 		"dataCost": 50,
 		"mortgage": 50,
+		"set": "Orange",
 		"color": Color(1.0, 0.65, 0.0)  # Orange
 	},
 	{
@@ -105,6 +108,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 550,
 		"dataCost": 50,
 		"mortgage": 50,
+		"set": "Orange",
 		"color": Color(1.0, 0.65, 0.0)  # Orange
 	},
 	{
@@ -120,6 +124,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 600,
 		"dataCost": 50,
 		"mortgage": 60,
+		"set": "Orange",
 		"color": Color(1.0, 0.65, 0.0)  # Orange
 	},
 	# Space 10 - Launch Pad (bottom-left corner)
@@ -144,6 +149,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 750,
 		"dataCost": 100,
 		"mortgage": 70,
+		"set": "Dark Orange",
 		"color": Color(1.0, 0.4, 0.0)  # Dark orange
 	},
 	{
@@ -169,6 +175,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 750,
 		"dataCost": 100,
 		"mortgage": 70,
+		"set": "Dark Orange",
 		"color": Color(1.0, 0.4, 0.0)  # Dark orange
 	},
 	{
@@ -184,6 +191,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 900,
 		"dataCost": 100,
 		"mortgage": 80,
+		"set": "Dark Orange",
 		"color": Color(1.0, 0.4, 0.0)  # Dark orange
 	},
 	{
@@ -211,6 +219,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 950,
 		"dataCost": 100,
 		"mortgage": 90,
+		"set": "Pink",
 		"color": Color(0.95, 0.5, 0.6)  # Pink
 	},
 	{
@@ -233,6 +242,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 950,
 		"dataCost": 100,
 		"mortgage": 90,
+		"set": "Pink",
 		"color": Color(0.95, 0.5, 0.6)  # Pink
 	},
 	{
@@ -248,6 +258,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1000,
 		"dataCost": 100,
 		"mortgage": 100,
+		"set": "Pink",
 		"color": Color(0.95, 0.5, 0.6)  # Pink
 	},
 	# Space 20 - Gravity Assist (top-left corner)
@@ -272,6 +283,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1050,
 		"dataCost": 150,
 		"mortgage": 110,
+		"set": "Dark Red",
 		"color": Color(0.8, 0.2, 0.3)  # Dark red
 	},
 	{
@@ -294,6 +306,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1050,
 		"dataCost": 150,
 		"mortgage": 110,
+		"set": "Dark Red",
 		"color": Color(0.8, 0.2, 0.3)  # Dark red
 	},
 	{
@@ -309,6 +322,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1100,
 		"dataCost": 150,
 		"mortgage": 120,
+		"set": "Dark Red",
 		"color": Color(0.8, 0.2, 0.3)  # Dark red
 	},
 	{
@@ -336,6 +350,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1150,
 		"dataCost": 150,
 		"mortgage": 130,
+		"set": "Purple",
 		"color": Color(0.7, 0.3, 0.7)  # Purple
 	},
 	{
@@ -361,6 +376,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1150,
 		"dataCost": 150,
 		"mortgage": 130,
+		"set": "Purple",
 		"color": Color(0.7, 0.3, 0.7)  # Purple
 	},
 	{
@@ -376,6 +392,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1200,
 		"dataCost": 150,
 		"mortgage": 140,
+		"set": "Purple",
 		"color": Color(0.7, 0.3, 0.7)  # Purple
 	},
 	# Space 30 - Solar Storm (top-right corner)
@@ -400,6 +417,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1275,
 		"dataCost": 200,
 		"mortgage": 150,
+		"set": "Dark Purple",
 		"color": Color(0.5, 0.2, 0.7)  # Dark purple
 	},
 	{
@@ -422,6 +440,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1275,
 		"dataCost": 200,
 		"mortgage": 150,
+		"set": "Dark Purple",
 		"color": Color(0.5, 0.2, 0.7)  # Dark purple
 	},
 	{
@@ -437,6 +456,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1400,
 		"dataCost": 200,
 		"mortgage": 160,
+		"set": "Dark Purple",
 		"color": Color(0.5, 0.2, 0.7)  # Dark purple
 	},
 	{
@@ -471,6 +491,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 1500,
 		"dataCost": 200,
 		"mortgage": 175,
+		"set": "Light Purple",
 		"color": Color(0.7, 0.6, 0.9)  # Light purple
 	},
 	{
@@ -493,6 +514,7 @@ const SPACE_INFO = [
 		"rentDiscovery": 2000,
 		"dataCost": 200,
 		"mortgage": 200,
+		"set": "Light Purple",
 		"color": Color(0.7, 0.6, 0.9)  # Light purple
 	}
 ]
