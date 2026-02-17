@@ -480,10 +480,8 @@ func _on_pay_pressed(space_num: int) -> void:
 	var amount: int = int(space_info.get("amount", 0))
 
 	if amount > 0:
-		GameState.charge_player(GameState.current_player_index, amount)
+		GameController.debit(GameState.current_player_index, amount, "cost space")
 		print("Paid $%d for %s" % [amount, space_info.name])
-		# Update HUD
-		GameController.player_money_updated.emit(GameState.players[GameState.player_idx])
 	GameController.action_completed.emit()
 
 

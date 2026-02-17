@@ -158,11 +158,12 @@ func _finish_auction() -> void:
 		return
 
 	# Only winner pays
-	GameController.charge_player(winner_index, high_bid)
+	GameController.debit(winner_index, high_bid, "auction win")
 
 	# Transfer ownership if ownable
 	if property_ref is Ownable:
-		GameController.transfer_property_to_player(property_ref as Ownable, winner_index)
+		(property_ref as Ownable).set_property_owner(winner_index)
+		GameController.property_ownership_changed.emit()
 
 	emit_signal("message", GameState.players[winner_index].player_name + " wins for $" + str(high_bid) + "!")
 	emit_signal("auction_ended", winner_index, high_bid, space_num, property_ref)

@@ -297,12 +297,3 @@ func get_player_balance(player_index: int) -> int:
 	return GameState.players[player_index].balance
 
 
-# Public helper: set ownership without using private methods from other scripts
-func transfer_property_to_player(property: Ownable, player_index: int) -> void:
-	_transfer_property(property, player_index)
-
-
-func charge_player(player_index: int, amount: int) -> void:
-	# Keep as a wrapper so existing code continues to work
-	debit(player_index, amount, "charge_player")
-	print("DEBIT ", GameState.players[player_index].player_name, " -$", amount, " charge_player => $", GameState.players[player_index].balance)
