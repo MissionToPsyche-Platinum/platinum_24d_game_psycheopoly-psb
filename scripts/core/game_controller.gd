@@ -32,7 +32,14 @@ signal action_completed()
 ## Emitted when property ownership changes
 signal property_ownership_changed()
 
+## Emitted when a player cannot afford a required payment (rent/cost/etc.)
 signal bankruptcy_needed(debtor_index: int, creditor_index: int, amount: int, reason: String)
+
+## Emitted when a trade is executed successfully
+signal trade_completed(trade_offer: Dictionary)
+
+## Emitted when a trade execution attempt fails validation
+signal trade_failed(reason: String)
 
 
 # ------------------------------------------------------------------------------
@@ -47,10 +54,10 @@ signal upgrade_property(property, player)
 signal downgrade_property(property, player)
 
 #other signals
-
 signal difficulty_changed(new_value: String)
 signal colorblind_mode_changed(enabled: bool)
 signal setup_changed()
+
 
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
@@ -68,6 +75,7 @@ func debit(player_index: int, amount: int, reason: String = "") -> void:
 	print("DEBIT ", GameState.players[player_index].player_name, " -$", amount, " ", reason, " => $", GameState.players[player_index].balance)
 	player_money_updated.emit(GameState.players[player_index])
 
+
 func credit(player_index: int, amount: int, reason: String = "") -> void:
 	if amount <= 0:
 		return
@@ -77,9 +85,110 @@ func credit(player_index: int, amount: int, reason: String = "") -> void:
 	print("CREDIT ", GameState.players[player_index].player_name, " +$", amount, " ", reason, " => $", GameState.players[player_index].balance)
 	player_money_updated.emit(GameState.players[player_index])
 
+
 func transfer(from_index: int, to_index: int, amount: int, reason: String = "") -> void:
 	debit(from_index, amount, reason)
 	credit(to_index, amount, reason)
+
+
+func _is_valid_player_index(player_index: int) -> bool:
+	return player_index >= 0 and player_index < GameState.players.size()
+
+
+func _array_has_duplicates(values: Array) -> bool:
+	var seen := {}
+	for value in values:
+		if seen.has(value):
+			return true
+		seen[value] = true
+	return false
+
+
+func _get_property_space(space_index: int) -> PropertySpace:
+	if space_index < 0 or space_index >= GameState.board.size():
+		return null
+	if GameState.board[space_index] is PropertySpace:
+		return GameState.board[space_index] as PropertySpace
+	return null
+
+
+func _is_property_group_developed(property: PropertySpace) -> bool:
+	if property == null:
+		return false
+	var property_set: Array[PropertySpace] = _get_property_set(property)
+	for set_property in property_set:
+		if set_property._current_upgrades > 0:
+			return true
+	return false
+
+
+func _is_space_tradeable_by_owner(space_index: int, owner_index: int) -> bool:
+	if space_index < 0 or space_index >= GameState.board.size():
+		return false
+	var space := GameState.board[space_index]
+	if not (space is Ownable):
+		return false
+	var ownable := space as Ownable
+	if not ownable._is_owned or ownable._player_owner != owner_index:
+		return false
+	return true
+
+
+func get_tradeable_space_indexes(player_index: int) -> Array[int]:
+	var tradeable: Array[int] = []
+	if not _is_valid_player_index(player_index):
+		return tradeable
+	for i in range(GameState.board.size()):
+		if _is_space_tradeable_by_owner(i, player_index):
+			tradeable.append(i)
+	return tradeable
+
+
+func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
+	var result := {"ok": false, "reason": "Invalid trade offer."}
+
+	var offering_player: int = int(trade_offer.get("offering_player", -1))
+	var target_player: int = int(trade_offer.get("target_player", -1))
+
+	if not _is_valid_player_index(offering_player) or not _is_valid_player_index(target_player):
+		result.reason = "Trade players are invalid."
+		return result
+
+	result.ok = true
+	result.reason = "OK"
+	return result
+
+
+func execute_trade_offer(trade_offer: Dictionary) -> bool:
+	var validation := validate_trade_offer(trade_offer)
+	if not bool(validation.get("ok", false)):
+		var reason := str(validation.get("reason", "Invalid trade offer."))
+		trade_failed.emit(reason)
+		print("Trade failed: ", reason)
+		return false
+
+	var offering_player: int = int(trade_offer.get("offering_player", -1))
+	var target_player: int = int(trade_offer.get("target_player", -1))
+	var offer_cash: int = int(trade_offer.get("offer_cash", 0))
+	var request_cash: int = int(trade_offer.get("request_cash", 0))
+	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
+	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
+
+	if offer_cash > 0:
+		transfer(offering_player, target_player, offer_cash, "trade cash")
+	if request_cash > 0:
+		transfer(target_player, offering_player, request_cash, "trade cash")
+
+	for offered_space in offered_spaces:
+		_transfer_property(GameState.board[int(offered_space)] as Ownable, target_player)
+
+	for requested_space in requested_spaces:
+		_transfer_property(GameState.board[int(requested_space)] as Ownable, offering_player)
+
+	trade_completed.emit(trade_offer)
+	print("Trade completed between ", GameState.get_player_display_name(offering_player), " and ", GameState.get_player_display_name(target_player))
+	return true
+
 
 func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
 	property._current_upgrades += amount
@@ -90,17 +199,18 @@ func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
 		print("Error, property upgrades is negative")
 		property._current_upgrades = 0
 
+
 func _get_property_set(property:PropertySpace) -> Array[PropertySpace]:
 	var property_set: Array[PropertySpace]
-	for i in range(GameState.board.size()): 
+	for i in range(GameState.board.size()):
 		if (GameState.board[i].get_script().get_global_name() == "PropertySpace"):
 			if (GameState.board[i]._property_set == property._property_set):
 				property_set.append(GameState.board[i])
 	return property_set
-	
+
 
 func _check_if_upgrade_is_valid(property:PropertySpace, player: int) -> bool:
-	# There are 5 conditions for this 
+	# There are 5 conditions for this
 	# 1: The player must own the property
 	# 2: The player cannot upgrade past upgrade level 5 (discovery)
 	# 3: The player must be able to afford the upgrade
@@ -119,8 +229,9 @@ func _check_if_upgrade_is_valid(property:PropertySpace, player: int) -> bool:
 		upgrade_valid = false
 	return upgrade_valid
 
+
 func _check_if_downgrade_is_valid(property:PropertySpace, player: int) -> bool:
-	# There are 3 conditions for this 
+	# There are 3 conditions for this
 	# 1: The player must own the property
 	# 2: The player cannot downgrade if there are no upgrades on the property
 	# 3: The property that the player is downgrading must have equal or more upgrades to each other property of the set
@@ -135,12 +246,14 @@ func _check_if_downgrade_is_valid(property:PropertySpace, player: int) -> bool:
 		downgrade_valid = false
 	return downgrade_valid
 
+
 func _upgrade_property(property:PropertySpace, player: int) -> void:
 	if (player == property._player_owner && property.is_owned()):
 		debit(property._player_owner, property._upgrade_cost, "property upgrade")
 		_adjust_upgrade_level(property, 1)
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
+
 
 func _downgrade_property(property:PropertySpace, player: int) -> void:
 	if (player == property._player_owner && property.is_owned()):
@@ -150,9 +263,10 @@ func _downgrade_property(property:PropertySpace, player: int) -> void:
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
+
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
-	property.set_property_owner(player)	
+	property.set_property_owner(player)
 	property_ownership_changed.emit()
 
 
@@ -214,8 +328,6 @@ func _pay_rent(property: Ownable, player: int) -> void:
 	transfer(player, property._player_owner, rent, "rent")
 
 
-
-
 func set_difficulty(new_difficulty: String) -> void:
 	GameState.difficulty = new_difficulty
 	emit_signal("difficulty_changed", GameState.difficulty)
@@ -229,12 +341,10 @@ func set_colorblind_mode(enabled: bool) -> void:
 	emit_signal("colorblind_mode_changed", GameState.colorblind_mode)
 	emit_signal("setup_changed")
 
-	
 	# Keep player_count consistent with the actual player objects created
 	GameState.player_count = GameState.players.size()
 
 	emit_signal("setup_changed")
-
 
 
 # ------------------------------------------------------------------------------

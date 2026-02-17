@@ -19,6 +19,8 @@ func _ready() -> void:
 	# Initialize button state (hidden at start)
 	if ui_container:
 		ui_container.visible = false
+	if end_turn_button:
+		end_turn_button.disabled = true
 
 
 func _on_end_turn_pressed() -> void:
@@ -34,11 +36,12 @@ func _on_end_turn_pressed() -> void:
 	# End the turn
 	GameController.next_player()
 
-
 func _on_turn_started(_player_index: int) -> void:
-	## Called when a new turn starts - hide button
+	## Called when a new turn starts
 	if ui_container:
-		ui_container.visible = false
+		ui_container.visible = true
+	if end_turn_button:
+		end_turn_button.disabled = true
 
 
 func _on_action_completed() -> void:
@@ -47,5 +50,5 @@ func _on_action_completed() -> void:
 	if not current_player:
 		return
 	
-	if current_player.has_rolled and ui_container:
-		ui_container.visible = true
+	if end_turn_button:
+		end_turn_button.disabled = not current_player.has_rolled

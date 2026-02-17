@@ -50,6 +50,10 @@ var space_action_popup: CanvasLayer = null
 const EndTurnButtonScene = preload("res://scenes/EndTurnButton.tscn")
 var end_turn_button: Control = null
 
+# Trade popup reference and scene
+const TradePopupScene = preload("res://scenes/TradePopup.tscn")
+var trade_popup: CanvasLayer = null
+
 # Auction popup reference and scene
 const AuctionPopupScene = preload("res://scenes/AuctionPopup.tscn")
 var auction_popup: CanvasLayer = null
@@ -117,6 +121,9 @@ func _ready() -> void:
 
 	# Instantiate end turn button
 	_setup_end_turn_button()
+
+	# Instantiate trade popup
+	_setup_trade_popup()
 
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
@@ -208,6 +215,9 @@ func _setup_player_properties_preview() -> void:
 	player_properties_preview = PlayerPropertiesPreviewScene.instantiate()
 	canvas_layer.add_child(player_properties_preview)
 
+	if player_properties_preview.has_signal("trade_pressed"):
+		player_properties_preview.trade_pressed.connect(_on_trade_pressed)
+
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
@@ -237,6 +247,11 @@ func _setup_end_turn_button() -> void:
 
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)
+
+
+func _setup_trade_popup() -> void:
+	trade_popup = TradePopupScene.instantiate()
+	get_tree().root.call_deferred("add_child", trade_popup)
 
 
 func _setup_auction_popup() -> void:
@@ -540,6 +555,14 @@ func _on_pay_pressed(space_num: int) -> void:
 func _on_close_pressed() -> void:
 	print("Player closed the action popup")
 	GameController.action_completed.emit()
+
+
+func _on_trade_pressed() -> void:
+	if trade_popup == null:
+		return
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	trade_popup.show_for_current_player(GameState.current_player_index)
 
 
 func _on_piece_space_changed(space_num: int) -> void:
