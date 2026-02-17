@@ -366,22 +366,14 @@ func _on_auction_pressed(space_num: int) -> void:
 	for i in range(GameState.players.size()):
 		bidder_indexes.append(i)
 
-	# Starting price logic:
-	# If the space has a "price", we treat that as the starting price players are bidding from.
-	# (So +$50 means price + 50.)
-	var space_info: Dictionary = SpaceDataRef.get_space_info(space_num)
-	var starting_price: int = 0
-	if not space_info.is_empty():
-		starting_price = int(space_info.get("price", 0))
-
 	# Start auction system:
-	# - starting bid = starting_price
+	# - starting bid = $0
 	# - starting player = whoever triggered the auction (current turn owner)
 	AuctionMgr.start_auction(
 		space_num,
 		bidder_indexes,
-		starting_price,
-		10,
+		0,
+		1,
 		GameState.current_player_index
 	)
 
@@ -421,7 +413,7 @@ func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 
 		if auction_popup.has_method("set_status"):
 			if high_bidder_index == -1:
-				auction_popup.call("set_status", "Starting Price: $" + str(high_bid))
+				auction_popup.call("set_status", "Starting Bid: $" + str(high_bid))
 			else:
 				auction_popup.call("set_status", "High bid: $" + str(high_bid) + " (" + bidder_name + ")")
 

@@ -22,8 +22,10 @@ var current_space_num: int = -1
 # ============================
 
 @onready var ui_root: Control = $Control
+@onready var vbox: VBoxContainer = ui_root.get_node("CenterContainer/Panel/PanelContainer/VBoxContainer")
 
 # Top labels (Unique Name access)
+@onready var color_bar: ColorRect = vbox.get_node("ColorBar")
 @onready var property_name_label: Label = %PropertyName
 @onready var property_type_label: Label = %PropertyType
 
@@ -33,16 +35,15 @@ var current_space_num: int = -1
 @onready var status_label: Label = %StatusLabel
 
 # Buttons (still path-based, but these rarely move)
-@onready var vbox: VBoxContainer = ui_root.get_node("CenterContainer/Panel/PanelContainer/VBoxContainer")
 @onready var buttons_row: HBoxContainer = vbox.get_node("ButtonsRow")
 @onready var details_btn: Button = buttons_row.get_node("DetailsButton")
 @onready var bid_btn: Button = buttons_row.get_node("BidButton")
 @onready var pass_btn: Button = buttons_row.get_node("PassButton")
 
 @onready var bid_controls: HBoxContainer = vbox.get_node_or_null("BidControlRow")
-@onready var bid_10: Button = bid_controls.get_node("BidPlus10") if bid_controls else null
-@onready var bid_50: Button = bid_controls.get_node("BidPlus50") if bid_controls else null
-@onready var bid_100: Button = bid_controls.get_node("BidPlus100") if bid_controls else null
+@onready var bid_1: Button = bid_controls.get_node("BidPlus10") if bid_controls else null
+@onready var bid_10: Button = bid_controls.get_node("BidPlus50") if bid_controls else null
+@onready var bid_50: Button = bid_controls.get_node("BidPlus100") if bid_controls else null
 
 # SFX
 @onready var sfx_click: AudioStreamPlayer = $SfxClick
@@ -63,9 +64,15 @@ func _ready() -> void:
 	bid_btn.pressed.connect(_on_bid_pressed)
 
 	# Bid increment buttons (only if row exists)
-	if bid_10:  bid_10.pressed.connect(func(): _emit_bid_increment(10, bid_10))
-	if bid_50:  bid_50.pressed.connect(func(): _emit_bid_increment(50, bid_50))
-	if bid_100: bid_100.pressed.connect(func(): _emit_bid_increment(100, bid_100))
+	if bid_1:
+		bid_1.text = "+$1"
+		bid_1.pressed.connect(func(): _emit_bid_increment(1, bid_1))
+	if bid_10:
+		bid_10.text = "+$10"
+		bid_10.pressed.connect(func(): _emit_bid_increment(10, bid_10))
+	if bid_50:
+		bid_50.text = "+$50"
+		bid_50.pressed.connect(func(): _emit_bid_increment(50, bid_50))
 
 
 # ============================
@@ -124,6 +131,7 @@ func show_popup(space_num: int) -> void:
 	if space_info.is_empty():
 		property_name_label.text = "Unknown Space"
 		property_type_label.text = ""
+		color_bar.color = Color.GRAY
 		# Reset visible values each time the popup opens
 		set_status("")
 
@@ -135,6 +143,10 @@ func show_popup(space_num: int) -> void:
 		return
 
 	property_name_label.text = str(space_info.get("name", "Unknown Space"))
+	if space_info.has("color"):
+		color_bar.color = space_info.color
+	else:
+		color_bar.color = Color.GRAY
 
 	match str(space_info.get("type", "")):
 		"property":
@@ -162,12 +174,12 @@ func set_current_bidder(bidder_name: String) -> void:
 	current_bidder_label.text = "Current Bidder: " + bidder_name
 
 func set_high_bid(amount: int, bidder_name: String) -> void:
-	# - Before the first bid, show "Starting Price" instead of "Highest Bid"
+	# - Before the first bid, show "Starting Bid" instead of "Highest Bid"
 	# - After someone bids, show "Highest Bid" + bidder
 	var no_bids_yet := (bidder_name == "" or bidder_name == "None" or bidder_name == "—" or bidder_name == "-")
 
 	if no_bids_yet:
-		high_bid_label.text = "Starting Price: $" + str(amount)
+		high_bid_label.text = "Starting Bid: $" + str(amount)
 	else:
 		high_bid_label.text = "Highest Bid: $" + str(amount) + " (" + bidder_name + ")"
 
