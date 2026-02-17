@@ -194,6 +194,19 @@ func _create_property_item(prop: Dictionary) -> HBoxContainer:
 		rent_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		hbox.add_child(rent_label)
 	
+	# Add Details button
+	var details_btn := Button.new()
+	details_btn.text = "..."
+	details_btn.custom_minimum_size = Vector2(30, 24)
+	details_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+	details_btn.add_theme_font_size_override("font_size", 10)
+	details_btn.flat = false
+	details_btn.focus_mode = Control.FOCUS_NONE
+	details_btn.pressed.connect(_show_property_details_popup.bind(prop.space_index))
+	details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	details_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	hbox.add_child(details_btn)
+	
 	return hbox
 
 
