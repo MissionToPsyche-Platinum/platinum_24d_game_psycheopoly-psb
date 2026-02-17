@@ -2,6 +2,8 @@ extends CanvasLayer
 ## properties_detail_popup.gd
 ## Shows detailed list of all properties owned by a player
 
+const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup.tscn")
+
 @onready var properties_list: VBoxContainer = $Control/PopupPanel/MarginContainer/VBox/ScrollContainer/PropertiesList
 @onready var title_label: Label = $Control/PopupPanel/MarginContainer/VBox/HeaderHBox/TitleLabel
 @onready var prev_button: Button = $Control/PopupPanel/MarginContainer/VBox/HeaderHBox/PrevButton
@@ -12,6 +14,7 @@ extends CanvasLayer
 @onready var control: Control = $Control
 
 var _current_player_index: int = 0
+var _property_details_popup: CanvasLayer = null
 
 func _ready() -> void:
 	# Hide initially
@@ -207,13 +210,30 @@ func _get_type_display_name(type: String) -> String:
 
 
 func _sort_properties(a: Dictionary, b: Dictionary) -> bool:
-	# Sort by type first, then by name
-	if a.type != b.type:
-		var type_order := {"property": 0, "instrument": 1, "planet": 2}
-		var a_order: int = type_order.get(a.type, 99)
-		var b_order: int = type_order.get(b.type, 99)
-		return a_order < b_order
-	return a.name < b.name
+	# Match PlayerPropertiesPreview ordering: board space order (ascending index)
+	return int(a.get("space_index", 999)) < int(b.get("space_index", 999))
+
+
+func _show_property_details_popup(space_index: int) -> void:
+	if _property_details_popup == null:
+		_property_details_popup = PROPERTY_DETAILS_POPUP_SCENE.instantiate()
+		_property_details_popup.layer = max(110, int(layer) + 1)
+		get_tree().root.add_child(_property_details_popup)
+	else:
+		_property_details_popup.layer = max(110, int(layer) + 1)
+
+	var owner_name := "Unowned"
+	var owner_color := Color(0.7, 0.7, 0.7, 1)
+
+	if space_index >= 0 and space_index < GameState.board.size() and GameState.board[space_index] is Ownable:
+		var ownable := GameState.board[space_index] as Ownable
+		if ownable.is_owned() and ownable.get_property_owner() >= 0 and ownable.get_property_owner() < GameState.players.size():
+			var owner_index := ownable.get_property_owner()
+			owner_name = GameState.get_player_display_name(owner_index)
+			owner_color = GameState.players[owner_index].player_color
+
+	if _property_details_popup.has_method("show_space_details"):
+		_property_details_popup.call("show_space_details", space_index, owner_name, owner_color)
 
 
 func _on_close_pressed() -> void:
