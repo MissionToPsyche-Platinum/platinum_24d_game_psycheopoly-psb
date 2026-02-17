@@ -58,25 +58,25 @@ var colorblind_mode: bool = false
 var setup_humans: Array[Dictionary] = []
 var setup_human_count: int = 1
 
+# Tracks whether each player is still in the game
+var player_active: Array[bool] = []
+
 
 
 func _ready() -> void:
 	_setup_board()
-	# Don't call _setup_players() here.
-	# Players will be created when apply_setup() is called.
-	# there was a bug where token colors were not matching player selections bc of this i beleive.
-
 
 func _setup_board() -> void:
 	board = _spaces_list.board
 
 
 func _setup_players() -> void:
-	# Clear old players if reconfiguring
 	for p in players:
 		if is_instance_valid(p):
 			p.queue_free()
 	players.clear()
+
+	player_active.clear()
 
 	for i in range(player_count):
 		var player = PlayerState.new()
@@ -100,6 +100,10 @@ func _setup_players() -> void:
 		players.append(player)
 		add_child(player)
 
+		# Everyone starts active
+		player_active.append(true)
+
+
 func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	player_count = total_players
 	setup_humans = humans.duplicate(true)
@@ -112,3 +116,18 @@ func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	player_count = players.size()
 
 	GameController.emit_signal("setup_changed")
+
+
+# ------------------------------------------------------------------------------
+# Money helpers (used by Board / UI flows)
+# ------------------------------------------------------------------------------
+
+func charge_player(player_idx: int, amount: int) -> void:
+	if player_idx < 0 or player_idx >= players.size():
+		return
+	players[player_idx].balance -= amount
+
+func credit_player(player_idx: int, amount: int) -> void:
+	if player_idx < 0 or player_idx >= players.size():
+		return
+	players[player_idx].balance += amount

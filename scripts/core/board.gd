@@ -833,7 +833,6 @@ func _on_bankruptcy_open_assets_requested(debtor_id: int) -> void:
 func _on_bankruptcy_attempt_pay_requested() -> void:
 	print("Board: Attempting to pay debt")
 
-	# Safety: make sure we are actually in a bankruptcy state
 	if pending_debtor_index == -1 or pending_amount_owed <= 0:
 		push_warning("Board: attempt pay pressed but no pending bankruptcy debt")
 		return
@@ -848,7 +847,6 @@ func _on_bankruptcy_attempt_pay_requested() -> void:
 
 		GameState.charge_player(debtor, amount)
 
-		# TODO later: credit creditor
 
 		if bankruptcy_popup:
 			bankruptcy_popup.hide_popup()
@@ -865,11 +863,37 @@ func _on_bankruptcy_attempt_pay_requested() -> void:
 func _on_bankruptcy_declared() -> void:
 	print("BOARD: bankruptcy declared for player ", pending_debtor_index)
 
+	var eliminated_player := pending_debtor_index
+
+	# Mark player as inactive in GameState
+	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
+		GameState.player_active[eliminated_player] = false
+
+	#visually remove their piece from board
+	if eliminated_player >= 0 and eliminated_player < pieces.size():
+		if is_instance_valid(pieces[eliminated_player]):
+			pieces[eliminated_player].queue_free()
+
 	bankruptcy_popup.hide_popup()
 	_clear_pending_bankruptcy()
 
+	# Checking for win condition
+	var active_count := 0
+	var last_active := -1
+
+	for i in range(GameState.player_active.size()):
+		if GameState.player_active[i]:
+			active_count += 1
+			last_active = i
+
+	if active_count == 1:
+		_show_win_screen(last_active)
+		return
+
 	# so the game flow doesn't hang waiting on an action
 	GameController.action_completed.emit()
+
+
 
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
@@ -910,7 +934,6 @@ func _show_assets_popup_for_player(player: PlayerState) -> void:
 
 	assets_popup.visible = true
 
-	# Call the popup API (depends on what your popup script exposes)
 	if assets_popup.has_method("show_properties"):
 		assets_popup.call("show_properties", player)
 
@@ -920,3 +943,98 @@ func _show_assets_popup_for_player(player: PlayerState) -> void:
 
 func _setup_bankruptcy_popup_async() -> void:
 	await _setup_bankruptcy_popup()
+
+
+func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
+	#  Transfer properties
+	for i in range(GameState.board.size()):
+		var space = GameState.board[i]
+		if space is Ownable:
+			var ownable := space as Ownable
+			if ownable._is_owned and int(ownable._player_owner) == debtor_idx:
+				if creditor_idx >= 0:
+					# Transfer to creditor player
+					ownable._player_owner = creditor_idx
+					ownable._is_owned = true
+				else:
+					
+					ownable._player_owner = -1
+					ownable._is_owned = false
+
+	# Transfer cash
+	var debtor_cash := GameController.get_player_balance(debtor_idx)
+	if debtor_cash > 0:
+		GameState.charge_player(debtor_idx, debtor_cash)
+
+		# give to creditor if it's a player (bank just absorbs it)
+		if creditor_idx >= 0 and creditor_idx < GameState.players.size():
+			GameState.credit_player(creditor_idx, debtor_cash)
+
+	# Mark debtor eliminated
+	if debtor_idx >= 0 and debtor_idx < GameState.players.size():
+		# pick whatever your PlayerState uses (examples)
+		if GameState.players[debtor_idx].has_variable("is_bankrupt"):
+			GameState.players[debtor_idx].is_bankrupt = true
+		if GameState.players[debtor_idx].has_variable("is_active"):
+			GameState.players[debtor_idx].is_active = false
+
+	# Hide/remove debtor piece so it doesn't keep moving
+	if debtor_idx >= 0 and debtor_idx < pieces.size():
+		var debtor_piece := pieces[debtor_idx]
+		if is_instance_valid(debtor_piece):
+			debtor_piece.visible = false
+			# optional: stop interactions
+			debtor_piece.set_process(false)
+			debtor_piece.set_physics_process(false)
+
+
+func _count_active_players() -> int:
+	var count := 0
+	for p in GameState.players:
+		var active := true
+		if p.has_variable("is_active"):
+			active = p.is_active
+		elif p.has_variable("is_bankrupt"):
+			active = not p.is_bankrupt
+		# fallback: assume active if we don't have a flag yet
+		if active:
+			count += 1
+	return count
+
+
+func _get_last_active_player_index() -> int:
+	for i in range(GameState.players.size()):
+		var p = GameState.players[i]
+		var active := true
+		if p.has_variable("is_active"):
+			active = p.is_active
+		elif p.has_variable("is_bankrupt"):
+			active = not p.is_bankrupt
+		if active:
+			return i
+	return -1
+
+
+func _check_for_winner_and_show_screen() -> void:
+	var alive := _count_active_players()
+	if alive > 1:
+		return
+
+	var winner_idx := _get_last_active_player_index()
+	if winner_idx == -1:
+		return
+
+	print("GAME OVER: Winner is ", GameState.players[winner_idx].player_name)
+
+	# TODO: Show your Win screen scene here
+
+func _show_win_screen(winner_index: int) -> void:
+	print("GAME OVER. Winner is player:", winner_index)
+
+	var winner_name := GameState.players[winner_index].player_name
+
+	# TODO: Replace with real WinScreen scene later
+	var dialog := AcceptDialog.new()
+	dialog.dialog_text = winner_name + " Wins the Game!"
+	get_tree().root.add_child(dialog)
+	dialog.popup_centered()
