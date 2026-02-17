@@ -38,6 +38,10 @@ var money_hud: Control = null
 const PlayerNameHUDScene = preload("res://scenes/PlayerNameHUD.tscn")
 var player_name_hud: Control = null
 
+# Player properties preview reference and scene
+const PlayerPropertiesPreviewScene = preload("res://scenes/PlayerPropertiesPreview.tscn")
+var player_properties_preview: Control = null
+
 # Space action popup reference and scene
 const SpaceActionPopupScene = preload("res://scenes/SpaceActionPopup.tscn")
 var space_action_popup: CanvasLayer = null
@@ -68,8 +72,9 @@ func _ready() -> void:
 	highlight_layer = $TileMap/HighlightLayer
 
 	# Listen for setup changes (important if GameState rebuilds players)
-	if not GameState.setup_changed.is_connected(_on_setup_changed):
-		GameState.setup_changed.connect(_on_setup_changed)
+	if not GameController.setup_changed.is_connected(_on_setup_changed):
+		GameController.setup_changed.connect(_on_setup_changed)
+
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -91,6 +96,9 @@ func _ready() -> void:
 	# Instantiate the player name HUD
 	_setup_player_name_hud()
 
+	# Instantiate the player properties preview
+	_setup_player_properties_preview()
+
 	# Instantiate space action popup
 	_setup_space_action_popup()
 
@@ -109,13 +117,13 @@ func _ready() -> void:
 			current_piece.space_changed.connect(_on_piece_space_changed)
 		if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
 			current_piece.movement_finished.connect(_on_piece_movement_finished)
-
-	# Connect to GameState turn signals
-	if not GameState.turn_started.is_connected(_on_turn_started):
-		GameState.turn_started.connect(_on_turn_started)
-	if not GameState.turn_ended.is_connected(_on_turn_ended):
-		GameState.turn_ended.connect(_on_turn_ended)
-
+	
+	# Connect to GameController turn signals
+	if not GameController.turn_started.is_connected(_on_turn_started):
+		GameController.turn_started.connect(_on_turn_started)
+	if not GameController.turn_ended.is_connected(_on_turn_ended):
+		GameController.turn_ended.connect(_on_turn_ended)
+	
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
 
@@ -125,7 +133,7 @@ func _ready() -> void:
 
 func _start_game_deferred() -> void:
 	## Deferred game start to ensure all UI components are initialized
-	GameState.start_game()
+	GameController.start_game()
 
 
 func _setup_dice_roll_ui() -> void:
@@ -172,6 +180,19 @@ func _setup_player_name_hud() -> void:
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
+
+func _setup_player_properties_preview() -> void:
+	# Create a CanvasLayer to hold the player properties preview
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "PlayerPropertiesPreviewLayer"
+	canvas_layer.layer = 9
+
+	# Instantiate the player properties preview
+	player_properties_preview = PlayerPropertiesPreviewScene.instantiate()
+	canvas_layer.add_child(player_properties_preview)
+
+	# Add to scene tree
+	get_tree().root.call_deferred("add_child", canvas_layer)
 
 
 func _setup_space_action_popup() -> void:
@@ -304,7 +325,7 @@ func _on_turn_ended(player_index: int) -> void:
 
 func end_turn() -> void:
 	## Called when player wants to end their turn
-	GameState.next_player()
+	GameController.next_player()
 
 
 # Update piece layouts (offsets) for all pieces on a specific space
@@ -330,7 +351,7 @@ func _on_piece_movement_finished(space_num: int) -> void:
 func _on_purchase_pressed(space_num: int) -> void:
 	print("Player wants to purchase space: ", space_num)
 	# TODO: Implement actual purchase logic
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_auction_pressed(space_num: int) -> void:
@@ -354,22 +375,14 @@ func _on_auction_pressed(space_num: int) -> void:
 	for i in range(GameState.players.size()):
 		bidder_indexes.append(i)
 
-	# Starting price logic:
-	# If the space has a "price", we treat that as the starting price players are bidding from.
-	# (So +$50 means price + 50.)
-	var space_info: Dictionary = SpaceDataRef.get_space_info(space_num)
-	var starting_price: int = 0
-	if not space_info.is_empty():
-		starting_price = int(space_info.get("price", 0))
-
 	# Start auction system:
-	# - starting bid = starting_price
+	# - starting bid = $0
 	# - starting player = whoever triggered the auction (current turn owner)
 	AuctionMgr.start_auction(
 		space_num,
 		bidder_indexes,
-		starting_price,
-		10,
+		0,
+		1,
 		GameState.current_player_index
 	)
 
@@ -382,23 +395,23 @@ func _on_auction_turn_changed(player_index: int) -> void:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
 
-	var name := GameState.players[player_index].player_name
-	print("Auction turn:", name)
+	var player_name := GameState.get_player_display_name(player_index)
+	print("Auction turn:", player_name)
 
 	if auction_popup:
 		# update the “current bidder” line with the REAL name
 		if auction_popup.has_method("set_current_bidder"):
-			auction_popup.call("set_current_bidder", name)
+			auction_popup.call("set_current_bidder", player_name)
 
 		# keep status consistent
 		if auction_popup.has_method("set_status"):
-			auction_popup.call("set_status", "Waiting for " + name + "…")
+			auction_popup.call("set_status", "Waiting for " + player_name + "…")
 
 
 func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 	var bidder_name := "None"
 	if high_bidder_index != -1 and high_bidder_index < GameState.players.size():
-		bidder_name = GameState.players[high_bidder_index].player_name
+		bidder_name = GameState.get_player_display_name(high_bidder_index)
 
 	print("Auction high bid:", high_bid, " by ", bidder_name)
 
@@ -409,7 +422,7 @@ func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 
 		if auction_popup.has_method("set_status"):
 			if high_bidder_index == -1:
-				auction_popup.call("set_status", "Starting Price: $" + str(high_bid))
+				auction_popup.call("set_status", "Starting Bid: $" + str(high_bid))
 			else:
 				auction_popup.call("set_status", "High bid: $" + str(high_bid) + " (" + bidder_name + ")")
 
@@ -435,7 +448,7 @@ func _on_auction_ended(winner_index: int, winning_bid: int, _space_num: int, _pr
 		auction_popup.hide_popup()
 
 	# tell the game flow we’re done with this action and move on.
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_move_pressed(space_num: int) -> void:
@@ -449,7 +462,7 @@ func _on_move_pressed(space_num: int) -> void:
 			# Update both spaces
 			update_piece_layouts_at(old_space)
 			update_piece_layouts_at(10)
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_draw_card_pressed(space_num: int) -> void:
@@ -457,7 +470,7 @@ func _on_draw_card_pressed(space_num: int) -> void:
 	# TODO: Implement card deck system
 	var space_info = SpaceDataRef.get_space_info(space_num)
 	print("Card type: ", space_info.name)
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_pay_pressed(space_num: int) -> void:
@@ -469,13 +482,14 @@ func _on_pay_pressed(space_num: int) -> void:
 	if amount > 0:
 		GameState.charge_player(GameState.current_player_index, amount)
 		print("Paid $%d for %s" % [amount, space_info.name])
-
-	GameState.action_completed.emit()
+		# Update HUD
+		GameController.player_money_updated.emit(GameState.players[GameState.player_idx])
+	GameController.action_completed.emit()
 
 
 func _on_close_pressed() -> void:
 	print("Player closed the action popup")
-	GameState.action_completed.emit()
+	GameController.action_completed.emit()
 
 
 func _on_piece_space_changed(space_num: int) -> void:
@@ -669,13 +683,13 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
 
 		# Mark player as having rolled
-		var current_player = GameState.get_current_player()
+		var current_player = GameController.get_current_player()
 		if current_player:
 			current_player.has_rolled = true
 			if is_doubles:
 				current_player.doubles_count += 1
 			# Notify that player has rolled
-			GameState.player_rolled.emit(current_player)
+			GameController.emit_signal("player_rolled", current_player)
 
 func _card_forward_movement(move_spaces: int) -> void:
 		# Move the current player's piece forward to the correct space
@@ -764,3 +778,6 @@ func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
 func _on_setup_changed() -> void:
 	print("Board: setup_changed -> rebuilding pieces")
 	_spawn_pieces_from_gamestate()
+	# If setup happens after board load, start the game once players exist
+	if not GameState.game_active and GameState.players.size() > 0:
+		call_deferred("_start_game_deferred")

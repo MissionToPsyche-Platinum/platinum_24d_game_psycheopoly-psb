@@ -118,9 +118,9 @@ func _ready() -> void:
 	roll_button.pressed.connect(_on_roll_pressed)
 	# Connect the button press signal to our handler function.
 	
-	# Connect to GameState turn signals
-	if GameState:
-		GameState.turn_started.connect(_on_turn_started)
+	# Connect to GameController turn signals
+	if GameController:
+		GameController.turn_started.connect(_on_turn_started)
 		# Update button states when turn changes
 	
 	# Initialize button states for first player
@@ -340,7 +340,7 @@ func _on_turn_started(player_index: int) -> void:
 
 func _update_button_states() -> void:
 	## Update button enabled/disabled states based on turn state
-	var current_player = GameState.get_current_player()
+	var current_player = GameController.get_current_player()
 	if not current_player:
 		return
 	

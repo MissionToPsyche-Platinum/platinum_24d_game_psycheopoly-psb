@@ -161,17 +161,17 @@ layout_mode = 2
 [node name="BidPlus10" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+$10"
+text = "+$1"
 
 [node name="BidPlus50" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+$50"
+text = "+$10"
 
 [node name="BidPlus100" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/BidControlRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+$100"
+text = "+$50"
 
 [node name="SfxClick" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("4_y4eys")

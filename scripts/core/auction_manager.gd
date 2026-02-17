@@ -90,7 +90,7 @@ func submit_bid(amount: int) -> bool:
 		emit_signal("message", "Bid must be at least $" + str(min_required) + ".")
 		return false
 
-	var money := GameState.get_player_balance(p_idx)
+	var money := GameController.get_player_balance(p_idx)
 	if amount > money:
 		emit_signal("message", "You only have $" + str(money) + ". Try a lower bid.")
 		return false
@@ -158,12 +158,11 @@ func _finish_auction() -> void:
 		return
 
 	# Only winner pays
-	GameState.charge_player(winner_index, high_bid)
+	GameController.charge_player(winner_index, high_bid)
 
 	# Transfer ownership if ownable
 	if property_ref is Ownable:
-		(property_ref as Ownable)._is_owned = true
-		(property_ref as Ownable)._player_owner = winner_index
+		GameController.transfer_property_to_player(property_ref as Ownable, winner_index)
 
 	emit_signal("message", GameState.players[winner_index].player_name + " wins for $" + str(high_bid) + "!")
 	emit_signal("auction_ended", winner_index, high_bid, space_num, property_ref)

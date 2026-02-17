@@ -87,7 +87,12 @@ func show_actions(space_num: int) -> void:
 				else:
 					description = "You landed on %s." % space_info.name
 			elif property is Ownable and property._is_owned:
-				description = "You landed on %s. It is owned by Player %d." % [space_info.name, property._player_owner + 1]
+				if property._player_owner == GameState.current_player_index:
+					description = "You landed on %s. You own this property." % [space_info.name]
+				else:
+					var owner_name := GameState.get_player_display_name(int(property._player_owner))
+					description = "You landed on %s. It is owned by %s." % [space_info.name, owner_name]
+					can_pay = true
 			else:
 				description = "You landed on %s." % space_info.name
 		"cost":
@@ -129,10 +134,16 @@ func _on_details_pressed() -> void:
 	# Show the popup with current space details
 	var property = GameState.board[current_space_num]
 	var owner_str = "Unowned"
+	var owner_color: Color = Color(0.7, 0.7, 0.7, 1)
 	if property is Ownable and property._is_owned:
-		owner_str = "Player %d" % (property._player_owner + 1)
+		var owner_index := int(property._player_owner)
+		if owner_index >= 0 and owner_index < GameState.players.size():
+			owner_str = GameState.get_player_display_name(owner_index)
+			owner_color = GameState.players[owner_index].player_color
+		else:
+			owner_str = GameState.get_player_display_name(owner_index)
 		
-	_details_popup.show_space_details(current_space_num, owner_str)
+	_details_popup.show_space_details(current_space_num, owner_str, owner_color)
 
 func _on_purchase_pressed() -> void:
 	purchase_pressed.emit(current_space_num)
@@ -140,7 +151,7 @@ func _on_purchase_pressed() -> void:
 	# Previously this was hard-coded to 0, which caused Player 1 to be charged
 	# even when Player 2/3/etc made the purchase.
 	# now using the current active player index from GameState.
-	GameState.purchase_property.emit(GameState.board[current_space_num], GameState.current_player_index)
+	GameController.purchase_property.emit(GameState.board[current_space_num], GameState.current_player_index)
 
 	hide_popup()
 
@@ -150,7 +161,7 @@ func _on_pay_pressed() -> void:
 	# Previously this was hard-coded to 0, which caused Player 1 to pay/owe rent
 	# even when Player 2/3/etc landed here.
 	# now using the current active player index from GameState.
-	GameState.pay_rent.emit(GameState.board[current_space_num], GameState.current_player_index)
+	GameController.pay_rent.emit(GameState.board[current_space_num], GameState.current_player_index)
 
 	hide_popup()
 

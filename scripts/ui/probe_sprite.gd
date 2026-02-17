@@ -89,7 +89,7 @@ var base_scale: Vector2
 # The sprite’s original scale (so we can pulse relative to it).
 
 # Sound internals
-@onready var whoosh: AudioStreamPlayer2D = $ProbeWhoosh
+@onready var whoosh: AudioStreamPlayer2D = get_node_or_null("ProbeWhoosh") as AudioStreamPlayer2D
 # Gets a child node named "ProbeWhoosh" and casts it as AudioStreamPlayer2D.
 
 

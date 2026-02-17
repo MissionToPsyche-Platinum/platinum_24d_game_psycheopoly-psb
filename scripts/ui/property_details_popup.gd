@@ -46,7 +46,7 @@ func _ready() -> void:
 	# Start hidden
 	visible = false
 # Show the popup with information about a space
-func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
+func show_space_details(space_num: int, owner_name: String = "Unowned", owner_color: Color = Color(0.7, 0.7, 0.7, 1)) -> void:
 	current_space = space_num
 	var space_info = SpaceData.get_space_info(space_num)
 	
@@ -90,10 +90,7 @@ func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
 	
 	# Set owner
 	owner_label.text = owner_name
-	if owner_name == "Unowned":
-		owner_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
-	else:
-		owner_label.add_theme_color_override("font_color", Color(1, 0.8, 0, 1))
+	owner_label.add_theme_color_override("font_color", owner_color)
 	
 	# Show the popup and bring to front
 	visible = true
@@ -104,22 +101,13 @@ func show_space_details(space_num: int, owner_name: String = "Unowned") -> void:
 func _show_property_details(space_info: Dictionary) -> void:
 	details_container.visible = true
 	
-	# Parse rent from description (e.g., "Research Funding $2")
-	var base_rent := 2
-	if space_info.has("description"):
-		var desc: String = space_info.description
-		var rent_start := desc.find("$")
-		if rent_start >= 0:
-			var rent_str := desc.substr(rent_start + 1)
-			base_rent = rent_str.to_int()
-	
 	# Calculate rent values (typical Monopoly progression)
-	rent_value.text = "$" + str(base_rent)
-	rent1_value.text = "$" + str(base_rent * 5)
-	rent2_value.text = "$" + str(base_rent * 15)
-	rent3_value.text = "$" + str(base_rent * 45)
-	rent4_value.text = "$" + str(base_rent * 80)
-	rent_full_value.text = "$" + str(base_rent * 125)
+	rent_value.text = "$" + str(space_info.rent)
+	rent1_value.text = "$" + str(space_info.rent1data)
+	rent2_value.text = "$" + str(space_info.rent2data)
+	rent3_value.text = "$" + str(space_info.rent3data)
+	rent4_value.text = "$" + str(space_info.rent4data)
+	rent_full_value.text = "$" + str(space_info.rentDiscovery)
 	
 	# Show all rent containers
 	rent1_container.visible = true
@@ -132,11 +120,11 @@ func _show_property_details(space_info: Dictionary) -> void:
 	additional_info_container.visible = true
 	if space_info.has("price"):
 		# Collaboration value is half the property price (mortgage value in Monopoly)
-		var collab_value: int = space_info.price / 2
+		var collab_value: int = space_info.mortgage
 		collaboration_value.text = " $" + str(collab_value)
 		
 		# Data point cost is half the property price
-		var dp_cost: int = space_info.price / 2
+		var dp_cost: int = space_info.dataCost
 		data_point_cost.text = " $" + str(dp_cost) + " each"
 		
 		# Discovery cost is the data point cost plus 4 data points
