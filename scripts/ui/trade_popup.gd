@@ -1,0 +1,372 @@
+extends CanvasLayer
+
+signal popup_closed
+
+@onready var root_panel: Panel = $Control/CenterContainer/Panel
+@onready var title_label: Label = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/TitleLabel
+@onready var target_option: OptionButton = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/TargetRow/TargetOption
+@onready var offer_cash_spin: SpinBox = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ValueRow/OfferCashSpin
+@onready var request_cash_spin: SpinBox = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ValueRow/RequestCashSpin
+@onready var offered_list: Tree = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ListRow/OfferedPanel/OfferedList
+@onready var requested_list: Tree = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ListRow/RequestedPanel/RequestedList
+@onready var status_label: Label = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/StatusLabel
+@onready var compose_buttons: HBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ComposeButtons
+@onready var submit_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ComposeButtons/SubmitButton
+@onready var cancel_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ComposeButtons/CancelButton
+@onready var review_box: VBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox
+@onready var review_label: RichTextLabel = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewLabel
+@onready var review_buttons: HBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons
+@onready var back_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/BackButton
+@onready var reject_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/RejectButton
+@onready var accept_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/AcceptButton
+
+var _offering_player: int = -1
+var _pending_offer: Dictionary = {}
+var _color_icon_cache: Dictionary = {}
+
+const CHECKBOX_COLUMN := 0
+const PROPERTY_COLUMN := 1
+const DETAILS_COLUMN := 2
+const CHECKBOX_BG_COLOR := Color(0.1, 0.1, 0.1, 0.3) # Semi-transparent dark overlay
+const DETAILS_BG_COLOR := Color(0.22, 0.24, 0.30, 0.0) # Transparent for just text
+const DETAILS_TEXT_COLOR := Color(0.8, 0.8, 0.8, 1.0)
+const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup.tscn")
+
+var _property_details_popup: CanvasLayer = null
+
+
+func _ready() -> void:
+	if _color_icon_cache == null:
+		_color_icon_cache = {}
+
+	visible = false
+	target_option.item_selected.connect(_on_target_selected)
+	submit_button.pressed.connect(_on_submit_pressed)
+	cancel_button.pressed.connect(_on_cancel_pressed)
+	back_button.pressed.connect(_on_back_pressed)
+	reject_button.pressed.connect(_on_reject_pressed)
+	accept_button.pressed.connect(_on_accept_pressed)
+	offered_list.gui_input.connect(_on_tree_gui_input.bind(offered_list))
+	requested_list.gui_input.connect(_on_tree_gui_input.bind(requested_list))
+
+	_configure_property_tree(offered_list)
+	_configure_property_tree(requested_list)
+
+	if not GameController.trade_failed.is_connected(_on_trade_failed):
+		GameController.trade_failed.connect(_on_trade_failed)
+
+	if not GameController.trade_completed.is_connected(_on_trade_completed):
+		GameController.trade_completed.connect(_on_trade_completed)
+
+	_set_compose_mode()
+
+
+func _configure_property_tree(tree: Tree) -> void:
+	tree.columns = 3
+	tree.hide_root = true
+	tree.select_mode = Tree.SELECT_ROW
+	tree.column_titles_visible = false
+	tree.set_column_expand(CHECKBOX_COLUMN, false)
+	tree.set_column_expand(PROPERTY_COLUMN, true)
+	tree.set_column_expand(DETAILS_COLUMN, false)
+	tree.set_column_custom_minimum_width(CHECKBOX_COLUMN, 36)
+	tree.set_column_custom_minimum_width(DETAILS_COLUMN, 36)
+
+
+func show_for_current_player(player_index: int) -> void:
+	_offering_player = player_index
+	_pending_offer = {}
+	status_label.text = ""
+	visible = true
+	_refresh_target_options()
+	offer_cash_spin.value = 0
+	request_cash_spin.value = 0
+	_set_compose_mode()
+	_refresh_space_lists()
+
+
+func hide_popup() -> void:
+	visible = false
+	popup_closed.emit()
+
+
+func _set_compose_mode() -> void:
+	compose_buttons.visible = true
+	review_box.visible = false
+	title_label.text = "Create Trade Offer"
+
+
+func _set_review_mode(summary: String) -> void:
+	compose_buttons.visible = false
+	review_box.visible = true
+	title_label.text = "Trade Review"
+	review_label.text = summary
+
+
+func _refresh_target_options() -> void:
+	target_option.clear()
+	for i in range(GameState.players.size()):
+		if i == _offering_player:
+			continue
+		target_option.add_item(GameState.get_player_display_name(i))
+		target_option.set_item_metadata(target_option.item_count - 1, i)
+
+	if target_option.item_count > 0:
+		target_option.select(0)
+	else:
+		status_label.text = "No available player to trade with."
+
+
+func _on_target_selected(_index: int) -> void:
+	_refresh_space_lists()
+
+
+func _get_selected_target_player() -> int:
+	if target_option.item_count <= 0:
+		return -1
+	var selected := target_option.selected
+	if selected < 0:
+		return -1
+	return int(target_option.get_item_metadata(selected))
+
+
+func _refresh_space_lists() -> void:
+	offered_list.clear()
+	requested_list.clear()
+	var offered_root := offered_list.create_item()
+	var requested_root := requested_list.create_item()
+
+	if _offering_player < 0:
+		return
+
+	var target_player := _get_selected_target_player()
+	var offered_spaces: Array[int] = GameController.get_tradeable_space_indexes(_offering_player)
+	for space_index in offered_spaces:
+		_add_space_item(offered_list, offered_root, space_index)
+
+	if target_player < 0:
+		return
+	var requested_spaces: Array[int] = GameController.get_tradeable_space_indexes(target_player)
+	for space_index in requested_spaces:
+		_add_space_item(requested_list, requested_root, space_index)
+
+
+func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> void:
+	var info := SpaceData.get_space_info(space_index)
+	var item_label := _build_space_label(space_index)
+	var item_icon := _get_or_create_color_icon(info)
+	var tree_item := list_node.create_item(root_item)
+	tree_item.set_cell_mode(CHECKBOX_COLUMN, TreeItem.CELL_MODE_CHECK)
+	tree_item.set_editable(CHECKBOX_COLUMN, true)
+	tree_item.set_checked(CHECKBOX_COLUMN, false)
+	tree_item.set_selectable(CHECKBOX_COLUMN, false)
+	tree_item.set_custom_bg_color(CHECKBOX_COLUMN, CHECKBOX_BG_COLOR)
+
+	tree_item.set_icon(PROPERTY_COLUMN, item_icon)
+	tree_item.set_text(PROPERTY_COLUMN, item_label)
+	tree_item.set_selectable(PROPERTY_COLUMN, true)
+	tree_item.set_metadata(PROPERTY_COLUMN, space_index)
+	tree_item.set_text(DETAILS_COLUMN, "...")
+	tree_item.set_selectable(DETAILS_COLUMN, false)
+	tree_item.set_text_alignment(DETAILS_COLUMN, HORIZONTAL_ALIGNMENT_CENTER)
+	tree_item.set_custom_bg_color(DETAILS_COLUMN, DETAILS_BG_COLOR, false)
+	tree_item.set_custom_color(DETAILS_COLUMN, DETAILS_TEXT_COLOR)
+
+
+
+func _build_space_label(space_index: int) -> String:
+	var info := SpaceData.get_space_info(space_index)
+	var space_name := str(info.get("name", "Space " + str(space_index)))
+	return space_name
+
+
+func _get_or_create_color_icon(space_info: Dictionary) -> Texture2D:
+	if _color_icon_cache == null:
+		_color_icon_cache = {}
+
+	var color: Color = space_info.get("color", Color(0.7, 0.7, 0.7, 1.0))
+	var cache_key := "%0.3f_%0.3f_%0.3f_%0.3f" % [color.r, color.g, color.b, color.a]
+	if _color_icon_cache.has(cache_key):
+		return _color_icon_cache[cache_key]
+
+	var image := Image.create(14, 14, false, Image.FORMAT_RGBA8)
+	image.fill(color)
+
+	var border_color := Color(0.2, 0.2, 0.2, 1.0)
+	for x in range(14):
+		image.set_pixel(x, 0, border_color)
+		image.set_pixel(x, 13, border_color)
+	for y in range(14):
+		image.set_pixel(0, y, border_color)
+		image.set_pixel(13, y, border_color)
+
+	var texture := ImageTexture.create_from_image(image)
+	_color_icon_cache[cache_key] = texture
+	return texture
+
+
+func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var click_event := event as InputEventMouseButton
+		var clicked_item := tree.get_item_at_position(click_event.position)
+		if clicked_item == null:
+			return
+
+		var clicked_column := tree.get_column_at_position(click_event.position)
+		
+		# If clicking details, show popup
+		if clicked_column == DETAILS_COLUMN:
+			var space_index_variant = clicked_item.get_metadata(PROPERTY_COLUMN)
+			if typeof(space_index_variant) == TYPE_INT:
+				_show_property_details_popup(int(space_index_variant))
+			return
+
+		# Otherwise, toggle checkbox (manual toggle to mimic "whole row" selection)
+		# However, if we click exactly on the checkbox column, the Tree might handle it automatically.
+		# But since we want the WHOLE row to act as a toggle, we can force it here.
+		# Note: If the native checkbox logic runs, this might flip it back.
+		# To avoid double-toggle on the checkbox column itself, we can skip manual toggle if column is 0.
+		# BUT wait, the user says "clicking anywhere".
+		# Let's try manually toggling only if it's NOT the checkbox column.
+		if clicked_column != CHECKBOX_COLUMN:
+			clicked_item.set_checked(CHECKBOX_COLUMN, not clicked_item.is_checked(CHECKBOX_COLUMN))
+
+
+
+func _show_property_details_popup(space_index: int) -> void:
+	if _property_details_popup == null:
+		_property_details_popup = PROPERTY_DETAILS_POPUP_SCENE.instantiate()
+		_property_details_popup.layer = max(120, int(layer) + 1)
+		get_tree().root.add_child(_property_details_popup)
+	else:
+		_property_details_popup.layer = max(120, int(layer) + 1)
+
+	var owner_name := "Unowned"
+	var owner_color := Color(0.7, 0.7, 0.7, 1)
+
+	if space_index >= 0 and space_index < GameState.board.size() and GameState.board[space_index] is Ownable:
+		var ownable := GameState.board[space_index] as Ownable
+		if ownable.is_owned() and ownable.get_property_owner() >= 0 and ownable.get_property_owner() < GameState.players.size():
+			var owner_index := ownable.get_property_owner()
+			owner_name = GameState.get_player_display_name(owner_index)
+			owner_color = GameState.players[owner_index].player_color
+
+	if _property_details_popup.has_method("show_space_details"):
+		_property_details_popup.call("show_space_details", space_index, owner_name, owner_color)
+
+
+func _collect_selected_space_indices(list_node: Tree) -> Array[int]:
+	var results: Array[int] = []
+	var root := list_node.get_root()
+	if root == null:
+		return results
+
+	var item := root.get_first_child()
+	while item != null:
+		if item.is_checked(CHECKBOX_COLUMN):
+			results.append(int(item.get_metadata(PROPERTY_COLUMN)))
+		item = item.get_next()
+	return results
+
+
+func _build_offer_from_ui() -> Dictionary:
+	var target_player := _get_selected_target_player()
+	return {
+		"offering_player": _offering_player,
+		"target_player": target_player,
+		"offer_cash": int(offer_cash_spin.value),
+		"request_cash": int(request_cash_spin.value),
+		"offered_spaces": _collect_selected_space_indices(offered_list),
+		"requested_spaces": _collect_selected_space_indices(requested_list),
+	}
+
+
+func _format_space_summary(space_indexes: Array) -> String:
+	if space_indexes.is_empty():
+		return "None"
+
+	var entries: Array[String] = []
+	for space_index_variant in space_indexes:
+		var space_index := int(space_index_variant)
+		var info := SpaceData.get_space_info(space_index)
+		var space_name := str(info.get("name", "Space " + str(space_index)))
+		var color: Color = info.get("color", Color(0.7, 0.7, 0.7, 1.0))
+		var color_hex := color.to_html(false)
+		entries.append("[color=#%s]%s[/color]" % [color_hex, space_name])
+
+	return ", ".join(entries)
+
+
+func _summarize_trade_offer(trade_offer: Dictionary) -> String:
+	var offering_name := GameState.get_player_display_name(int(trade_offer.get("offering_player", -1)))
+	var target_name := GameState.get_player_display_name(int(trade_offer.get("target_player", -1)))
+	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
+	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
+	var lines: Array[String] = []
+	
+	lines.append("[center]")
+	lines.append("Pass offer to %s for review." % target_name)
+	lines.append("")
+	lines.append("%s offers: $%d" % [
+		offering_name,
+		int(trade_offer.get("offer_cash", 0))
+	])
+	lines.append("Properties: %s" % _format_space_summary(offered_spaces))
+	lines.append("")
+	lines.append("%s requests: $%d" % [
+		offering_name,
+		int(trade_offer.get("request_cash", 0))
+	])
+	lines.append("Properties: %s" % _format_space_summary(requested_spaces))
+	lines.append("")
+	lines.append("Accept this trade?")
+	lines.append("[/center]")
+	return "\n".join(lines)
+
+
+func _on_submit_pressed() -> void:
+	var trade_offer := _build_offer_from_ui()
+	var validation := GameController.validate_trade_offer(trade_offer)
+	if not bool(validation.get("ok", false)):
+		status_label.text = str(validation.get("reason", "Trade is invalid."))
+		return
+
+	_pending_offer = trade_offer
+	status_label.text = ""
+	_set_review_mode(_summarize_trade_offer(trade_offer))
+
+func _on_cancel_pressed() -> void:
+	hide_popup()
+
+
+func _on_back_pressed() -> void:
+	_set_compose_mode()
+
+
+func _on_reject_pressed() -> void:
+	status_label.text = "Trade rejected."
+	hide_popup()
+
+
+func _on_accept_pressed() -> void:
+	if _pending_offer.is_empty():
+		status_label.text = "No pending offer to accept."
+		_set_compose_mode()
+		return
+
+	var success := GameController.execute_trade_offer(_pending_offer)
+	if success:
+		hide_popup()
+
+
+func _on_trade_failed(reason: String) -> void:
+	if not visible:
+		return
+	status_label.text = reason
+	_set_compose_mode()
+
+
+func _on_trade_completed(_trade_offer: Dictionary) -> void:
+	if not visible:
+		return
+	status_label.text = "Trade completed successfully."
