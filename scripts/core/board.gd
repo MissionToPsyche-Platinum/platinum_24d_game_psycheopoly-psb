@@ -394,23 +394,23 @@ func _on_auction_turn_changed(player_index: int) -> void:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
 
-	var player_name := GameState.players[player_index].player_name
+	var player_name := GameState.get_player_display_name(player_index)
 	print("Auction turn:", player_name)
 
 	if auction_popup:
 		# update the “current bidder” line with the REAL name
 		if auction_popup.has_method("set_current_bidder"):
-			auction_popup.call("set_current_bidder", name)
+			auction_popup.call("set_current_bidder", player_name)
 
 		# keep status consistent
 		if auction_popup.has_method("set_status"):
-			auction_popup.call("set_status", "Waiting for " + name + "…")
+			auction_popup.call("set_status", "Waiting for " + player_name + "…")
 
 
 func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 	var bidder_name := "None"
 	if high_bidder_index != -1 and high_bidder_index < GameState.players.size():
-		bidder_name = GameState.players[high_bidder_index].player_name
+		bidder_name = GameState.get_player_display_name(high_bidder_index)
 
 	print("Auction high bid:", high_bid, " by ", bidder_name)
 

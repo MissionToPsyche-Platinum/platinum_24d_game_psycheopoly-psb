@@ -124,19 +124,13 @@ func _set_current_player_index(player) -> void:
 
 
 func _get_player_display_name(player, player_index: int) -> String:
-	var player_name := ""
+	if GameState:
+		return GameState.get_player_display_name(player_index)
+
 	if player != null:
-		player_name = str(player.player_name).strip_edges()
-	if player_name != "" and player_name != "Player" and not player_name.begins_with("Player "):
-		return player_name
-
-	if GameState and player_index >= 0 and player_index < GameState.setup_humans.size():
-		var setup_name := str(GameState.setup_humans[player_index].get("name", "")).strip_edges()
-		if setup_name != "":
-			return setup_name
-
-	if player_name != "":
-		return player_name
+		var player_name := str(player.player_name).strip_edges()
+		if player_name != "":
+			return player_name
 
 	return "Player %d" % (player_index + 1)
 

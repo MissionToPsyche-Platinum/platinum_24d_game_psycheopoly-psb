@@ -112,3 +112,17 @@ func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	player_count = players.size()
 
 	GameController.emit_signal("setup_changed")
+
+
+func get_player_display_name(player_index: int) -> String:
+	if player_index >= 0 and player_index < players.size():
+		var player_name := str(players[player_index].player_name).strip_edges()
+		if player_name != "":
+			return player_name
+
+	if player_index >= 0 and player_index < setup_humans.size():
+		var setup_name := str(setup_humans[player_index].get("name", "")).strip_edges()
+		if setup_name != "":
+			return setup_name
+
+	return "Player %d" % (player_index + 1)

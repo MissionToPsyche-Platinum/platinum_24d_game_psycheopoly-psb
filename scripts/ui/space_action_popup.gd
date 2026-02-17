@@ -90,7 +90,8 @@ func show_actions(space_num: int) -> void:
 				if property._player_owner == GameState.current_player_index:
 					description = "You landed on %s. You own this property." % [space_info.name]
 				else:
-					description = "You landed on %s. It is owned by Player %d." % [space_info.name, property._player_owner + 1]
+					var owner_name := GameState.get_player_display_name(int(property._player_owner))
+					description = "You landed on %s. It is owned by %s." % [space_info.name, owner_name]
 					can_pay = true
 			else:
 				description = "You landed on %s." % space_info.name
@@ -137,10 +138,10 @@ func _on_details_pressed() -> void:
 	if property is Ownable and property._is_owned:
 		var owner_index := int(property._player_owner)
 		if owner_index >= 0 and owner_index < GameState.players.size():
-			owner_str = GameState.players[owner_index].player_name
+			owner_str = GameState.get_player_display_name(owner_index)
 			owner_color = GameState.players[owner_index].player_color
 		else:
-			owner_str = "Player %d" % (owner_index + 1)
+			owner_str = GameState.get_player_display_name(owner_index)
 		
 	_details_popup.show_space_details(current_space_num, owner_str, owner_color)
 

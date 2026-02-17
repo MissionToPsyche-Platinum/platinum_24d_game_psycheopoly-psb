@@ -134,10 +134,10 @@ func _on_details_pressed() -> void:
 	if property is Ownable and property._is_owned:
 		var owner_index := int(property._player_owner)
 		if owner_index >= 0 and owner_index < GameState.players.size():
-			owner_str = GameState.players[owner_index].player_name
+			owner_str = GameState.get_player_display_name(owner_index)
 			owner_color = GameState.players[owner_index].player_color
 		else:
-			owner_str = "Player %d" % (owner_index + 1)
+			owner_str = GameState.get_player_display_name(owner_index)
 	_details_popup.show_space_details(current_space, owner_str, owner_color)  
 
 func _on_upgrade_pressed() -> void:
