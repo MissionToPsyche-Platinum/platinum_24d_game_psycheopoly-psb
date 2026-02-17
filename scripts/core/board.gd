@@ -107,6 +107,9 @@ func _ready() -> void:
 
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
+	
+	# Instantiate card movement signals
+	_setup_card_movement()
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -228,6 +231,12 @@ func _setup_auction_popup() -> void:
 
 	call_deferred("_finish_setup_auction_popup")
 
+func _setup_card_movement() -> void:
+	#ChanceCardManager -> Board / UI feedback
+	if not ChanceCardMgr.request_move_forward.is_connected(_card_forward_movement):
+		ChanceCardMgr.request_move_forward.connect(_card_forward_movement)
+	if not ChanceCardMgr.request_teleport_movement.is_connected(_card_teleport_movement):
+		ChanceCardMgr.request_teleport_movement.connect(_card_teleport_movement)
 
 func _finish_setup_auction_popup() -> void:
 	if auction_popup and not auction_popup.is_node_ready():
@@ -682,6 +691,22 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			# Notify that player has rolled
 			GameController.emit_signal("player_rolled", current_player)
 
+func _card_forward_movement(move_spaces: int) -> void:
+		# Move the current player's piece forward to the correct space
+	if current_piece:
+		var old_space = current_piece.board_space
+		current_piece.move_forward(move_spaces)
+		# Update the space we just left so remaining pieces re-center
+		update_piece_layouts_at(old_space)
+
+func _card_teleport_movement(space_location: int) -> void:
+	if current_piece:
+		var old_space = current_piece.board_space
+		current_piece.teleport_to_space(space_location)
+		# Update both spaces
+		update_piece_layouts_at(old_space)
+		update_piece_layouts_at(space_location)
+			
 
 func _clear_pieces() -> void:
 	for p in pieces:

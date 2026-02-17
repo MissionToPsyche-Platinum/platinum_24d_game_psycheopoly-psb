@@ -14,6 +14,9 @@ var board_space: int = 0
 # Money
 var balance: int = 0
 
+# Inventory
+var go_for_launch_cards: int = 0
+
 # Turn state
 var has_rolled: bool = false
 var doubles_count: int = 0

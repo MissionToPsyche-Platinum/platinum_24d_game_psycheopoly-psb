@@ -27,6 +27,7 @@ var board: Array[GameSpace] = []
 var _spaces_list := BoardSpaceList.new()
 
 # TODO: Eventually we want to be able to set this before a game starts
+## Think I provided a solution
 var player_count: int = 6
 
 # Holds the player state data models
@@ -82,7 +83,7 @@ func _setup_players() -> void:
 		var player = PlayerState.new()
 		player.player_id = i
 		player.balance = 1500
-
+		
 		# Apply human config if provided
 		if i < setup_humans.size():
 			var cfg: Dictionary = setup_humans[i]
@@ -92,10 +93,13 @@ func _setup_players() -> void:
 			var color_index: int = int(cfg.get("color_index", i))
 			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
 			player.player_color = PLAYER_COLORS[color_index]
+						
 		else:
 			# AI player
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
+			
+
 
 		players.append(player)
 		add_child(player)
