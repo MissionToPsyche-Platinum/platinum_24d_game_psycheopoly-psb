@@ -297,5 +297,3 @@ func get_player_balance(player_index: int) -> int:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return 0
 	return GameState.players[player_index].balance
-
-

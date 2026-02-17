@@ -981,7 +981,6 @@ func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
 	if debtor_cash > 0:
 		GameState.charge_player(debtor_idx, debtor_cash)
 
-		# give to creditor if it's a player (bank just absorbs it)
 		if creditor_idx >= 0 and creditor_idx < GameState.players.size():
 			GameState.credit_player(creditor_idx, debtor_cash)
 
@@ -993,12 +992,11 @@ func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
 		if GameState.players[debtor_idx].has_variable("is_active"):
 			GameState.players[debtor_idx].is_active = false
 
-	# Hide/remove debtor piece so it doesn't keep moving
+	# remove debtor piece so it doesn't keep moving
 	if debtor_idx >= 0 and debtor_idx < pieces.size():
 		var debtor_piece := pieces[debtor_idx]
 		if is_instance_valid(debtor_piece):
 			debtor_piece.visible = false
-			# optional: stop interactions
 			debtor_piece.set_process(false)
 			debtor_piece.set_physics_process(false)
 
@@ -1010,8 +1008,7 @@ func _count_active_players() -> int:
 		if p.has_variable("is_active"):
 			active = p.is_active
 		elif p.has_variable("is_bankrupt"):
-			active = not p.is_bankrupt
-		# fallback: assume active if we don't have a flag yet
+			active = not p.is_bankru
 		if active:
 			count += 1
 	return count
@@ -1054,4 +1051,3 @@ func _show_win_screen(winner_index: int) -> void:
 	dialog.dialog_text = winner_name + " Wins the Game!"
 	get_tree().root.add_child(dialog)
 	dialog.popup_centered()
-
