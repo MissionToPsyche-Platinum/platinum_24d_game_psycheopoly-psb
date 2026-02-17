@@ -57,6 +57,7 @@ const SPACE_INFO = [
 		"type": "cost",
 		"name": "Consult Subject Matter Expert",
 		"description": "Pay $200",
+		"amount": 200,
 		"expenseType": "pay200",
 		"color": Color.GRAY
 	},
@@ -498,6 +499,7 @@ const SPACE_INFO = [
 		"type": "cost",
 		"name": "Funding Cut",
 		"description": "Pay $100 budget reduction",
+		"amount": 100,
 		"expenseType": "pay100",
 		"color": Color.GRAY
 	},
