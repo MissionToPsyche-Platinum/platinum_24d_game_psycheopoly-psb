@@ -125,10 +125,6 @@ func _is_space_tradeable_by_owner(space_index: int, owner_index: int) -> bool:
 	var ownable := space as Ownable
 	if not ownable._is_owned or ownable._player_owner != owner_index:
 		return false
-	if ownable is PropertySpace:
-		var property := ownable as PropertySpace
-		if _is_property_group_developed(property):
-			return false
 	return true
 
 
@@ -147,51 +143,9 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 
 	var offering_player: int = int(trade_offer.get("offering_player", -1))
 	var target_player: int = int(trade_offer.get("target_player", -1))
-	var offer_cash: int = int(trade_offer.get("offer_cash", 0))
-	var request_cash: int = int(trade_offer.get("request_cash", 0))
-	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
-	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
 
 	if not _is_valid_player_index(offering_player) or not _is_valid_player_index(target_player):
 		result.reason = "Trade players are invalid."
-		return result
-
-	if offering_player == target_player:
-		result.reason = "You cannot trade with yourself."
-		return result
-
-	if offering_player != GameState.current_player_index:
-		result.reason = "Only the current player can initiate a trade."
-		return result
-
-	if offer_cash < 0 or request_cash < 0:
-		result.reason = "Trade values cannot be negative."
-		return result
-
-	if _array_has_duplicates(offered_spaces) or _array_has_duplicates(requested_spaces):
-		result.reason = "Trade offer contains duplicate properties."
-		return result
-
-	for offered_space in offered_spaces:
-		if not _is_space_tradeable_by_owner(int(offered_space), offering_player):
-			result.reason = "One or more offered properties cannot be traded."
-			return result
-
-	for requested_space in requested_spaces:
-		if not _is_space_tradeable_by_owner(int(requested_space), target_player):
-			result.reason = "One or more requested properties cannot be traded."
-			return result
-
-	if offer_cash > GameState.players[offering_player].balance:
-		result.reason = "Offering player does not have enough cash."
-		return result
-
-	if request_cash > GameState.players[target_player].balance:
-		result.reason = "Target player does not have enough cash."
-		return result
-
-	if offer_cash == 0 and request_cash == 0 and offered_spaces.is_empty() and requested_spaces.is_empty():
-		result.reason = "Trade offer cannot be empty."
 		return result
 
 	result.ok = true
