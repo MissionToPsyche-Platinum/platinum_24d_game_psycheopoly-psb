@@ -182,12 +182,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Back"
 
-[node name="RejectButton" type="Button" parent="Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Reject"
-
 [node name="AcceptButton" type="Button" parent="Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Accept"
+
+[node name="RejectButton" type="Button" parent="Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Reject"
