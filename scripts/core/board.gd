@@ -120,6 +120,9 @@ func _ready() -> void:
 
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
+	
+	# Instantiate card movement signals
+	_setup_card_movement()
 
 	call_deferred("_setup_bankruptcy_popup_async")
 
@@ -244,6 +247,14 @@ func _setup_auction_popup() -> void:
 	get_tree().root.call_deferred("add_child", property_details_popup)
 
 	call_deferred("_finish_setup_auction_popup")
+
+
+func _setup_card_movement() -> void:
+	#ChanceCardManager -> Board / UI feedback
+	if not ChanceCardMgr.request_move_forward.is_connected(_card_forward_movement):
+		ChanceCardMgr.request_move_forward.connect(_card_forward_movement)
+	if not ChanceCardMgr.request_teleport_movement.is_connected(_card_teleport_movement):
+		ChanceCardMgr.request_teleport_movement.connect(_card_teleport_movement)
 
 
 func _finish_setup_auction_popup() -> void:
@@ -413,22 +424,14 @@ func _on_auction_pressed(space_num: int) -> void:
 	for i in range(GameState.players.size()):
 		bidder_indexes.append(i)
 
-	# Starting price logic:
-	# If the space has a "price", we treat that as the starting price players are bidding from.
-	# (So +$50 means price + 50.)
-	var space_info: Dictionary = SpaceDataRef.get_space_info(space_num)
-	var starting_price: int = 0
-	if not space_info.is_empty():
-		starting_price = int(space_info.get("price", 0))
-
 	# Start auction system:
-	# - starting bid = starting_price
+	# - starting bid = $0
 	# - starting player = whoever triggered the auction (current turn owner)
 	AuctionMgr.start_auction(
 		space_num,
 		bidder_indexes,
-		starting_price,
-		10,
+		0,
+		1,
 		GameState.current_player_index
 	)
 
@@ -441,7 +444,7 @@ func _on_auction_turn_changed(player_index: int) -> void:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
 
-	var player_name := GameState.players[player_index].player_name
+	var player_name := GameState.get_player_display_name(player_index)
 	print("Auction turn:", player_name)
 
 	if auction_popup:
@@ -457,7 +460,7 @@ func _on_auction_turn_changed(player_index: int) -> void:
 func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 	var bidder_name := "None"
 	if high_bidder_index != -1 and high_bidder_index < GameState.players.size():
-		bidder_name = GameState.players[high_bidder_index].player_name
+		bidder_name = GameState.get_player_display_name(high_bidder_index)
 
 	print("Auction high bid:", high_bid, " by ", bidder_name)
 
@@ -468,7 +471,7 @@ func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
 
 		if auction_popup.has_method("set_status"):
 			if high_bidder_index == -1:
-				auction_popup.call("set_status", "Starting Price: $" + str(high_bid))
+				auction_popup.call("set_status", "Starting Bid: $" + str(high_bid))
 			else:
 				auction_popup.call("set_status", "High bid: $" + str(high_bid) + " (" + bidder_name + ")")
 
@@ -739,6 +742,24 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			GameController.emit_signal("player_rolled", current_player)
 
 
+func _card_forward_movement(move_spaces: int) -> void:
+	# Move the current player's piece forward to the correct space
+	if current_piece:
+		var old_space = current_piece.board_space
+		current_piece.move_forward(move_spaces)
+		# Update the space we just left so remaining pieces re-center
+		update_piece_layouts_at(old_space)
+
+
+func _card_teleport_movement(space_location: int) -> void:
+	if current_piece:
+		var old_space = current_piece.board_space
+		current_piece.teleport_to_space(space_location)
+		# Update both spaces
+		update_piece_layouts_at(old_space)
+		update_piece_layouts_at(space_location)
+
+
 func _clear_pieces() -> void:
 	for p in pieces:
 		if is_instance_valid(p):
@@ -792,13 +813,11 @@ func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
 		(n as Sprite2D).modulate = c
 		painted = true
 
-	
 	if not painted:
 		for n in piece_instance.find_children("*", "CanvasItem", true, false):
 			(n as CanvasItem).modulate = c
 			painted = true
 
-	
 	if not painted and piece_instance is CanvasItem:
 		(piece_instance as CanvasItem).modulate = c
 
@@ -847,7 +866,6 @@ func _on_bankruptcy_attempt_pay_requested() -> void:
 
 		GameState.charge_player(debtor, amount)
 
-
 		if bankruptcy_popup:
 			bankruptcy_popup.hide_popup()
 
@@ -869,7 +887,7 @@ func _on_bankruptcy_declared() -> void:
 	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
 		GameState.player_active[eliminated_player] = false
 
-	#visually remove their piece from board
+	# visually remove their piece from board
 	if eliminated_player >= 0 and eliminated_player < pieces.size():
 		if is_instance_valid(pieces[eliminated_player]):
 			pieces[eliminated_player].queue_free()
@@ -892,8 +910,6 @@ func _on_bankruptcy_declared() -> void:
 
 	# so the game flow doesn't hang waiting on an action
 	GameController.action_completed.emit()
-
-
 
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
@@ -946,7 +962,7 @@ func _setup_bankruptcy_popup_async() -> void:
 
 
 func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
-	#  Transfer properties
+	# Transfer properties
 	for i in range(GameState.board.size()):
 		var space = GameState.board[i]
 		if space is Ownable:
@@ -957,7 +973,6 @@ func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
 					ownable._player_owner = creditor_idx
 					ownable._is_owned = true
 				else:
-					
 					ownable._player_owner = -1
 					ownable._is_owned = false
 
@@ -1028,6 +1043,7 @@ func _check_for_winner_and_show_screen() -> void:
 
 	# TODO: Show your Win screen scene here
 
+
 func _show_win_screen(winner_index: int) -> void:
 	print("GAME OVER. Winner is player:", winner_index)
 
@@ -1038,3 +1054,4 @@ func _show_win_screen(winner_index: int) -> void:
 	dialog.dialog_text = winner_name + " Wins the Game!"
 	get_tree().root.add_child(dialog)
 	dialog.popup_centered()
+

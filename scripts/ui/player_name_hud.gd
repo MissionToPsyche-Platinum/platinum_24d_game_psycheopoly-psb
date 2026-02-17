@@ -15,6 +15,10 @@ func _ready() -> void:
 		var current = GameController.get_current_player()
 		if current:
 			_on_current_player_changed(current)
+		elif GameState and GameState.players.size() > 0:
+			name_label.text = GameState.get_player_display_name(GameState.current_player_index)
+			var idx := clampi(GameState.current_player_index, 0, GameState.players.size() - 1)
+			color_indicator.color = GameState.players[idx].player_color
 
 func _on_current_player_changed(player) -> void:
 	if player == null:

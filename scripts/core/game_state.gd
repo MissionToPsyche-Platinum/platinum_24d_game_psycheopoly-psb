@@ -27,6 +27,7 @@ var board: Array[GameSpace] = []
 var _spaces_list := BoardSpaceList.new()
 
 # TODO: Eventually we want to be able to set this before a game starts
+## Think I provided a solution
 var player_count: int = 6
 
 # Holds the player state data models
@@ -62,9 +63,9 @@ var setup_human_count: int = 1
 var player_active: Array[bool] = []
 
 
-
 func _ready() -> void:
 	_setup_board()
+
 
 func _setup_board() -> void:
 	board = _spaces_list.board
@@ -127,7 +128,26 @@ func charge_player(player_idx: int, amount: int) -> void:
 		return
 	players[player_idx].balance -= amount
 
+
 func credit_player(player_idx: int, amount: int) -> void:
 	if player_idx < 0 or player_idx >= players.size():
 		return
 	players[player_idx].balance += amount
+
+
+# ------------------------------------------------------------------------------
+# UI helpers
+# ------------------------------------------------------------------------------
+
+func get_player_display_name(player_index: int) -> String:
+	if player_index >= 0 and player_index < players.size():
+		var player_name := str(players[player_index].player_name).strip_edges()
+		if player_name != "":
+			return player_name
+
+	if player_index >= 0 and player_index < setup_humans.size():
+		var setup_name := str(setup_humans[player_index].get("name", "")).strip_edges()
+		if setup_name != "":
+			return setup_name
+
+	return "Player %d" % (player_index + 1)
