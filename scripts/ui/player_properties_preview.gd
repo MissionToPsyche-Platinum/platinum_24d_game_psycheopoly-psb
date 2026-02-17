@@ -3,9 +3,12 @@ extends Control
 ## Displays a compact preview of properties owned by the current player
 ## Shows small colored blocks representing each property
 
+signal trade_pressed
+
 @onready var properties_grid: GridContainer = $Panel/MarginContainer/VBox/PropertiesGrid
 @onready var count_label: Label = $Panel/MarginContainer/VBox/HeaderHBox/CountLabel
 @onready var view_details_button: Button = $Panel/MarginContainer/VBox/ViewDetailsButton
+@onready var trade_button: Button = $Panel/MarginContainer/VBox/TradeButton
 
 # Preload the detailed popup scene
 const PropertiesDetailPopupScene = preload("res://scenes/PropertiesDetailPopup.tscn")
@@ -36,6 +39,8 @@ func _ready() -> void:
 	# Connect button
 	if view_details_button:
 		view_details_button.pressed.connect(_on_view_details_pressed)
+	if trade_button:
+		trade_button.pressed.connect(_on_trade_pressed)
 
 
 func _on_current_player_changed(player) -> void:
@@ -127,3 +132,7 @@ func _on_view_details_pressed() -> void:
 	
 	if properties_detail_popup.has_method("show_popup"):
 		properties_detail_popup.show_popup()
+
+
+func _on_trade_pressed() -> void:
+	trade_pressed.emit()
