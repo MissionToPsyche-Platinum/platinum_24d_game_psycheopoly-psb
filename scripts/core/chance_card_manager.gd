@@ -18,8 +18,7 @@ var go_for_launch2_owner : int = -1
 func resolve_card(card_num: int, money_value: int, movement_value: int, space_number: int) -> void:
 	current_player = GameState.current_player_index
 	player_count = GameState.player_count
-	var passed_go = 200
-
+	
 	if card_num in range(0, 10): #cards with a flat earning
 		GameController.credit(current_player,money_value) 
 	elif card_num in range(10,14): #cards with a flat loss
@@ -32,7 +31,7 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		while paid_player != current_player:
 			GameController.credit(paid_player, 50) 
 			paid_player = (paid_player + 1) % player_count
-
+	
 	elif card_num == 15: #earn 10 from each player
 		var earn_from_opponents = (player_count - 1) * 10
 		GameController.credit(current_player,earn_from_opponents) 
@@ -41,14 +40,18 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		while losing_player != current_player:
 			GameController.debit(losing_player, 10) 
 			losing_player = (losing_player + 1) % player_count
-			
+	
 	elif card_num == 16: #pay 45 per data point, pay 120 per discovery
-		
-		
-		
-		pass
+		var total_data_points = GameState.players[current_player].total_data_points
+		var total_discoveries = GameState.players[current_player].total_discoveries
+		var card_fee = (total_data_points * 45) + (total_discoveries * 120)
+		GameController.debit(current_player, card_fee) 
+	
 	elif card_num == 17: #pay 25 per data point, pay 100 per discovery
-		pass
+		var total_data_points = GameState.players[current_player].total_data_points
+		var total_discoveries = GameState.players[current_player].total_discoveries
+		var card_fee = (total_data_points * 25) + (total_discoveries * 100)
+		GameController.debit(current_player, card_fee) 
 		
 		##Cases for silicate cards that are movement based
 	elif card_num in range(18, 28): #advance player to specific property
@@ -57,7 +60,6 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		
 		elif space_number > movement_value:
 			forward_movement = (40 - space_number) + movement_value
-			GameController.credit(current_player, passed_go) 
 		
 		emit_signal ("request_move_forward", forward_movement)
 		
