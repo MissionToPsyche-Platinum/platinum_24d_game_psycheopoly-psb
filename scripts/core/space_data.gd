@@ -264,10 +264,11 @@ const SPACE_INFO = [
 	},
 	# Space 20 - Gravity Assist (top-left corner)
 	{
-		"type": "corner",
+		"type": "reward",
 		"name": "Gravity Assist",
 		"description": "Free boost from planetary alignment",
-		"specialType": "gravityAssist",
+		"amount": 500,
+		"rewardType": "earn500",
 		"color": Color.GRAY
 	},
 	# Spaces 21-29 (top edge, moving right)

@@ -238,19 +238,39 @@ func _check_if_downgrade_is_valid(property:PropertySpace, player: int) -> bool:
 	return downgrade_valid
 
 func _upgrade_property(property:PropertySpace, player: int) -> void:
+	
+	var total_data_points = GameState.players[player].total_data_points
+	var total_discoveries = GameState.players[player].total_discoveries
+	
 	if (player == property._player_owner && property.is_owned()):
 		debit(property._player_owner, property._upgrade_cost, "property upgrade")
+		if  property._current_upgrades == 4:
+			GameState.players[player].total_data_points = total_data_points - 4
+			GameState.players[player].total_discoveries = total_discoveries + 1
+		else:
+			GameState.players[player].total_data_points = total_data_points + 1
 		_adjust_upgrade_level(property, 1)
+		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
 func _downgrade_property(property:PropertySpace, player: int) -> void:
+	var total_data_points = GameState.players[player].total_data_points
+	var total_discoveries = GameState.players[player].total_discoveries
 	if (player == property._player_owner && property.is_owned()):
 		var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
 		credit(property._player_owner, downgradeRefund, "property downgrade")
+		if  property._current_upgrades == 5:
+			GameState.players[player].total_data_points = total_data_points + 4
+			GameState.players[player].total_discoverie = total_discoveries - 1
+		else:
+			GameState.players[player].total_data_points = total_data_points - 1
+		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
 		_adjust_upgrade_level(property, -1)
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
+
+
 
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
@@ -400,5 +420,3 @@ func get_player_balance(player_index: int) -> int:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return 0
 	return GameState.players[player_index].balance
-
-
