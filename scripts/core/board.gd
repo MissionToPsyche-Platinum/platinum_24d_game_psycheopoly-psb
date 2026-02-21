@@ -405,7 +405,7 @@ func _on_turn_ended(player_index: int) -> void:
 
 func end_turn() -> void:
 	## Called when player wants to end their turn
-	GameController.next_player()
+	GameController.end_turn()
 
 
 # Update piece layouts (offsets) for all pieces on a specific space
@@ -793,23 +793,26 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 
 
 func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
-	
+	# Ignore dice input if current turn player is inactive (bankrupt)
 	if not GameState.player_active.is_empty():
 		if GameState.current_player_index >= 0 and GameState.current_player_index < GameState.player_active.size():
 			if GameState.player_active[GameState.current_player_index] == false:
 				print("Dice roll ignored: inactive player turn.")
 				return
 
-	
+	# Safety: current piece must exist
 	if current_piece == null or not is_instance_valid(current_piece):
 		push_warning("Dice roll ignored: current_piece is null or invalid.")
 		return
 
+	# Store last roll (useful for rent/cost math)
 	GameState.last_roll = total
 
-	var old_space = current_piece.board_space
+	# Move the piece
+	var old_space := current_piece.board_space
 	current_piece.move_forward(total)
 
+	# Re-layout pieces on the space we left so stacks look correct
 	update_piece_layouts_at(old_space)
 
 	print("Dice rolled: %d + %d = %d%s" % [
@@ -819,7 +822,8 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		" (Doubles!)" if is_doubles else ""
 	])
 
-	var current_player = GameController.get_current_player()
+	# Mark roll state on the player model
+	var current_player := GameController.get_current_player()
 	if current_player:
 		current_player.has_rolled = true
 
@@ -829,7 +833,6 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			current_player.doubles_count = 0
 
 		GameController.emit_signal("player_rolled", current_player)
-
 
 
 

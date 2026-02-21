@@ -427,6 +427,24 @@ func _is_player_active(index: int) -> bool:
 
 
 
+func end_turn() -> void:
+	## Handle end of turn with doubles check.
+	## If the current player rolled doubles, they get an extra turn.
+	var current_player = get_current_player()
+	if not current_player:
+		next_player()
+		return
+
+	# If the player rolled doubles, grant an extra turn instead of advancing
+	if current_player.doubles_count > 0:
+		current_player.has_rolled = false
+		print(current_player.player_name, " rolled doubles - extra turn!")
+		return
+
+	# Normal turn end - advance to next player
+	next_player()
+
+
 func start_game() -> void:
 	GameState.game_active = true
 

@@ -34,7 +34,7 @@ func _on_end_turn_pressed() -> void:
 		return
 	
 	# End the turn
-	GameController.next_player()
+	GameController.end_turn()
 
 func _on_turn_started(_player_index: int) -> void:
 	## Called when a new turn starts
