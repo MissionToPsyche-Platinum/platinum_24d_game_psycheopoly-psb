@@ -318,8 +318,17 @@ func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
 		return
 
-	var rent := 0
-	match property.get_script().get_global_name():
+	var owner: int = int(property._player_owner)
+	var rent: int = 0
+
+	# Explicitly type script reference (prevents Variant inference warning)
+	var scr: Script = property.get_script() as Script
+	var gname: String = ""
+	if scr != null:
+		gname = scr.get_global_name()
+
+	match gname:
+
 		"PropertySpace":
 			match property._current_upgrades:
 				0: rent = property._default_rent
@@ -329,17 +338,51 @@ func _pay_rent(property: Ownable, player: int) -> void:
 				4: rent = property._four_data_rent
 				5: rent = property._discovery_rent
 				_: rent = 0
+
 		"InstrumentSpace":
-			rent = 0
+			var count: int = 0
+			for s in GameState.board:
+				if s is Ownable:
+					var s_scr: Script = s.get_script() as Script
+					if s_scr != null and s_scr.get_global_name() == "InstrumentSpace":
+						var ownable := s as Ownable
+						if ownable._is_owned and int(ownable._player_owner) == owner:
+							count += 1
+
+			match count:
+				1: rent = 25
+				2: rent = 50
+				3: rent = 100
+				4: rent = 200
+				_: rent = 0
+
 		"PlanetSpace":
+			var count: int = 0
+			for s in GameState.board:
+				if s is Ownable:
+					var s_scr: Script = s.get_script() as Script
+					if s_scr != null and s_scr.get_global_name() == "PlanetSpace":
+						var ownable := s as Ownable
+						if ownable._is_owned and int(ownable._player_owner) == owner:
+							count += 1
+
+			var multiplier: int = 4
+			if count >= 2:
+				multiplier = 10
+
+			rent = int(GameState.last_roll) * multiplier
+
+		_:
 			rent = 0
 
-	# If they can’t afford, trigger bankruptcy instead of transferring
+	# Trigger bankruptcy if needed
 	if get_player_balance(player) < rent:
-		emit_signal("bankruptcy_needed", player, property._player_owner, rent, "Rent")
+		emit_signal("bankruptcy_needed", player, owner, rent, "Rent")
 		return
 
-	transfer(player, property._player_owner, rent, "rent")
+	transfer(player, owner, rent, "rent")
+
+
 
 
 func set_difficulty(new_difficulty: String) -> void:
@@ -373,11 +416,31 @@ func get_current_player() -> PlayerState:
 		return GameState.players[GameState.current_player_index]
 	return null
 
+func _is_player_active(index: int) -> bool:
+	# If player_active isn't initialized yet, assume everyone is active
+	if GameState.player_active.is_empty():
+		return true
+	if index < 0 or index >= GameState.player_active.size():
+		return true
+	return bool(GameState.player_active[index])
+
+
+
 
 func start_game() -> void:
-	## Initialize the game and start the first player's turn
 	GameState.game_active = true
-	GameState.current_player_index = 0
+
+	var start_idx := -1
+	for i in range(GameState.players.size()):
+		if _is_player_active(i):
+			start_idx = i
+			break
+
+	if start_idx == -1:
+		push_warning("GameController.start_game(): No active players.")
+		return
+
+	GameState.current_player_index = start_idx
 	var current_player = get_current_player()
 	if current_player:
 		print("Game started! ", current_player.player_name, "'s turn")
@@ -386,18 +449,19 @@ func start_game() -> void:
 
 
 func next_player() -> void:
-	## Advance to the next player's turn
+	## Advance to the next ACTIVE player's turn
 	if not GameState.game_active:
 		return
 
 	# Emit turn ended for current player
 	emit_signal("turn_ended", GameState.current_player_index)
 
-	# Advance to next player (use actual players array size)
-	var total := GameState.players.size()
-	if total <= 0:
+	var next_idx := _find_next_active_player_index(GameState.current_player_index)
+	if next_idx == -1:
+		push_warning("GameController.next_player(): No active players found.")
 		return
-	GameState.current_player_index = (GameState.current_player_index + 1) % total
+
+	GameState.current_player_index = next_idx
 
 	# Emit signals for new player
 	var current_player = get_current_player()
@@ -405,6 +469,21 @@ func next_player() -> void:
 		print(current_player.player_name, "'s turn")
 		emit_signal("current_player_changed", current_player)
 		emit_signal("turn_started", GameState.current_player_index)
+
+
+
+func _find_next_active_player_index(from_index: int) -> int:
+	var total := GameState.players.size()
+	if total <= 0:
+		return -1
+
+	# Try each player once
+	for step in range(1, total + 1):
+		var idx := (from_index + step) % total
+		if _is_player_active(idx):
+			return idx
+
+	return -1
 
 
 func change_player_cash(player: PlayerState, delta: int) -> void:

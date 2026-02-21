@@ -344,42 +344,59 @@ func _initial_panel_update() -> void:
 func _on_turn_started(player_index: int) -> void:
 	print("Board: Turn started for player ", player_index)
 
-	# Validate player_index is within bounds
+	if not GameState.player_active.is_empty():
+		if player_index >= 0 and player_index < GameState.player_active.size():
+			if GameState.player_active[player_index] == false:
+				print("Board: player ", player_index, " is inactive. Skipping turn.")
+				call_deferred("_skip_inactive_turn")
+				return
+
+	
 	if player_index < 0 or player_index >= pieces.size():
-		push_error("Invalid player_index: %d (pieces size: %d)" % [player_index, pieces.size()])
+		push_warning("Invalid player_index: %d (pieces size: %d)" % [player_index, pieces.size()])
+		call_deferred("_skip_inactive_turn")
 		return
 
 	if player_index >= GameState.players.size():
-		push_error("Invalid player_index for GameState.players: %d" % player_index)
+		push_warning("Invalid player_index for GameState.players: %d" % player_index)
+		call_deferred("_skip_inactive_turn")
 		return
 
-	# Keep Board + GameState aligned to the actual turn owner
+	
+	var next_piece := pieces[player_index]
+	if next_piece == null or not is_instance_valid(next_piece):
+		push_warning("Board: No valid piece for player %d. Skipping turn." % player_index)
+		call_deferred("_skip_inactive_turn")
+		return
+
+	
 	active_player_index = player_index
 	GameState.current_player_index = player_index
 
-	# Switch to the new player's piece
-	if current_piece:
-		# disconnect signals only if they are connected safely
+
+	if current_piece != null and is_instance_valid(current_piece):
 		if current_piece.space_changed.is_connected(_on_piece_space_changed):
 			current_piece.space_changed.disconnect(_on_piece_space_changed)
 		if current_piece.movement_finished.is_connected(_on_piece_movement_finished):
 			current_piece.movement_finished.disconnect(_on_piece_movement_finished)
 
-	current_piece = pieces[player_index]
+	
+	current_piece = next_piece
 
-	# Connect signals for new piece (avoid duplicate connections)
+	
 	if not current_piece.space_changed.is_connected(_on_piece_space_changed):
 		current_piece.space_changed.connect(_on_piece_space_changed)
 	if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
 		current_piece.movement_finished.connect(_on_piece_movement_finished)
 
-	# Reset turn state
 	GameState.players[player_index].has_rolled = false
 	GameState.players[player_index].doubles_count = 0
 
-	# Update info panel
 	if space_info_panel:
 		space_info_panel.update_space_display(current_piece.board_space)
+
+
+
 
 
 func _on_turn_ended(player_index: int) -> void:
@@ -393,13 +410,24 @@ func end_turn() -> void:
 
 # Update piece layouts (offsets) for all pieces on a specific space
 func update_piece_layouts_at(space_index: int) -> void:
-	var pieces_at_space = []
+	var pieces_at_space: Array[Node2D] = []
+
+	# Collect valid pieces on this space
 	for p in pieces:
+		if p == null:
+			continue
+		if not is_instance_valid(p):
+			continue
 		if p.board_space == space_index:
 			pieces_at_space.append(p)
 
+	# Apply layout offsets to valid pieces
 	for i in range(pieces_at_space.size()):
-		pieces_at_space[i].set_tile_layout(i, pieces_at_space.size())
+		var piece_node := pieces_at_space[i]
+		if piece_node == null or not is_instance_valid(piece_node):
+			continue
+		piece_node.set_tile_layout(i, pieces_at_space.size())
+
 
 
 func _on_piece_movement_finished(space_num: int) -> void:
@@ -540,16 +568,35 @@ func _on_draw_card_pressed(space_num: int) -> void:
 func _on_pay_pressed(space_num: int) -> void:
 	print("Player pressed PAY on space:", space_num)
 
+	var current_player := GameState.current_player_index
+	if current_player < 0 or current_player >= GameState.players.size():
+		push_warning("PAY: invalid current player index")
+		GameController.action_completed.emit()
+		return
+
 	var space := GameState.board[space_num]
 
 	if space is Ownable:
 		var property := space as Ownable
-		var current_player := GameState.current_player_index
-
 		print("PAY DEBUG: script=", property.get_script(), " global_name=", property.get_script().get_global_name())
 		GameController.pay_rent.emit(property, current_player)
+		GameController.action_completed.emit()
+		return
+
+	var space_info = SpaceDataRef.get_space_info(space_num)
+	var t := str(space_info.get("type", ""))
+
+	# handling both expense and cost variation of sapces.
+	if t == "cost" or t == "expense":
+		var amount := int(space_info.get("amount", 0))
+		if amount > 0:
+			
+			GameController.debit(current_player, amount, "space cost")
+		else:
+			push_warning("PAY: cost/expense space but amount missing/0 at space " + str(space_num))
 
 	GameController.action_completed.emit()
+
 
 
 func _on_close_pressed() -> void:
@@ -746,23 +793,44 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 
 
 func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
-	# Move the current player's piece forward by the total dice value
-	if current_piece:
-		var old_space = current_piece.board_space
-		current_piece.move_forward(total)
-		# Update the space we just left so remaining pieces re-center
-		update_piece_layouts_at(old_space)
+	
+	if not GameState.player_active.is_empty():
+		if GameState.current_player_index >= 0 and GameState.current_player_index < GameState.player_active.size():
+			if GameState.player_active[GameState.current_player_index] == false:
+				print("Dice roll ignored: inactive player turn.")
+				return
 
-		print("Dice rolled: %d + %d = %d%s" % [d1, d2, total, " (Doubles!)" if is_doubles else ""])
+	
+	if current_piece == null or not is_instance_valid(current_piece):
+		push_warning("Dice roll ignored: current_piece is null or invalid.")
+		return
 
-		# Mark player as having rolled
-		var current_player = GameController.get_current_player()
-		if current_player:
-			current_player.has_rolled = true
-			if is_doubles:
-				current_player.doubles_count += 1
-			# Notify that player has rolled
-			GameController.emit_signal("player_rolled", current_player)
+	GameState.last_roll = total
+
+	var old_space = current_piece.board_space
+	current_piece.move_forward(total)
+
+	update_piece_layouts_at(old_space)
+
+	print("Dice rolled: %d + %d = %d%s" % [
+		d1,
+		d2,
+		total,
+		" (Doubles!)" if is_doubles else ""
+	])
+
+	var current_player = GameController.get_current_player()
+	if current_player:
+		current_player.has_rolled = true
+
+		if is_doubles:
+			current_player.doubles_count += 1
+		else:
+			current_player.doubles_count = 0
+
+		GameController.emit_signal("player_rolled", current_player)
+
+
 
 
 func _card_forward_movement(move_spaces: int) -> void:
@@ -915,18 +983,23 @@ func _on_bankruptcy_declared() -> void:
 	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
 		GameState.player_active[eliminated_player] = false
 
-	# visually remove their piece from board
+	# Visually remove their piece from board
 	if eliminated_player >= 0 and eliminated_player < pieces.size():
 		if is_instance_valid(pieces[eliminated_player]):
 			pieces[eliminated_player].queue_free()
+		pieces[eliminated_player] = null
 
-	bankruptcy_popup.hide_popup()
+	# Hide bankruptcy UI
+	if bankruptcy_popup:
+		bankruptcy_popup.hide_popup()
+
 	_clear_pending_bankruptcy()
 
-	# Checking for win condition
+	# -------------------------
+	# Check win condition
+	# -------------------------
 	var active_count := 0
 	var last_active := -1
-
 	for i in range(GameState.player_active.size()):
 		if GameState.player_active[i]:
 			active_count += 1
@@ -936,8 +1009,12 @@ func _on_bankruptcy_declared() -> void:
 		_show_win_screen(last_active)
 		return
 
-	# so the game flow doesn't hang waiting on an action
-	GameController.action_completed.emit()
+	# -------------------------
+	# advance turn immediately so we never land on a bankrupt player
+	# -------------------------
+	call_deferred("_advance_after_bankruptcy")
+
+
 
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
@@ -1110,3 +1187,12 @@ func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
 		trade_popup.call("show_for_player_with_preselected_offer", pending_debtor_index, space_index)
 	else:
 		trade_popup.call("show_for_current_player", pending_debtor_index)
+
+func _skip_inactive_turn() -> void:
+	if not GameState.game_active:
+		return
+	GameController.next_player()
+
+func _advance_after_bankruptcy() -> void:
+	# If the eliminated player was the current player, move on.
+	GameController.next_player()
