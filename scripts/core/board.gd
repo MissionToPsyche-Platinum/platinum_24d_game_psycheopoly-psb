@@ -758,9 +758,12 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		# Mark player as having rolled
 		var current_player = GameController.get_current_player()
 		if current_player:
-			current_player.has_rolled = true
 			if is_doubles:
 				current_player.doubles_count += 1
+				current_player.has_rolled = false
+				print("Doubles rolled! Extra roll granted.")
+			else:
+				current_player.has_rolled = true
 			# Notify that player has rolled
 			GameController.emit_signal("player_rolled", current_player)
 
