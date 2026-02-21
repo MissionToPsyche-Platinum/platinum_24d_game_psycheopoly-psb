@@ -388,7 +388,7 @@ func _on_turn_ended(player_index: int) -> void:
 
 func end_turn() -> void:
 	## Called when player wants to end their turn
-	GameController.next_player()
+	GameController.end_turn()
 
 
 # Update piece layouts (offsets) for all pieces on a specific space
