@@ -35,7 +35,7 @@ const SPACE_INFO = [
 		"name": "Silicate",
 		"description": "Draw a Silicate card",
 		"cardType": "Silicate",
-		"color": Color.LIGHT_BLUE
+		"color": Color.ORANGE
 	},
 	{
 		"type": "property",
@@ -94,7 +94,7 @@ const SPACE_INFO = [
 		"name": "Metal",
 		"description": "Draw a Metal card",
 		"cardType": "Metal",
-		"color": Color.ORANGE
+		"color": Color.LIGHT_BLUE
 	},
 	{
 		"type": "property",
@@ -228,7 +228,7 @@ const SPACE_INFO = [
 		"name": "Silicate",
 		"description": "Draw a Silicate card",
 		"cardType": "Silicate",
-		"color": Color.LIGHT_BLUE
+		"color": Color.ORANGE
 	},
 	{
 		"type": "property",
@@ -264,10 +264,11 @@ const SPACE_INFO = [
 	},
 	# Space 20 - Gravity Assist (top-left corner)
 	{
-		"type": "corner",
+		"type": "reward",
 		"name": "Gravity Assist",
 		"description": "Free boost from planetary alignment",
-		"specialType": "gravityAssist",
+		"amount": 500,
+		"rewardType": "earn500",
 		"color": Color.GRAY
 	},
 	# Spaces 21-29 (top edge, moving right)
@@ -292,7 +293,7 @@ const SPACE_INFO = [
 		"name": "Metal",
 		"description": "Draw a Metal card",
 		"cardType": "Metal",
-		"color": Color.ORANGE
+		"color": Color.LIGHT_BLUE
 	},
 	{
 		"type": "property",
@@ -426,7 +427,7 @@ const SPACE_INFO = [
 		"name": "Silicate",
 		"description": "Draw a Silicate card",
 		"cardType": "Silicate",
-		"color": Color.LIGHT_BLUE
+		"color": Color.ORANGE
 	},
 		{
 		"type": "property",
@@ -477,7 +478,7 @@ const SPACE_INFO = [
 		"name": "Metal",
 		"description": "Draw a Metal card",
 		"cardType": "Metal",
-		"color": Color.ORANGE
+		"color": Color.LIGHT_BLUE
 	},
 	{
 		"type": "property",

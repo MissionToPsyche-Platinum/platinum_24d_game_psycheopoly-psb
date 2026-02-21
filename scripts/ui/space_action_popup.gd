@@ -106,8 +106,9 @@ func show_actions(space_num: int) -> void:
 			# Check for Solar Storm specifically
 			if current_space_num == 30:
 				can_move = true
-		_:
-			description = "You landed on space %d." % space_num
+		"reward":
+			description = "You have earned $%d." % space_info.get("amount", 0)
+			GameController.credit(GameState.current_player_index, space_info.get("amount", 0))
 			
 	action_description.text = description
 	purchase_button.visible = can_purchase

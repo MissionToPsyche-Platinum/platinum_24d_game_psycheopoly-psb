@@ -11,7 +11,7 @@ const CHANCE_CARD_INFO = [
 		"card number": 0,
 		"type": "Metal",
 		"description": "Successful mission launch! ",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 200,
 		"functionalValue": 200,
 		"movementValue": -1
@@ -21,7 +21,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Metal",
 		"description": "Successfully detect Psyche's remnant
 						magnetic field with the Magnetometer! ",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 150,
 		"functionalValue": 150,
 		"movementValue": -1
@@ -31,7 +31,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Metal",
 		"description": "Successfully determine the 
 						conditions Psyche formed under!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 100,
 		"functionalValue": 100,
 		"movementValue": -1
@@ -41,7 +41,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Metal",
 		"description": "Successfully determine that
 						Psyche is a planet core!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 100,
 		"functionalValue": 100,
 		"movementValue": -1
@@ -50,7 +50,7 @@ const CHANCE_CARD_INFO = [
 		"card number": 4,
 		"type": "Metal",
 		"description": "Successful arrival at the Psyche asteroid!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 100,
 		"functionalValue": 100,
 		"movementValue": -1
@@ -62,7 +62,7 @@ const CHANCE_CARD_INFO = [
 						Successfully demonstrate high-bandwidth
 						communications in deep space for
 						the first time!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 50,
 		"functionalValue": 50,
 		"movementValue": -1
@@ -71,7 +71,7 @@ const CHANCE_CARD_INFO = [
 		"card number": 6,
 		"type": "Metal",
 		"description": "Successful slingshot maneuver!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 50,
 		"functionalValue": 50,
 		"movementValue": -1
@@ -82,7 +82,7 @@ const CHANCE_CARD_INFO = [
 		"description": "Successfully measure Psyche's gravity field
 						with the X-band radio 
 						telecommunications system!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 25,
 		"functionalValue": 25,
 		"movementValue": -1
@@ -92,7 +92,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Metal",
 		"description": "Successfully determine the light elements
 						that small metal bodies incorporate!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 25,
 		"functionalValue": 25,
 		"movementValue": -1
@@ -102,7 +102,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Metal",
 		"description": "Successfully determine the relative
 						ages of regions of Psyche's surface!",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": 10,
 		"functionalValue": 10,
 		"movementValue": -1
@@ -114,7 +114,7 @@ const CHANCE_CARD_INFO = [
 						of spacecraft's systems. 
 						Pay $100 for the systems engineers 
 						to complete the work.",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": 100,
 		"functionalValue": 100,
 		"movementValue": -1
@@ -124,7 +124,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Metal",
 		"description": "Space weather disrupts satellite operations.
 						Pay $50 to enter safe mode. ",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": 50,
 		"functionalValue": 50,
 		"movementValue": -1
@@ -135,7 +135,7 @@ const CHANCE_CARD_INFO = [
 		"description": "Collision with space debris damages
 						the Multispectral Imager.
 						Pay $50 to activate the secondary camera.",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": 50,
 		"functionalValue": 50,
 		"movementValue": -1
@@ -146,7 +146,7 @@ const CHANCE_CARD_INFO = [
 		"description": "Instrument malfunction. 
 						Pay $15 for the software engineers
 						to resolve the issue.",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": 15,
 		"functionalValue": 15,
 		"movementValue": -1
@@ -157,7 +157,7 @@ const CHANCE_CARD_INFO = [
 		"description": "Unresolved software issues cause a 
 						launch delay. Pay each player $50 to
 						reschedule their travel plans.",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": "", #50 * NumPlayers , increase money of other players
 		"functionalValue": 0,
 		"movementValue": -1
@@ -168,7 +168,7 @@ const CHANCE_CARD_INFO = [
 		"description": "Successfully characterize Psyche's topography!
 						Collect $10 from every player 
 						to share your findings.",
-		"effect": "earn $",
+		"effect": "You will earn $",
 		"value": "", #10 * NumPlayers , reduce money of other players
 		"functionalValue": 0,
 		"movementValue": -1
@@ -180,7 +180,7 @@ const CHANCE_CARD_INFO = [
 						to clean up your data.
 						For each Data Point pay $45.
 						For each discovery pay $120.",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": "", #(45 * NumDataPoints)+(120 * NumDiscoveries)
 		"functionalValue": 0,
 		"movementValue": -1
@@ -191,7 +191,7 @@ const CHANCE_CARD_INFO = [
 		"description": "Submit your article to a journal.
 						For each Data Point pay $25. 
 						For each discovery pay $100. ",
-		"effect": "pay $",
+		"effect": "You will pay $",
 		"value": "", #(25 * NumDataPoints)+(100 * NumDiscoveries)
 		"functionalValue": 0,
 		"movementValue": -1
@@ -204,7 +204,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Ceres. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Ceres",
 		"functionalValue": 0,
 		"movementValue": 39
@@ -214,7 +214,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Eunomia. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Eunomia",
 		"functionalValue": 0,
 		"movementValue": 24
@@ -224,7 +224,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Themis. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Themis",
 		"functionalValue": 0,
 		"movementValue": 11
@@ -234,7 +234,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Amphitrite. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Amphitrite",
 		"functionalValue": 0,
 		"movementValue": 9
@@ -244,7 +244,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Elektra. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Elektra",
 		"functionalValue": 0,
 		"movementValue": 3
@@ -254,7 +254,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Hygiea. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Hygiea",
 		"functionalValue": 0,
 		"movementValue": 33
@@ -264,7 +264,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Iris. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Iris",
 		"functionalValue": 0,
 		"movementValue": 6
@@ -274,7 +274,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Psyche. 
 						If you pass Go, collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Psyche",
 		"functionalValue": 0,
 		"movementValue": 18
@@ -284,7 +284,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Go. 
 						(Collect $200)",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Go",
 		"functionalValue": 0,
 		"movementValue": 0
@@ -294,7 +294,7 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to Go. 
 						(Collect $200)",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "Go",
 		"functionalValue": 0,
 		"movementValue": 0
@@ -304,11 +304,13 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to the nearest Scientific Instrument. 
 						If unstudied, you may buy the scientific data. 
+						
 						If it has already been studied, 
 						pay the scientist twice the research funding
 						to which they are otherwise entitled.",
-		"effect": "move to ",
-		"value": "the nearest Scientific Instrument",
+		"effect": 	"You will move to the 
+					nearest Scientific Instrument",
+		"value": "",
 		"functionalValue": 0,
 		"movementValue": -1
 	},
@@ -317,11 +319,13 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to the nearest Scientific Instrument. 
 						If unstudied, you may buy the scientific data. 
+						
 						If it has already been studied, 
 						pay the scientist twice the research funding
 						to which they are otherwise entitled.",
-		"effect": "move to ",
-		"value": "the nearest Scientific Instrument",
+		"effect": 	"You will move to the
+					nearest Scientific Instrument",
+		"value": "",
 		"functionalValue": 0,
 		"movementValue": -1
 	},
@@ -330,10 +334,11 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Advance to the nearest Planet. 
 						If unstudied, you may buy the scientific data. 
+						
 						If it has already been studied, 
 						roll the dice and pay the scientist a total 
 						ten times the amount rolled.",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "the nearest Planet",
 		"functionalValue": 0,
 		"movementValue": -1
@@ -342,7 +347,7 @@ const CHANCE_CARD_INFO = [
 		"card number": 31,
 		"type": "Silicate",
 		"description": "Go back 3 spaces",
-		"effect": "move back ",
+		"effect": "You will move back ",
 		"value": "3 spaces",
 		"functionalValue": 0,
 		"movementValue": -3
@@ -351,9 +356,10 @@ const CHANCE_CARD_INFO = [
 		"card number": 32,
 		"type": "Silicate",
 		"description": "Go to the Launch Pad. 
+						
 						Go directly to the Launch Pad, 
 						do not pass Go, do not collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "the Launch Pad",
 		"functionalValue": 0,
 		"movementValue": 10
@@ -362,9 +368,10 @@ const CHANCE_CARD_INFO = [
 		"card number": 33,
 		"type": "Silicate",
 		"description": "Go to the Launch Pad. 
+						
 						Go directly to the Launch Pad, 
 						do not pass Go, do not collect $200",
-		"effect": "move to ",
+		"effect": "You will move to ",
 		"value": "the Launch Pad",
 		"functionalValue": 0,
 		"movementValue": 10
@@ -374,9 +381,10 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Go for launch! 
 						Get off the Launch Pad for free. 
+						
 						Keep this card for later use. 
 						This card may be traded.",
-		"effect": "be able to escape ",
+		"effect": "You will be able to escape ",
 		"value": "the Launch Pad",
 		"functionalValue": 0,
 		"movementValue": -1
@@ -386,9 +394,10 @@ const CHANCE_CARD_INFO = [
 		"type": "Silicate",
 		"description": "Go for launch! 
 						Get off the Launch Pad for free. 
+						
 						Keep this card for later use. 
 						This card may be traded.",
-		"effect": "be able to escape ",
+		"effect": "You will be able to escape ",
 		"value": "the Launch Pad",
 		"functionalValue": 0,
 		"movementValue": -1

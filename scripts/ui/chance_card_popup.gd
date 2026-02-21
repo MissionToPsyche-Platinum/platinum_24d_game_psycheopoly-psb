@@ -36,6 +36,7 @@ func _ready() -> void:
 ## to decide which range of Chance cards to draw from.
 func show_card_details(space_num: int) -> void:
 	space_number = space_num
+	var current_player = GameState.current_player_index
 	if space_number in [7, 22, 36]:
 		current_card = randi_range(0, 17)
 	else:
@@ -63,10 +64,14 @@ func show_card_details(space_num: int) -> void:
 				var earn_from_opponents = (GameState.player_count - 1) * 10
 				card_effect_value.text = str(earn_from_opponents)
 			elif current_card == 16:
-				var upgrades_fee = 9999 		##NEED TO UPDATE, PROPERTY BUILDING FEE
+				var total_data_points = GameState.players[current_player].total_data_points
+				var total_discoveries = GameState.players[current_player].total_discoveries
+				var upgrades_fee = (total_data_points * 45) + (total_discoveries * 120)
 				card_effect_value.text = str(upgrades_fee)
-			elif current_card == 17:	
-				var upgrades_fee = 9999 		##NEED TO UPDATE, PROPERTY BUILDING FEE
+			elif current_card == 17:
+				var total_data_points = GameState.players[current_player].total_data_points
+				var total_discoveries = GameState.players[current_player].total_discoveries
+				var upgrades_fee = (total_data_points * 25) + (total_discoveries * 100)
 				card_effect_value.text = str(upgrades_fee)
 			else:
 				card_effect_value.text = str(card_info.value)

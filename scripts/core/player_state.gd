@@ -20,3 +20,7 @@ var go_for_launch_cards: int = 0
 # Turn state
 var has_rolled: bool = false
 var doubles_count: int = 0
+
+# Upgrade Counter
+var total_data_points: int = 0
+var total_discoveries: int = 0
