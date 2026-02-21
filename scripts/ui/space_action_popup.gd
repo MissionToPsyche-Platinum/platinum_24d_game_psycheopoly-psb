@@ -162,15 +162,12 @@ func _on_pay_pressed() -> void:
 	# Previously this was hard-coded to 0, which caused Player 1 to pay/owe rent
 	# even when Player 2/3/etc landed here.
 	# now using the current active player index from GameState.
-	GameController.pay_rent.emit(GameState.board[current_space_num], GameState.current_player_index)
-
 	hide_popup()
 
 func _on_draw_pressed() -> void:
 	# Create popup if it doesn't exist
 	if _chance_card_popup == null:
 		_chance_card_popup = ChanceCardPopup.instantiate()
-		# CanvasLayers must be added to the SceneTree directly
 		get_tree().root.add_child(_chance_card_popup)
 	
 	_chance_card_popup.show_card_details(current_space_num)

@@ -23,19 +23,19 @@ func _ready() -> void:
 	
 	if Engine.is_editor_hint():
 		return
-	
+
 	# Connect to GameController for turn changes
 	if GameController:
 		if not GameController.current_player_changed.is_connected(_on_current_player_changed):
 			GameController.current_player_changed.connect(_on_current_player_changed)
 		if not GameController.property_ownership_changed.is_connected(_on_property_ownership_changed):
 			GameController.property_ownership_changed.connect(_on_property_ownership_changed)
-		
+
 		# Initial update if game already started
 		var current = GameController.get_current_player()
 		if current:
 			_on_current_player_changed(current)
-	
+
 	# Connect button
 	if view_details_button:
 		view_details_button.pressed.connect(_on_view_details_pressed)
@@ -47,7 +47,7 @@ func _on_current_player_changed(player) -> void:
 	if player == null:
 		visible = false
 		return
-	
+
 	visible = true
 	_update_properties_display(player)
 
@@ -63,14 +63,14 @@ func _update_properties_display(player) -> void:
 	# Clear existing property blocks
 	for child in properties_grid.get_children():
 		child.queue_free()
-	
+
 	# Get all properties owned by this player
 	var owned_properties: Array[Dictionary] = []
-	
+
 	if GameState and GameState.board.size() > 0:
 		for i in range(GameState.board.size()):
 			var space = GameState.board[i]
-			
+
 			# Check if this space is ownable and owned by the current player
 			if space is Ownable:
 				var ownable := space as Ownable
@@ -83,17 +83,17 @@ func _update_properties_display(player) -> void:
 						"color": space_info.get("color", Color.WHITE),
 						"type": space_info.get("type", "property")
 					})
-	
+
 	# Update count label
 	count_label.text = "(%d)" % owned_properties.size()
-	
+
 	# Create visual blocks for each property
 	for prop in owned_properties:
 		var property_block := ColorRect.new()
 		property_block.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
 		property_block.color = prop.color
 		property_block.tooltip_text = prop.name
-		
+
 		# Add a subtle border effect using a parent panel
 		var border_container := PanelContainer.new()
 		var stylebox := StyleBoxFlat.new()
@@ -106,9 +106,9 @@ func _update_properties_display(player) -> void:
 		border_container.add_theme_stylebox_override("panel", stylebox)
 		border_container.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
 		border_container.add_child(property_block)
-		
+
 		properties_grid.add_child(border_container)
-	
+
 	# Show message if no properties
 	if owned_properties.is_empty():
 		var no_props_label := Label.new()
@@ -123,15 +123,34 @@ func _on_view_details_pressed() -> void:
 	# Show detailed properties popup
 	if not properties_detail_popup:
 		properties_detail_popup = PropertiesDetailPopupScene.instantiate()
+		# Ensure the details popup renders above BankruptcyPopup overlay
+		properties_detail_popup.layer = 200
 		get_tree().root.add_child(properties_detail_popup)
-	
+
 	# Update the popup with current player
 	var current = GameController.get_current_player()
 	if current and properties_detail_popup.has_method("show_properties"):
 		properties_detail_popup.show_properties(current)
-	
+
 	if properties_detail_popup.has_method("show_popup"):
 		properties_detail_popup.show_popup()
+
+
+# using this for the Bankruptcy open asset button
+func open_details_for_player(player) -> void:
+	if not properties_detail_popup:
+		properties_detail_popup = PropertiesDetailPopupScene.instantiate()
+		# Ensure the details popup renders above BankruptcyPopup overlay
+		properties_detail_popup.layer = 200
+		get_tree().root.add_child(properties_detail_popup)
+
+	if properties_detail_popup.has_method("show_properties"):
+		properties_detail_popup.show_properties(player)
+
+	if properties_detail_popup.has_method("show_popup"):
+		properties_detail_popup.show_popup()
+
+	print("OPEN DETAILS FOR:", player.player_name)
 
 
 func _on_trade_pressed() -> void:

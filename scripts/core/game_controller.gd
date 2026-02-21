@@ -4,12 +4,12 @@ extends Node
 ## ============================================================================
 ##  PURPOSE:
 ##    - Manage global signals and control interactions between views, models, itself (controller)
-##    - Handle game logic 
+##    - Handle game logic
 ## ============================================================================
 
 
 # ------------------------------------------------------------------------------
-# Global Signals 
+# Global Signals
 # ------------------------------------------------------------------------------
 ## Emitted when the active player changes.
 signal current_player_changed(player)
@@ -32,28 +32,29 @@ signal action_completed()
 ## Emitted when property ownership changes
 signal property_ownership_changed()
 
+## Emitted when a player cannot afford a required payment (rent/cost/etc.)
+signal bankruptcy_needed(debtor_index: int, creditor_index: int, amount: int, reason: String)
+
 ## Emitted when a trade is executed successfully
 signal trade_completed(trade_offer: Dictionary)
 
 ## Emitted when a trade execution attempt fails validation
 signal trade_failed(reason: String)
 
+
 # ------------------------------------------------------------------------------
 # Signals to be called from space action popup
 # ------------------------------------------------------------------------------
 signal pay_rent(property, player)
-
 signal purchase_property(property, player)
-
 signal upgrade_property(property, player)
-
 signal downgrade_property(property, player)
 
-#other signals
-
+# Other signals
 signal difficulty_changed(new_value: String)
 signal colorblind_mode_changed(enabled: bool)
 signal setup_changed()
+
 
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
@@ -71,6 +72,7 @@ func debit(player_index: int, amount: int, reason: String = "") -> void:
 	print("DEBIT ", GameState.players[player_index].player_name, " -$", amount, " ", reason, " => $", GameState.players[player_index].balance)
 	player_money_updated.emit(GameState.players[player_index])
 
+
 func credit(player_index: int, amount: int, reason: String = "") -> void:
 	if amount <= 0:
 		return
@@ -79,6 +81,7 @@ func credit(player_index: int, amount: int, reason: String = "") -> void:
 	GameState.players[player_index].balance += amount
 	print("CREDIT ", GameState.players[player_index].player_name, " +$", amount, " ", reason, " => $", GameState.players[player_index].balance)
 	player_money_updated.emit(GameState.players[player_index])
+
 
 func transfer(from_index: int, to_index: int, amount: int, reason: String = "") -> void:
 	debit(from_index, amount, reason)
@@ -183,6 +186,7 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 	print("Trade completed between ", GameState.get_player_display_name(offering_player), " and ", GameState.get_player_display_name(target_player))
 	return true
 
+
 func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
 	property._current_upgrades += amount
 	if property._current_upgrades > 5:
@@ -192,17 +196,18 @@ func _adjust_upgrade_level(property: PropertySpace, amount: int) -> void:
 		print("Error, property upgrades is negative")
 		property._current_upgrades = 0
 
-func _get_property_set(property:PropertySpace) -> Array[PropertySpace]:
-	var property_set: Array[PropertySpace]
-	for i in range(GameState.board.size()): 
+
+func _get_property_set(property: PropertySpace) -> Array[PropertySpace]:
+	var property_set: Array[PropertySpace] = []
+	for i in range(GameState.board.size()):
 		if (GameState.board[i].get_script().get_global_name() == "PropertySpace"):
 			if (GameState.board[i]._property_set == property._property_set):
 				property_set.append(GameState.board[i])
 	return property_set
-	
 
-func _check_if_upgrade_is_valid(property:PropertySpace, player: int) -> bool:
-	# There are 5 conditions for this 
+
+func _check_if_upgrade_is_valid(property: PropertySpace, player: int) -> bool:
+	# There are 5 conditions for this
 	# 1: The player must own the property
 	# 2: The player cannot upgrade past upgrade level 5 (discovery)
 	# 3: The player must be able to afford the upgrade
@@ -221,15 +226,16 @@ func _check_if_upgrade_is_valid(property:PropertySpace, player: int) -> bool:
 		upgrade_valid = false
 	return upgrade_valid
 
-func _check_if_downgrade_is_valid(property:PropertySpace, player: int) -> bool:
-	# There are 3 conditions for this 
+
+func _check_if_downgrade_is_valid(property: PropertySpace, player: int) -> bool:
+	# There are 3 conditions for this
 	# 1: The player must own the property
 	# 2: The player cannot downgrade if there are no upgrades on the property
 	# 3: The property that the player is downgrading must have equal or more upgrades to each other property of the set
 	var downgrade_valid = true
 	var property_set: Array[PropertySpace] = _get_property_set(property)
 	if (property._player_owner != player):
-			downgrade_valid = false
+		downgrade_valid = false
 	for i in range(property_set.size()):
 		if (property._current_upgrades < property_set[i]._current_upgrades):
 			downgrade_valid = false
@@ -237,14 +243,14 @@ func _check_if_downgrade_is_valid(property:PropertySpace, player: int) -> bool:
 		downgrade_valid = false
 	return downgrade_valid
 
-func _upgrade_property(property:PropertySpace, player: int) -> void:
-	
+
+func _upgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
-	
+
 	if (player == property._player_owner && property.is_owned()):
 		debit(property._player_owner, property._upgrade_cost, "property upgrade")
-		if  property._current_upgrades == 4:
+		if property._current_upgrades == 4:
 			GameState.players[player].total_data_points = total_data_points - 4
 			GameState.players[player].total_discoveries = total_discoveries + 1
 		else:
@@ -254,15 +260,16 @@ func _upgrade_property(property:PropertySpace, player: int) -> void:
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
-func _downgrade_property(property:PropertySpace, player: int) -> void:
+
+func _downgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
 	if (player == property._player_owner && property.is_owned()):
 		var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
 		credit(property._player_owner, downgradeRefund, "property downgrade")
-		if  property._current_upgrades == 5:
+		if property._current_upgrades == 5:
 			GameState.players[player].total_data_points = total_data_points + 4
-			GameState.players[player].total_discoverie = total_discoveries - 1
+			GameState.players[player].total_discoveries = total_discoveries - 1
 		else:
 			GameState.players[player].total_data_points = total_data_points - 1
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
@@ -271,10 +278,9 @@ func _downgrade_property(property:PropertySpace, player: int) -> void:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
 
-
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
-	property.set_property_owner(player)	
+	property.set_property_owner(player)
 	property_ownership_changed.emit()
 
 
@@ -316,27 +322,24 @@ func _pay_rent(property: Ownable, player: int) -> void:
 	match property.get_script().get_global_name():
 		"PropertySpace":
 			match property._current_upgrades:
-				0:
-					rent = property._default_rent
-				1:
-					rent = property._one_data_rent
-				2:
-					rent = property._two_data_rent
-				3:
-					rent = property._three_data_rent
-				4:
-					rent = property._four_data_rent
-				5:
-					rent = property._discovery_rent
-				_:
-					rent = 0
-		"InstrumentSpace": # TODO: Implement checking for number of instrument spaces
+				0: rent = property._default_rent
+				1: rent = property._one_data_rent
+				2: rent = property._two_data_rent
+				3: rent = property._three_data_rent
+				4: rent = property._four_data_rent
+				5: rent = property._discovery_rent
+				_: rent = 0
+		"InstrumentSpace":
 			rent = 0
-		"PlanetSpace": # TODO: Implement checking dice roll for determining rent
+		"PlanetSpace":
 			rent = 0
+
+	# If they can’t afford, trigger bankruptcy instead of transferring
+	if get_player_balance(player) < rent:
+		emit_signal("bankruptcy_needed", player, property._player_owner, rent, "Rent")
+		return
 
 	transfer(player, property._player_owner, rent, "rent")
-
 
 
 func set_difficulty(new_difficulty: String) -> void:
@@ -350,14 +353,11 @@ func set_colorblind_mode(enabled: bool) -> void:
 		return
 	GameState.colorblind_mode = enabled
 	emit_signal("colorblind_mode_changed", GameState.colorblind_mode)
-	emit_signal("setup_changed")
 
-	
 	# Keep player_count consistent with the actual player objects created
 	GameState.player_count = GameState.players.size()
 
 	emit_signal("setup_changed")
-
 
 
 # ------------------------------------------------------------------------------

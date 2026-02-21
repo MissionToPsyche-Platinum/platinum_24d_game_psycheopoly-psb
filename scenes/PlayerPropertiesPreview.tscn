@@ -18,13 +18,10 @@ corner_radius_bottom_left = 4
 [node name="PlayerPropertiesPreview" type="Control"]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 200.0
-offset_bottom = 120.0
-mouse_filter = 2
 script = ExtResource("1_script")
 
 [node name="Panel" type="Panel" parent="."]
-layout_mode = 1
+layout_mode = 0
 offset_left = 10.0
 offset_top = 608.0
 offset_right = 210.0

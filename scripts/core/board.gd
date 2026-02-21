@@ -58,6 +58,16 @@ var trade_popup: CanvasLayer = null
 const AuctionPopupScene = preload("res://scenes/AuctionPopup.tscn")
 var auction_popup: CanvasLayer = null
 
+# Bankruptcy popup reference and scene
+const BankruptcyPopupScene = preload("res://scenes/BankruptcyPopup.tscn")
+var bankruptcy_popup: BankruptcyPopup = null
+
+# Pending debt info while player is resolving bankruptcy
+var pending_debtor_index: int = -1
+var pending_creditor_index: int = -1
+var pending_amount_owed: int = 0
+var pending_reason: String = ""
+
 # Mouse interaction state
 var hovered_tile: Vector2i = Vector2i(-1, -1)
 var selected_tile: Vector2i = Vector2i(-1, -1)
@@ -66,6 +76,10 @@ var is_tile_selected: bool = false
 # Highlight tile atlas coordinates
 const HOVER_TILE := Vector2i(0, 2) # Hover texture
 const SELECTED_TILE := Vector2i(5, 1) # Highlighted texture
+
+const PropertiesDetailPopupScene = preload("res://scenes/PropertiesDetailPopup.tscn")
+# NOTE: PropertiesDetailPopup.tscn root is a CanvasLayer (not a Control)
+var assets_popup: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -78,7 +92,6 @@ func _ready() -> void:
 	# Listen for setup changes (important if GameState rebuilds players)
 	if not GameController.setup_changed.is_connected(_on_setup_changed):
 		GameController.setup_changed.connect(_on_setup_changed)
-
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -118,19 +131,23 @@ func _ready() -> void:
 	# Instantiate card movement signals
 	_setup_card_movement()
 
+	call_deferred("_setup_bankruptcy_popup_async")
+
 	# Connect current piece's signals to update the UI
 	if current_piece:
 		if space_info_panel and not current_piece.space_changed.is_connected(_on_piece_space_changed):
 			current_piece.space_changed.connect(_on_piece_space_changed)
 		if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
 			current_piece.movement_finished.connect(_on_piece_movement_finished)
-	
+
 	# Connect to GameController turn signals
 	if not GameController.turn_started.is_connected(_on_turn_started):
 		GameController.turn_started.connect(_on_turn_started)
 	if not GameController.turn_ended.is_connected(_on_turn_ended):
 		GameController.turn_ended.connect(_on_turn_ended)
-	
+	if not GameController.bankruptcy_needed.is_connected(_on_bankruptcy_needed):
+		GameController.bankruptcy_needed.connect(_on_bankruptcy_needed)
+
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
 
@@ -246,12 +263,14 @@ func _setup_auction_popup() -> void:
 
 	call_deferred("_finish_setup_auction_popup")
 
+
 func _setup_card_movement() -> void:
 	#ChanceCardManager -> Board / UI feedback
 	if not ChanceCardMgr.request_move_forward.is_connected(_card_forward_movement):
 		ChanceCardMgr.request_move_forward.connect(_card_forward_movement)
 	if not ChanceCardMgr.request_teleport_movement.is_connected(_card_teleport_movement):
 		ChanceCardMgr.request_teleport_movement.connect(_card_teleport_movement)
+
 
 func _finish_setup_auction_popup() -> void:
 	if auction_popup and not auction_popup.is_node_ready():
@@ -286,6 +305,35 @@ func _finish_setup_auction_popup() -> void:
 		AuctionMgr.message.connect(_on_auction_message)
 	if not AuctionMgr.auction_ended.is_connected(_on_auction_ended):
 		AuctionMgr.auction_ended.connect(_on_auction_ended)
+
+
+func _setup_bankruptcy_popup() -> void:
+	var existing := get_tree().root.find_child("BankruptcyPopup", true, false) as BankruptcyPopup
+
+	if existing:
+		bankruptcy_popup = existing
+	else:
+		bankruptcy_popup = BankruptcyPopupScene.instantiate()
+		bankruptcy_popup.name = "BankruptcyPopup"
+		get_tree().root.add_child(bankruptcy_popup)
+
+	if not bankruptcy_popup.open_assets_requested.is_connected(_on_bankruptcy_open_assets_requested):
+		bankruptcy_popup.open_assets_requested.connect(_on_bankruptcy_open_assets_requested)
+
+	if not bankruptcy_popup.attempt_pay_requested.is_connected(_on_bankruptcy_attempt_pay_requested):
+		bankruptcy_popup.attempt_pay_requested.connect(_on_bankruptcy_attempt_pay_requested)
+
+	if not bankruptcy_popup.bankruptcy_declared.is_connected(_on_bankruptcy_declared):
+		bankruptcy_popup.bankruptcy_declared.connect(_on_bankruptcy_declared)
+
+	# Now wait for node readiness before UI calls
+	if bankruptcy_popup and not bankruptcy_popup.is_node_ready():
+		await bankruptcy_popup.ready
+
+	push_warning("BOARD: connected to BankruptcyPopup id=" + str(bankruptcy_popup.get_instance_id()) +
+		" path=" + str(bankruptcy_popup.get_path()))
+
+	bankruptcy_popup.hide_popup()
 
 
 func _initial_panel_update() -> void:
@@ -356,10 +404,11 @@ func update_piece_layouts_at(space_index: int) -> void:
 
 func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
-	# Update layout at destination (centering if alone, offset if with others)
 	update_piece_layouts_at(space_num)
 
 	if space_action_popup:
+		if not space_action_popup.is_node_ready():
+			await space_action_popup.ready
 		space_action_popup.show_actions(space_num)
 
 
@@ -489,14 +538,17 @@ func _on_draw_card_pressed(space_num: int) -> void:
 
 
 func _on_pay_pressed(space_num: int) -> void:
-	print("Player paying for space:", space_num)
+	print("Player pressed PAY on space:", space_num)
 
-	var space_info = SpaceDataRef.get_space_info(space_num)
-	var amount: int = int(space_info.get("amount", 0))
+	var space := GameState.board[space_num]
 
-	if amount > 0:
-		GameController.debit(GameState.current_player_index, amount, "cost space")
-		print("Paid $%d for %s" % [amount, space_info.name])
+	if space is Ownable:
+		var property := space as Ownable
+		var current_player := GameState.current_player_index
+
+		print("PAY DEBUG: script=", property.get_script(), " global_name=", property.get_script().get_global_name())
+		GameController.pay_rent.emit(property, current_player)
+
 	GameController.action_completed.emit()
 
 
@@ -712,13 +764,15 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			# Notify that player has rolled
 			GameController.emit_signal("player_rolled", current_player)
 
+
 func _card_forward_movement(move_spaces: int) -> void:
-		# Move the current player's piece forward to the correct space
+	# Move the current player's piece forward to the correct space
 	if current_piece:
 		var old_space = current_piece.board_space
 		current_piece.move_forward(move_spaces)
 		# Update the space we just left so remaining pieces re-center
 		update_piece_layouts_at(old_space)
+
 
 func _card_teleport_movement(space_location: int) -> void:
 	if current_piece:
@@ -727,7 +781,7 @@ func _card_teleport_movement(space_location: int) -> void:
 		# Update both spaces
 		update_piece_layouts_at(old_space)
 		update_piece_layouts_at(space_location)
-			
+
 
 func _clear_pieces() -> void:
 	for p in pieces:
@@ -758,7 +812,6 @@ func _spawn_pieces_from_gamestate() -> void:
 		# Position piece at GO
 		piece_instance.move_to(10, 0)
 
-		
 		if i < GameState.players.size():
 			var c: Color = GameState.players[i].player_color
 			call_deferred("_apply_color_to_piece", piece_instance, c)
@@ -783,13 +836,11 @@ func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
 		(n as Sprite2D).modulate = c
 		painted = true
 
-	# 3) If no Sprite2D found, tint any CanvasItem children (rare fallback)
 	if not painted:
 		for n in piece_instance.find_children("*", "CanvasItem", true, false):
 			(n as CanvasItem).modulate = c
 			painted = true
 
-	# 4) Last resort: tint the root if possible
 	if not painted and piece_instance is CanvasItem:
 		(piece_instance as CanvasItem).modulate = c
 
@@ -802,3 +853,260 @@ func _on_setup_changed() -> void:
 	# If setup happens after board load, start the game once players exist
 	if not GameState.game_active and GameState.players.size() > 0:
 		call_deferred("_start_game_deferred")
+
+
+## Bankruptcy Functions
+
+func _on_bankruptcy_needed(debtor: int, creditor: int, amount: int, reason: String) -> void:
+	print("Board: Bankruptcy needed for player", debtor, "amount", amount)
+	enter_bankruptcy(debtor, creditor, amount, reason)
+
+
+func _on_bankruptcy_open_assets_requested(debtor_id: int) -> void:
+	print("Bankruptcy: Open assets for debtor:", debtor_id)
+
+	if debtor_id < 0 or debtor_id >= GameState.players.size():
+		push_warning("Bankruptcy: invalid debtor id " + str(debtor_id))
+		return
+
+	_show_assets_popup_for_player(GameState.players[debtor_id])
+
+
+func _on_bankruptcy_attempt_pay_requested() -> void:
+	print("Board: Attempting to pay debt")
+
+	if pending_debtor_index == -1 or pending_amount_owed <= 0:
+		push_warning("Board: attempt pay pressed but no pending bankruptcy debt")
+		return
+
+	var debtor := pending_debtor_index
+	var creditor := pending_creditor_index
+	var amount := pending_amount_owed
+
+	var current_cash := GameController.get_player_balance(debtor)
+
+	if current_cash >= amount:
+		print("Board: Player can afford payment now. Paying $%d" % amount)
+
+		if creditor >= 0 and creditor < GameState.players.size():
+			GameController.transfer(debtor, creditor, amount, "bankruptcy payment")
+		else:
+			GameController.debit(debtor, amount, "bankruptcy payment to bank")
+
+		# Close UI and clear state
+		if bankruptcy_popup:
+			bankruptcy_popup.hide_popup()
+
+		_clear_pending_bankruptcy()
+		GameController.action_completed.emit()
+	else:
+		print("Board: Still not enough. cash=%d owed=%d" % [current_cash, amount])
+		if bankruptcy_popup:
+			bankruptcy_popup.update_cash(current_cash)
+
+
+
+func _on_bankruptcy_declared() -> void:
+	print("BOARD: bankruptcy declared for player ", pending_debtor_index)
+
+	var eliminated_player := pending_debtor_index
+
+	# Mark player as inactive in GameState
+	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
+		GameState.player_active[eliminated_player] = false
+
+	# visually remove their piece from board
+	if eliminated_player >= 0 and eliminated_player < pieces.size():
+		if is_instance_valid(pieces[eliminated_player]):
+			pieces[eliminated_player].queue_free()
+
+	bankruptcy_popup.hide_popup()
+	_clear_pending_bankruptcy()
+
+	# Checking for win condition
+	var active_count := 0
+	var last_active := -1
+
+	for i in range(GameState.player_active.size()):
+		if GameState.player_active[i]:
+			active_count += 1
+			last_active = i
+
+	if active_count == 1:
+		_show_win_screen(last_active)
+		return
+
+	# so the game flow doesn't hang waiting on an action
+	GameController.action_completed.emit()
+
+
+func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
+	pending_debtor_index = debtor_idx
+	pending_creditor_index = creditor_idx
+	pending_amount_owed = amount
+	pending_reason = reason
+
+	var creditor_name := "Bank"
+	if creditor_idx >= 0 and creditor_idx < GameState.players.size():
+		creditor_name = GameState.players[creditor_idx].player_name
+
+	bankruptcy_popup.show_popup(
+		debtor_idx,
+		creditor_name,
+		reason,
+		amount,
+		GameController.get_player_balance(debtor_idx)
+	)
+
+
+func _clear_pending_bankruptcy() -> void:
+	pending_debtor_index = -1
+	pending_creditor_index = -1
+	pending_amount_owed = 0
+	pending_reason = ""
+
+
+func _show_assets_popup_for_player(player: PlayerState) -> void:
+	if not assets_popup:
+		assets_popup = PropertiesDetailPopupScene.instantiate() as CanvasLayer
+		assets_popup.name = "AssetsPopup"
+		assets_popup.layer = 200
+		get_tree().root.add_child(assets_popup)
+
+	# Ensure ready
+	if assets_popup and not assets_popup.is_node_ready():
+		await assets_popup.ready
+
+	# Connect the per-asset trade/sell signal
+	if assets_popup.has_signal("trade_sell_requested"):
+		if not assets_popup.trade_sell_requested.is_connected(_on_bankruptcy_asset_trade_sell_requested):
+			assets_popup.trade_sell_requested.connect(_on_bankruptcy_asset_trade_sell_requested)
+
+	assets_popup.visible = true
+
+	# Bankruptcy state active so the row buttons appear
+	if assets_popup.has_method("show_properties"):
+		assets_popup.call("show_properties", player, true)
+
+	if assets_popup.has_method("show_popup"):
+		assets_popup.call("show_popup")
+
+
+
+func _setup_bankruptcy_popup_async() -> void:
+	await _setup_bankruptcy_popup()
+
+
+func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
+	# Transfer properties
+	for i in range(GameState.board.size()):
+		var space = GameState.board[i]
+		if space is Ownable:
+			var ownable := space as Ownable
+			if ownable._is_owned and int(ownable._player_owner) == debtor_idx:
+				if creditor_idx >= 0:
+					# Transfer to creditor player
+					ownable._player_owner = creditor_idx
+					ownable._is_owned = true
+				else:
+					ownable._player_owner = -1
+					ownable._is_owned = false
+
+	# Transfer cash
+	var debtor_cash := GameController.get_player_balance(debtor_idx)
+	if debtor_cash > 0:
+		GameState.charge_player(debtor_idx, debtor_cash)
+
+		if creditor_idx >= 0 and creditor_idx < GameState.players.size():
+			GameState.credit_player(creditor_idx, debtor_cash)
+
+	# Mark debtor eliminated
+	if debtor_idx >= 0 and debtor_idx < GameState.players.size():
+		
+		if GameState.players[debtor_idx].has_variable("is_bankrupt"):
+			GameState.players[debtor_idx].is_bankrupt = true
+		if GameState.players[debtor_idx].has_variable("is_active"):
+			GameState.players[debtor_idx].is_active = false
+
+	# remove debtor piece so it doesn't keep moving
+	if debtor_idx >= 0 and debtor_idx < pieces.size():
+		var debtor_piece := pieces[debtor_idx]
+		if is_instance_valid(debtor_piece):
+			debtor_piece.visible = false
+			debtor_piece.set_process(false)
+			debtor_piece.set_physics_process(false)
+
+
+func _count_active_players() -> int:
+	var count := 0
+	for p in GameState.players:
+		var active := true
+		if p.has_variable("is_active"):
+			active = p.is_active
+		elif p.has_variable("is_bankrupt"):
+			active = not p.is_bankru
+		if active:
+			count += 1
+	return count
+
+
+func _get_last_active_player_index() -> int:
+	for i in range(GameState.players.size()):
+		var p = GameState.players[i]
+		var active := true
+		if p.has_variable("is_active"):
+			active = p.is_active
+		elif p.has_variable("is_bankrupt"):
+			active = not p.is_bankrupt
+		if active:
+			return i
+	return -1
+
+
+func _check_for_winner_and_show_screen() -> void:
+	var alive := _count_active_players()
+	if alive > 1:
+		return
+
+	var winner_idx := _get_last_active_player_index()
+	if winner_idx == -1:
+		return
+
+	print("GAME OVER: Winner is ", GameState.players[winner_idx].player_name)
+
+	# TODO: Show the Win screen scene here
+
+
+func _show_win_screen(winner_index: int) -> void:
+	print("GAME OVER. Winner is player:", winner_index)
+
+	var winner_name := GameState.players[winner_index].player_name
+
+	# TODO: Replace with real WinScreen scene later
+	var dialog := AcceptDialog.new()
+	dialog.dialog_text = winner_name + " Wins the Game!"
+	get_tree().root.add_child(dialog)
+	dialog.popup_centered()
+	
+
+func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
+	if pending_debtor_index < 0 or pending_debtor_index >= GameState.players.size():
+		push_warning("Bankruptcy trade/sell requested but no pending debtor.")
+		return
+
+	# Close the Assets popup immediately
+	if assets_popup:
+		if assets_popup.has_method("hide_popup"):
+			assets_popup.call("hide_popup")
+		else:
+			assets_popup.visible = false
+
+	if trade_popup == null:
+		push_warning("Trade popup is null.")
+		return
+
+	# Open trade popup with preselected asset
+	if trade_popup.has_method("show_for_player_with_preselected_offer"):
+		trade_popup.call("show_for_player_with_preselected_offer", pending_debtor_index, space_index)
+	else:
+		trade_popup.call("show_for_current_player", pending_debtor_index)
