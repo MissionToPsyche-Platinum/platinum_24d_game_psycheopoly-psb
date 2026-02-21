@@ -274,8 +274,14 @@ func _apply_uniqueness_rules() -> void:
 		var name_opt: OptionButton = row.get_node("NameOption")
 		var color_opt: OptionButton = row.get_node("ColorOption")
 
-		var current_name := "" if name_opt.selected == 0 else name_opt.get_item_text(name_opt.selected).strip_edges()
-		var current_color_id := color_opt.get_item_id(color_opt.selected)  # -1 if placeholder
+		var current_name := ""
+		if name_opt.selected > 0:
+			current_name = name_opt.get_item_text(name_opt.selected).strip_edges()
+
+		var current_color_id := -1
+		if color_opt.selected > 0:
+			current_color_id = color_opt.get_item_id(color_opt.selected)
+
 
 	
 		for i in range(name_opt.item_count):
@@ -288,7 +294,7 @@ func _apply_uniqueness_rules() -> void:
 			name_opt.set_item_disabled(i, should_disable)
 
 		# ----------------
-		# Colors (by ID)
+		# Colors 
 		# ----------------
 		for i in range(color_opt.item_count):
 			if i == 0:
@@ -329,7 +335,6 @@ func _on_start_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	# Return to main menu
 	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
 	
 func _is_setup_valid() -> bool:
@@ -345,7 +350,7 @@ func _is_setup_valid() -> bool:
 		if n == "":
 			return false
 
-		# Color must be selected (placeholder = -1)
+		# Color must be selected
 		if color_id < 0:
 			return false
 

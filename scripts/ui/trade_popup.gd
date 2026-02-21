@@ -370,3 +370,27 @@ func _on_trade_completed(_trade_offer: Dictionary) -> void:
 	if not visible:
 		return
 	status_label.text = "Trade completed successfully."
+	
+func show_for_player_with_preselected_offer(player_index: int, offered_space_index: int) -> void:
+	show_for_current_player(player_index)
+
+	# ensure lists are populated before we try to check anything
+	await get_tree().process_frame
+
+	_check_space_in_tree(offered_list, offered_space_index)
+
+
+func _check_space_in_tree(tree: Tree, space_index: int) -> void:
+	var root: TreeItem = tree.get_root()
+	if root == null:
+		return
+
+	var item: TreeItem = root.get_first_child()
+	while item != null:
+		var meta: Variant = item.get_metadata(PROPERTY_COLUMN) 
+		if typeof(meta) == TYPE_INT and int(meta) == space_index:
+			item.set_checked(CHECKBOX_COLUMN, true)
+			item.select(PROPERTY_COLUMN) 
+			return
+
+		item = item.get_next()

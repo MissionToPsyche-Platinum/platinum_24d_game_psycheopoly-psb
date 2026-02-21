@@ -1,6 +1,11 @@
 extends CanvasLayer
 ## properties_detail_popup.gd
 ## Shows detailed list of all properties owned by a player
+## Bankruptcy integration:
+## - When show_properties(..., true) is used, each row shows a "Trade/Sell" button
+## - Clicking it emits trade_sell_requested(space_index)
+
+signal trade_sell_requested(space_index: int)
 
 const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup.tscn")
 
@@ -16,11 +21,12 @@ const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup
 var _current_player_index: int = 0
 var _property_details_popup: CanvasLayer = null
 
+# When true, show per-asset "Trade/Sell" buttons in the list
+var _bankruptcy_mode: bool = false
+
 func _ready() -> void:
-	# Hide initially
 	hide_popup()
-	
-	# Connect close button
+
 	if close_button:
 		close_button.pressed.connect(_on_close_pressed)
 	if prev_button:
@@ -39,9 +45,12 @@ func hide_popup() -> void:
 	control.visible = false
 
 
-func show_properties(player) -> void:
+# NOTE: second argument is optional; Board can call show_properties(player, true) during bankruptcy
+func show_properties(player, bankruptcy_mode: bool = false) -> void:
 	if player == null:
 		return
+
+	_bankruptcy_mode = bankruptcy_mode
 	_set_current_player_index(player)
 	_show_player_by_index(_current_player_index)
 
@@ -56,46 +65,53 @@ func _show_player_by_index(player_index: int) -> void:
 
 	_current_player_index = clamped_index
 	var player = GameState.players[_current_player_index]
-	
-	# Update title with player name
+
+	# Title
 	var display_name := _get_player_display_name(player, _current_player_index)
-	title_label.text = "%s's Properties" % display_name
-	
+	if _bankruptcy_mode:
+		title_label.text = "%s's Assets (Trade/Sell)" % display_name
+	else:
+		title_label.text = "%s's Properties" % display_name
+
+	# In bankruptcy mode we generally DON'T want paging to other players' assets.
+	# (Prevents debtor from browsing everyone else's properties.)
+	if prev_button:
+		prev_button.visible = not _bankruptcy_mode
+	if next_button:
+		next_button.visible = not _bankruptcy_mode
+
 	# Clear existing list
 	for child in properties_list.get_children():
 		child.queue_free()
-	
-	# Get all properties owned by this player
+
+	# Collect owned properties
 	var owned_properties: Array[Dictionary] = []
 	var total_value: int = 0
-	
+
 	if GameState and GameState.board.size() > 0:
 		for i in range(GameState.board.size()):
 			var space = GameState.board[i]
-			
-			# Check if this space is ownable and owned by the current player
+
 			if space is Ownable:
 				var ownable := space as Ownable
 				if ownable.is_owned() and ownable.get_property_owner() == player.player_id:
-					# Get the space info
 					var space_info = SpaceData.SPACE_INFO[i]
-					var price = space_info.get("price", 0)
+					var price := int(space_info.get("price", 0))
 					total_value += price
-					
+
 					owned_properties.append({
 						"space_index": i,
 						"name": space_info.get("name", "Unknown"),
 						"color": space_info.get("color", Color.WHITE),
 						"type": space_info.get("type", "property"),
 						"price": price,
-						"rent": space_info.get("rent", 0),
+						"rent": int(space_info.get("rent", 0)),
 						"space": space
 					})
-	
-	# Sort properties by type and name
+
 	owned_properties.sort_custom(_sort_properties)
-	
-	# Create list items for each property
+
+	# Render list
 	if owned_properties.is_empty():
 		var no_props_label := Label.new()
 		no_props_label.text = "No properties owned yet"
@@ -106,10 +122,9 @@ func _show_player_by_index(player_index: int) -> void:
 		properties_list.add_child(no_props_label)
 	else:
 		for prop in owned_properties:
-			var property_item := _create_property_item(prop)
+			var property_item := _create_property_item(prop, _bankruptcy_mode)
 			properties_list.add_child(property_item)
-	
-	# Update total value
+
 	total_value_label.text = "Total Property Value: $%d" % total_value
 
 
@@ -138,17 +153,16 @@ func _get_player_display_name(player, player_index: int) -> String:
 	return "Player %d" % (player_index + 1)
 
 
-func _create_property_item(prop: Dictionary) -> HBoxContainer:
+func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxContainer:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
-	
+
 	# Color indicator
 	var color_indicator := ColorRect.new()
 	color_indicator.custom_minimum_size = Vector2(20, 20)
 	color_indicator.color = prop.color
 	color_indicator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	
-	# Add border to color indicator
+
 	var border_panel := PanelContainer.new()
 	var stylebox := StyleBoxFlat.new()
 	stylebox.bg_color = Color(0, 0, 0, 0)
@@ -161,40 +175,54 @@ func _create_property_item(prop: Dictionary) -> HBoxContainer:
 	border_panel.add_child(color_indicator)
 	border_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hbox.add_child(border_panel)
-	
+
 	# Property info VBox
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", 2)
-	
-	# Property name
+
 	var name_label := Label.new()
-	name_label.text = prop.name
+	name_label.text = str(prop.name)
 	name_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
 	name_label.add_theme_font_size_override("font_size", 14)
 	vbox.add_child(name_label)
-	
-	# Property details
+
 	var details_label := Label.new()
-	var type_name := _get_type_display_name(prop.type)
-	details_label.text = "%s • Price: $%d" % [type_name, prop.price]
+	var type_name := _get_type_display_name(str(prop.type))
+	details_label.text = "%s • Price: $%d" % [type_name, int(prop.price)]
 	details_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8.ttf"))
 	details_label.add_theme_font_size_override("font_size", 11)
 	details_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
 	vbox.add_child(details_label)
-	
+
 	hbox.add_child(vbox)
-	
-	# Add rent info for properties
-	if prop.type == "property" and prop.has("rent"):
+
+	# Rent label for properties
+	if str(prop.type) == "property" and prop.has("rent"):
 		var rent_label := Label.new()
-		rent_label.text = "Rent: $%d" % prop.rent
+		rent_label.text = "Rent: $%d" % int(prop.rent)
 		rent_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8.ttf"))
 		rent_label.add_theme_font_size_override("font_size", 12)
 		rent_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		hbox.add_child(rent_label)
-	
-	# Add Details button
+
+	# Bankruptcy mode: Trade/Sell button next to each asset
+	if show_trade_sell:
+		var trade_btn := Button.new()
+		trade_btn.text = "Trade/Sell"
+		trade_btn.custom_minimum_size = Vector2(84, 24)
+		trade_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+		trade_btn.add_theme_font_size_override("font_size", 10)
+		trade_btn.flat = false
+		trade_btn.focus_mode = Control.FOCUS_NONE
+		trade_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		trade_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+		var space_index := int(prop.space_index)
+		trade_btn.pressed.connect(_on_trade_sell_pressed.bind(space_index))
+		hbox.add_child(trade_btn)
+
+	# Details button
 	var details_btn := Button.new()
 	details_btn.text = "..."
 	details_btn.custom_minimum_size = Vector2(30, 24)
@@ -202,12 +230,16 @@ func _create_property_item(prop: Dictionary) -> HBoxContainer:
 	details_btn.add_theme_font_size_override("font_size", 10)
 	details_btn.flat = false
 	details_btn.focus_mode = Control.FOCUS_NONE
-	details_btn.pressed.connect(_show_property_details_popup.bind(prop.space_index))
-	details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	details_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	details_btn.pressed.connect(_show_property_details_popup.bind(int(prop.space_index)))
 	hbox.add_child(details_btn)
-	
+
 	return hbox
+
+
+func _on_trade_sell_pressed(space_index: int) -> void:
+	trade_sell_requested.emit(space_index)
 
 
 func _get_type_display_name(type: String) -> String:
@@ -223,7 +255,7 @@ func _get_type_display_name(type: String) -> String:
 
 
 func _sort_properties(a: Dictionary, b: Dictionary) -> bool:
-	# Match PlayerPropertiesPreview ordering: board space order (ascending index)
+	# board space order (ascending index)
 	return int(a.get("space_index", 999)) < int(b.get("space_index", 999))
 
 

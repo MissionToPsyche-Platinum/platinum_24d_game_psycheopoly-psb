@@ -15,7 +15,6 @@ signal bankruptcy_declared
 
 @onready var btn_open_assets: Button = %OpenAssetsButton
 @onready var btn_attempt_pay: Button = %AttemptToPayButton
-@onready var btn_trade_sell: Button = %TradeSellButton
 @onready var btn_bankrupt: Button = %DeclareBankruptcyButton
 
 var _debtor_id: int = -1
@@ -29,9 +28,6 @@ func _ready() -> void:
 	btn_open_assets.pressed.connect(_on_open_assets_pressed)
 	btn_attempt_pay.pressed.connect(_on_attempt_pay_pressed)
 	btn_bankrupt.pressed.connect(_on_bankrupt_pressed)
-
-	btn_trade_sell.disabled = true
-	btn_trade_sell.tooltip_text = "Trading not available yet."
 
 func show_popup(debtor_id: int, creditor_name: String, reason: String, amount_owed: int, current_cash: int) -> void:
 	_debtor_id = debtor_id
@@ -59,14 +55,14 @@ func hide_popup() -> void:
 
 func _on_open_assets_pressed() -> void:
 	print("POPUP: open assets clicked id=", get_instance_id(), " debtor=", _debtor_id)
-	emit_signal("open_assets_requested", _debtor_id)
-
+	open_assets_requested.emit(_debtor_id)
 
 func _on_attempt_pay_pressed() -> void:
 	push_warning("POPUP: attempt pay clicked")
-	emit_signal("attempt_pay_requested")
+	attempt_pay_requested.emit()
 
 func _on_bankrupt_pressed() -> void:
 	push_warning("POPUP: declare bankruptcy clicked")
-	emit_signal("bankruptcy_declared")
+	bankruptcy_declared.emit()
+
 	
