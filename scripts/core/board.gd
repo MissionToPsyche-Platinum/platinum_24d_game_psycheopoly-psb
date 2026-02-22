@@ -549,7 +549,7 @@ func _on_move_pressed(space_num: int) -> void:
 		print("Solar Storm! Transporting to Launch Pad...")
 		# Teleport to space 10 (Launch Pad)
 		if current_piece:
-			var old_space = current_piece.board_space
+			var old_space: int = int(current_piece.board_space)
 			current_piece.teleport_to_space(10)
 			# Update both spaces
 			update_piece_layouts_at(old_space)
@@ -807,7 +807,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 
 	GameState.last_roll = total
 
-	var old_space = current_piece.board_space
+	var old_space: int = int(current_piece.board_space)
 	current_piece.move_forward(total)
 
 	update_piece_layouts_at(old_space)
@@ -836,7 +836,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 func _card_forward_movement(move_spaces: int) -> void:
 	# Move the current player's piece forward to the correct space
 	if current_piece:
-		var old_space = current_piece.board_space
+		var old_space: int = int(current_piece.board_space)
 		current_piece.move_forward(move_spaces)
 		# Update the space we just left so remaining pieces re-center
 		update_piece_layouts_at(old_space)
@@ -844,7 +844,7 @@ func _card_forward_movement(move_spaces: int) -> void:
 
 func _card_teleport_movement(space_location: int) -> void:
 	if current_piece:
-		var old_space = current_piece.board_space
+		var old_space: int = int(current_piece.board_space)
 		current_piece.teleport_to_space(space_location)
 		# Update both spaces
 		update_piece_layouts_at(old_space)
