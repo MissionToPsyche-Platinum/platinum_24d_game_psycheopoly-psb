@@ -127,7 +127,7 @@ func _ready() -> void:
 
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
-	
+
 	# Instantiate card movement signals
 	_setup_card_movement()
 
@@ -265,7 +265,7 @@ func _setup_auction_popup() -> void:
 
 
 func _setup_card_movement() -> void:
-	#ChanceCardManager -> Board / UI feedback
+	# ChanceCardManager -> Board / UI feedback
 	if not ChanceCardMgr.request_move_forward.is_connected(_card_forward_movement):
 		ChanceCardMgr.request_move_forward.connect(_card_forward_movement)
 	if not ChanceCardMgr.request_teleport_movement.is_connected(_card_teleport_movement):
@@ -351,7 +351,6 @@ func _on_turn_started(player_index: int) -> void:
 				call_deferred("_skip_inactive_turn")
 				return
 
-	
 	if player_index < 0 or player_index >= pieces.size():
 		push_warning("Invalid player_index: %d (pieces size: %d)" % [player_index, pieces.size()])
 		call_deferred("_skip_inactive_turn")
@@ -362,17 +361,14 @@ func _on_turn_started(player_index: int) -> void:
 		call_deferred("_skip_inactive_turn")
 		return
 
-	
 	var next_piece := pieces[player_index]
 	if next_piece == null or not is_instance_valid(next_piece):
 		push_warning("Board: No valid piece for player %d. Skipping turn." % player_index)
 		call_deferred("_skip_inactive_turn")
 		return
 
-	
 	active_player_index = player_index
 	GameState.current_player_index = player_index
-
 
 	if current_piece != null and is_instance_valid(current_piece):
 		if current_piece.space_changed.is_connected(_on_piece_space_changed):
@@ -380,10 +376,8 @@ func _on_turn_started(player_index: int) -> void:
 		if current_piece.movement_finished.is_connected(_on_piece_movement_finished):
 			current_piece.movement_finished.disconnect(_on_piece_movement_finished)
 
-	
 	current_piece = next_piece
 
-	
 	if not current_piece.space_changed.is_connected(_on_piece_space_changed):
 		current_piece.space_changed.connect(_on_piece_space_changed)
 	if not current_piece.movement_finished.is_connected(_on_piece_movement_finished):
@@ -396,16 +390,13 @@ func _on_turn_started(player_index: int) -> void:
 		space_info_panel.update_space_display(current_piece.board_space)
 
 
-
-
-
 func _on_turn_ended(player_index: int) -> void:
 	print("Board: Turn ended for player ", player_index)
 
 
 func end_turn() -> void:
 	## Called when player wants to end their turn
-	GameController.next_player()
+	GameController.end_turn()
 
 
 # Update piece layouts (offsets) for all pieces on a specific space
@@ -427,7 +418,6 @@ func update_piece_layouts_at(space_index: int) -> void:
 		if piece_node == null or not is_instance_valid(piece_node):
 			continue
 		piece_node.set_tile_layout(i, pieces_at_space.size())
-
 
 
 func _on_piece_movement_finished(space_num: int) -> void:
@@ -590,13 +580,11 @@ func _on_pay_pressed(space_num: int) -> void:
 	if t == "cost" or t == "expense":
 		var amount := int(space_info.get("amount", 0))
 		if amount > 0:
-			
 			GameController.debit(current_player, amount, "space cost")
 		else:
 			push_warning("PAY: cost/expense space but amount missing/0 at space " + str(space_num))
 
 	GameController.action_completed.emit()
-
 
 
 func _on_close_pressed() -> void:
@@ -793,23 +781,26 @@ func _get_space_from_tile_coords(coords: Vector2i) -> int:
 
 
 func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
-	
+	# Ignore dice input if current turn player is inactive (bankrupt)
 	if not GameState.player_active.is_empty():
 		if GameState.current_player_index >= 0 and GameState.current_player_index < GameState.player_active.size():
 			if GameState.player_active[GameState.current_player_index] == false:
 				print("Dice roll ignored: inactive player turn.")
 				return
 
-	
+	# Safety: current piece must exist
 	if current_piece == null or not is_instance_valid(current_piece):
 		push_warning("Dice roll ignored: current_piece is null or invalid.")
 		return
 
+	# Store last roll (useful for rent/cost math)
 	GameState.last_roll = total
 
+	# Move the piece
 	var old_space: int = int(current_piece.board_space)
 	current_piece.move_forward(total)
 
+	# Re-layout pieces on the space we left so stacks look correct
 	update_piece_layouts_at(old_space)
 
 	print("Dice rolled: %d + %d = %d%s" % [
@@ -819,7 +810,8 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		" (Doubles!)" if is_doubles else ""
 	])
 
-	var current_player = GameController.get_current_player()
+	# Mark roll state on the player model
+	var current_player := GameController.get_current_player()
 	if current_player:
 		current_player.has_rolled = true
 
@@ -829,8 +821,6 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			current_player.doubles_count = 0
 
 		GameController.emit_signal("player_rolled", current_player)
-
-
 
 
 func _card_forward_movement(move_spaces: int) -> void:
@@ -973,7 +963,6 @@ func _on_bankruptcy_attempt_pay_requested() -> void:
 			bankruptcy_popup.update_cash(current_cash)
 
 
-
 func _on_bankruptcy_declared() -> void:
 	print("BOARD: bankruptcy declared for player ", pending_debtor_index)
 
@@ -1013,8 +1002,6 @@ func _on_bankruptcy_declared() -> void:
 	# advance turn immediately so we never land on a bankrupt player
 	# -------------------------
 	call_deferred("_advance_after_bankruptcy")
-
-
 
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
@@ -1069,7 +1056,6 @@ func _show_assets_popup_for_player(player: PlayerState) -> void:
 		assets_popup.call("show_popup")
 
 
-
 func _setup_bankruptcy_popup_async() -> void:
 	await _setup_bankruptcy_popup()
 
@@ -1099,7 +1085,6 @@ func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
 
 	# Mark debtor eliminated
 	if debtor_idx >= 0 and debtor_idx < GameState.players.size():
-		
 		if GameState.players[debtor_idx].has_variable("is_bankrupt"):
 			GameState.players[debtor_idx].is_bankrupt = true
 		if GameState.players[debtor_idx].has_variable("is_active"):
@@ -1164,7 +1149,7 @@ func _show_win_screen(winner_index: int) -> void:
 	dialog.dialog_text = winner_name + " Wins the Game!"
 	get_tree().root.add_child(dialog)
 	dialog.popup_centered()
-	
+
 
 func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
 	if pending_debtor_index < 0 or pending_debtor_index >= GameState.players.size():
@@ -1188,10 +1173,12 @@ func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
 	else:
 		trade_popup.call("show_for_current_player", pending_debtor_index)
 
+
 func _skip_inactive_turn() -> void:
 	if not GameState.game_active:
 		return
 	GameController.next_player()
+
 
 func _advance_after_bankruptcy() -> void:
 	# If the eliminated player was the current player, move on.
