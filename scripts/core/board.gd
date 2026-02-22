@@ -78,7 +78,6 @@ const HOVER_TILE := Vector2i(0, 2) # Hover texture
 const SELECTED_TILE := Vector2i(5, 1) # Highlighted texture
 
 const PropertiesDetailPopupScene = preload("res://scenes/PropertiesDetailPopup.tscn")
-# NOTE: PropertiesDetailPopup.tscn root is a CanvasLayer (not a Control)
 var assets_popup: CanvasLayer = null
 
 
@@ -92,6 +91,9 @@ func _ready() -> void:
 	# Listen for setup changes (important if GameState rebuilds players)
 	if not GameController.setup_changed.is_connected(_on_setup_changed):
 		GameController.setup_changed.connect(_on_setup_changed)
+		
+	if not GameController.action_completed.is_connected(_on_action_completed):
+		GameController.action_completed.connect(_on_action_completed)
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -175,7 +177,8 @@ func _setup_dice_roll_ui() -> void:
 
 	# Connect the dice_rolled signal to move the piece
 	dice_roll_ui.dice_rolled.connect(_on_dice_rolled)
-
+	
+	dice_roll_ui.doubles_rolled.connect(_on_doubles_rolled)
 
 func _setup_money_hud() -> void:
 	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
@@ -427,7 +430,12 @@ func _on_piece_movement_finished(space_num: int) -> void:
 	if space_action_popup:
 		if not space_action_popup.is_node_ready():
 			await space_action_popup.ready
+
 		space_action_popup.show_actions(space_num)
+
+		await get_tree().process_frame
+		if not space_action_popup.visible:
+			GameController.action_completed.emit()
 
 
 func _on_purchase_pressed(space_num: int) -> void:
@@ -814,13 +822,14 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 	var current_player := GameController.get_current_player()
 	if current_player:
 		current_player.has_rolled = true
+		current_player.last_roll_was_doubles = is_doubles
 
-		if is_doubles:
-			current_player.doubles_count += 1
-		else:
-			current_player.doubles_count = 0
+	if is_doubles:
+		current_player.doubles_count += 1
+	else:
+		current_player.doubles_count = 0
 
-		GameController.emit_signal("player_rolled", current_player)
+	GameController.emit_signal("player_rolled", current_player)
 
 
 func _card_forward_movement(move_spaces: int) -> void:
@@ -1183,3 +1192,26 @@ func _skip_inactive_turn() -> void:
 func _advance_after_bankruptcy() -> void:
 	# If the eliminated player was the current player, move on.
 	GameController.next_player()
+	
+func _on_action_completed() -> void:
+	var p := GameController.get_current_player()
+	if not p:
+		return
+	# If they rolled doubles, allow another roll by clearing has_rolled
+	# (DiceRollPanel should re-enable the Roll button automatically)
+	if p.last_roll_was_doubles:
+		p.has_rolled = false
+		p.last_roll_was_doubles = false
+
+func _on_doubles_rolled() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.dialog_text = "Doubles! Roll again."
+	dialog.title = "" 
+	get_tree().root.add_child(dialog)
+
+	dialog.popup_centered()
+
+	# Auto-close + cleanup
+	await get_tree().create_timer(2.5).timeout
+	if is_instance_valid(dialog):
+		dialog.queue_free()
