@@ -22,6 +22,8 @@ var piece: Node2D = null
 var tile_map_layer: TileMapLayer = null
 var highlight_layer: TileMapLayer = null
 
+@onready var board_tilemap: Node = $TileMap # reference to tilemap so we can implement the colorblind mode.
+
 # Space info panel reference and scene
 const SpaceInfoPanelScene = preload("res://scenes/SpaceInfoPanel.tscn")
 var space_info_panel: CanvasLayer = null
@@ -62,6 +64,12 @@ var auction_popup: CanvasLayer = null
 const BankruptcyPopupScene = preload("res://scenes/BankruptcyPopup.tscn")
 var bankruptcy_popup: BankruptcyPopup = null
 
+const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
+var settings_menu: Control = null
+
+const PauseMenuScene = preload("res://scenes/PauseMenu.tscn")
+var pause_menu: Control = null
+
 # Pending debt info while player is resolving bankruptcy
 var pending_debtor_index: int = -1
 var pending_creditor_index: int = -1
@@ -79,6 +87,7 @@ const SELECTED_TILE := Vector2i(5, 1) # Highlighted texture
 
 const PropertiesDetailPopupScene = preload("res://scenes/PropertiesDetailPopup.tscn")
 var assets_popup: CanvasLayer = null
+
 
 
 func _ready() -> void:
@@ -123,10 +132,16 @@ func _ready() -> void:
 
 	# Instantiate end turn button
 	_setup_end_turn_button()
-
+	
+	#instantiae pause menu
+	_setup_pause_menu()
+	
+	#instantite settings menu
+	_setup_settings_menu()
+	
 	# Instantiate trade popup
 	_setup_trade_popup()
-
+	
 	# Instantiate auction popup + details popup
 	_setup_auction_popup()
 
@@ -155,6 +170,9 @@ func _ready() -> void:
 
 	# Update panel after everything is ready
 	call_deferred("_initial_panel_update")
+	
+	SettingsManager.colorblind_mode_changed.connect(_on_colorblind_mode_changed)
+	_on_colorblind_mode_changed(SettingsManager.is_colorblind_enabled())
 
 
 func _start_game_deferred() -> void:
@@ -647,6 +665,9 @@ func _on_property_details_closed() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if get_tree().paused:
+		return
+
 	if event is InputEventMouseMotion:
 		_handle_mouse_motion(event)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -1215,3 +1236,114 @@ func _on_doubles_rolled() -> void:
 	await get_tree().create_timer(2.5).timeout
 	if is_instance_valid(dialog):
 		dialog.queue_free()
+
+func _on_colorblind_mode_changed(enabled: bool) -> void:
+	if board_tilemap == null:
+		return
+
+	if enabled:
+		print("Colorblind mode ON")
+		board_tilemap.modulate = Color(0.85, 1.05, 1.2)
+	else:
+		print("Colorblind mode OFF")
+		board_tilemap.modulate = Color(1, 1, 1)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_pause"):
+		# If settings is open, close settings first and return to pause menu
+		if settings_menu and settings_menu.visible:
+			settings_menu.hide()
+			if pause_menu:
+				pause_menu.show()
+			get_viewport().set_input_as_handled()
+			return
+
+		# Otherwise toggle pause menu
+		if pause_menu:
+			pause_menu.set_paused(not pause_menu.visible)
+			get_viewport().set_input_as_handled()
+			
+func _setup_pause_menu() -> void:
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.name = "PauseMenuLayer"
+	canvas_layer.layer = 100
+
+	pause_menu = PauseMenuScene.instantiate()
+	canvas_layer.add_child(pause_menu)
+
+	get_tree().root.call_deferred("add_child", canvas_layer)
+	pause_menu.hide()
+
+	if pause_menu.has_signal("settings_requested"):
+		pause_menu.settings_requested.connect(_on_pause_settings_requested)
+
+	if pause_menu.has_signal("quit_requested"):
+		pause_menu.quit_requested.connect(_on_pause_quit_requested)
+		
+func _on_pause_settings_requested() -> void:
+	if settings_menu:
+		pause_menu.hide()
+		settings_menu.show()
+		
+		
+func _setup_settings_menu() -> void:
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.name = "SettingsMenuLayer"
+	canvas_layer.layer = 101
+
+	settings_menu = SettingsMenuScene.instantiate()
+	canvas_layer.add_child(settings_menu)
+
+	get_tree().root.call_deferred("add_child", canvas_layer)
+	settings_menu.hide()
+
+	if settings_menu.has_signal("closed"):
+		settings_menu.closed.connect(_on_settings_closed)
+
+
+func _on_settings_closed() -> void:
+	if settings_menu:
+		settings_menu.hide()
+
+	if pause_menu:
+		pause_menu.show()
+
+func _on_pause_quit_requested() -> void:
+	get_tree().paused = false
+	_cleanup_root_ui()
+	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
+
+
+func _cleanup_root_ui() -> void:
+	var names_to_remove := [
+		"DiceRollLayer",
+		"MoneyHUDLayer",
+		"PlayerNameHUDLayer",
+		"PlayerPropertiesPreviewLayer",
+		"EndTurnButtonLayer",
+		"PauseMenuLayer",
+		"SettingsMenuLayer",
+		"BankruptcyPopup"
+	]
+
+	for child in get_tree().root.get_children():
+		if child.name in names_to_remove:
+			child.queue_free()
+
+	if space_info_panel and is_instance_valid(space_info_panel):
+		space_info_panel.queue_free()
+
+	if space_action_popup and is_instance_valid(space_action_popup):
+		space_action_popup.queue_free()
+
+	if trade_popup and is_instance_valid(trade_popup):
+		trade_popup.queue_free()
+
+	if auction_popup and is_instance_valid(auction_popup):
+		auction_popup.queue_free()
+
+	if property_details_popup and is_instance_valid(property_details_popup):
+		property_details_popup.queue_free()
+
+	if assets_popup and is_instance_valid(assets_popup):
+		assets_popup.queue_free()
