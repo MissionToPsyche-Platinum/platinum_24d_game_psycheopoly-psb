@@ -28,6 +28,54 @@ var highlight_layer: TileMapLayer = null
 const SpaceInfoPanelScene = preload("res://scenes/SpaceInfoPanel.tscn")
 var space_info_panel: CanvasLayer = null
 
+
+# symbols for when colorblind mode is active:
+var symbol_textures = {
+	"Yellow": preload("res://assets/images/circle.png"),
+	"Orange": preload("res://assets/images/star.png"),
+	"Dark Orange": preload("res://assets/images/diamond.png"),
+	"Pink": preload("res://assets/images/pentagon.png"),
+	"Dark Red": preload("res://assets/images/triangle.png"),
+	"Purple": preload("res://assets/images/square.png"),
+	"Dark Purple": preload("res://assets/images/cross.png"),
+	"Light Purple": preload("res://assets/images/hex.png")
+}
+
+const COLORBLIND_SYMBOL_SPACES := {
+	1: "Light Purple",
+	3: "Light Purple",
+
+	6: "Dark Red",
+	8: "Dark Red",
+	9: "Dark Red",
+
+	11: "Purple",
+	13: "Purple",
+	14: "Purple",
+
+	16: "Orange",
+	18: "Orange",
+	19: "Orange",
+
+	21: "Pink",
+	23: "Pink",
+	24: "Pink",
+
+	26: "Dark Purple",
+	28: "Dark Purple",
+	29: "Dark Purple",
+
+	31: "Yellow",
+	33: "Yellow",
+	34: "Yellow",
+
+	37: "Dark Orange",
+	39: "Dark Orange"
+}
+
+#having a hard time with symbol placements on certain spaces, trying this to see if it helps.
+const COLORBLIND_SYMBOL_OFFSET_OVERRIDES := {}
+
 # Dice roll UI reference and scene
 const DiceRollPanelScene = preload("res://scenes/DiceRollPanel.tscn")
 var dice_roll_ui: Control = null
@@ -93,9 +141,12 @@ var assets_popup: CanvasLayer = null
 func _ready() -> void:
 	AudioManager.play_music("game_bg", +1.0, 0.8)
 
+	$Camera2D.make_current()
 	# Get reference to the TileMapLayer first
 	tile_map_layer = $TileMap/TileMapLayer
 	highlight_layer = $TileMap/HighlightLayer
+	
+	call_deferred("_spawn_colorblind_symbols")
 
 	# Listen for setup changes (important if GameState rebuilds players)
 	if not GameController.setup_changed.is_connected(_on_setup_changed):
@@ -1236,17 +1287,17 @@ func _on_doubles_rolled() -> void:
 	await get_tree().create_timer(2.5).timeout
 	if is_instance_valid(dialog):
 		dialog.queue_free()
+		
 
 func _on_colorblind_mode_changed(enabled: bool) -> void:
-	if board_tilemap == null:
+	if not has_node("ColorBlindSymbols"):
 		return
 
 	if enabled:
-		print("Colorblind mode ON")
-		board_tilemap.modulate = Color(0.85, 1.05, 1.2)
-	else:
-		print("Colorblind mode OFF")
-		board_tilemap.modulate = Color(1, 1, 1)
+		_spawn_colorblind_symbols()
+
+	$ColorBlindSymbols.visible = enabled
+	
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_pause"):
@@ -1347,3 +1398,138 @@ func _cleanup_root_ui() -> void:
 
 	if assets_popup and is_instance_valid(assets_popup):
 		assets_popup.queue_free()
+		
+		
+		
+func _spawn_colorblind_symbols() -> void:
+	if not has_node("ColorBlindSymbols"):
+		return
+
+	var symbol_layer = $ColorBlindSymbols
+
+	for child in symbol_layer.get_children():
+		child.queue_free()
+
+	var board_layer: TileMapLayer = $TileMap/TileMapLayer
+
+	for space_index in COLORBLIND_SYMBOL_SPACES.keys():
+		var set_name = COLORBLIND_SYMBOL_SPACES[space_index]
+
+		if not symbol_textures.has(set_name):
+			continue
+
+		var coords := _get_coords_from_space_index(space_index)
+		if coords == Vector2i(-1, -1):
+			continue
+
+		var tile_pos = board_layer.map_to_local(coords)
+		var pos = tile_pos + _get_symbol_offset_for_space(space_index, coords)
+		var scale = _get_symbol_scale_for_coords(coords)
+		var texture = symbol_textures[set_name]
+
+		var outline_offsets = [
+			Vector2(-2, 0),
+			Vector2(2, 0),
+			Vector2(0, -2),
+			Vector2(0, 2),
+			Vector2(-2, -2),
+			Vector2(2, -2),
+			Vector2(-2, 2),
+			Vector2(2, 2)
+		]
+
+		for o in outline_offsets:
+			var outline := Sprite2D.new()
+			outline.texture = texture
+			outline.scale = scale
+			outline.modulate = Color(0, 0, 0, 1)
+			outline.position = pos + o
+			outline.z_index = 49
+			symbol_layer.add_child(outline)
+
+		var symbol := Sprite2D.new()
+		symbol.texture = texture
+		symbol.scale = scale
+		symbol.modulate = Color(1, 1, 1, 1)
+		symbol.position = pos
+		symbol.z_index = 50
+		symbol_layer.add_child(symbol)
+		
+		
+func _get_coords_from_space_index(space_index: int) -> Vector2i:
+	# corners
+	if space_index == 0:
+		return Vector2i(10, 0)
+	if space_index == 10:
+		return Vector2i(10, 10)
+	if space_index == 20:
+		return Vector2i(0, 10)
+	if space_index == 30:
+		return Vector2i(0, 0)
+
+	# right edge: 1-9
+	if space_index > 0 and space_index < 10:
+		return Vector2i(10, space_index)
+
+	# bottom edge: 11-19
+	if space_index > 10 and space_index < 20:
+		return Vector2i(10 - (space_index - 10), 10)
+
+	# left edge: 21-29
+	if space_index > 20 and space_index < 30:
+		return Vector2i(0, 10 - (space_index - 20))
+
+	# top edge: 31-39
+	if space_index > 30 and space_index < 40:
+		return Vector2i(space_index - 30, 0)
+
+	return Vector2i(-1, -1)
+
+
+func _get_symbol_offset_for_coords(coords: Vector2i) -> Vector2:
+	# Tune each side independently
+	if coords.y == 10:
+		# bottom row
+		return Vector2(-1, -8)
+
+	if coords.y == 0:
+		# top row
+		return Vector2(1, 8)
+
+	if coords.x == 0:
+		# left side
+		return Vector2(8, 1)
+
+	if coords.x == 10:
+		# right side
+		return Vector2(-8, -1)
+
+	return Vector2.ZERO
+
+
+func _get_symbol_scale_for_coords(coords: Vector2i) -> Vector2:
+	return Vector2(0.13, 0.13)
+
+
+func _get_symbol_offset_for_space(space_index: int, coords: Vector2i) -> Vector2:
+	# Optional per-space override if needed later
+	if COLORBLIND_SYMBOL_OFFSET_OVERRIDES.has(space_index):
+		return COLORBLIND_SYMBOL_OFFSET_OVERRIDES[space_index]
+
+	# Right side
+	if coords.x == 10:
+		return Vector2(-3, -4)
+
+	# Bottom side
+	if coords.y == 10:
+		return Vector2(3, -2)
+		
+	#left side
+	if coords.x == 0:
+		return Vector2(7, 1)
+
+	# Top side
+	if coords.y == 0:
+		return Vector2(-5, 1)
+
+	return Vector2.ZERO

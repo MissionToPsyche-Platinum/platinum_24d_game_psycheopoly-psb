@@ -20,6 +20,8 @@ signal popup_closed
 @onready var reject_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/RejectButton
 @onready var accept_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/AcceptButton
 
+const ColorblindHelpers = preload("res://scripts/ui/colorblind_helpers.gd")
+
 var _offering_player: int = -1
 var _pending_offer: Dictionary = {}
 var _color_icon_cache: Dictionary = {}
@@ -154,7 +156,7 @@ func _refresh_space_lists() -> void:
 func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> void:
 	var info := SpaceData.get_space_info(space_index)
 	var item_label := _build_space_label(space_index)
-	var item_icon := _get_or_create_color_icon(info)
+	var item_icon := _get_or_create_color_icon(info, space_index)
 	var tree_item := list_node.create_item(root_item)
 	tree_item.set_cell_mode(CHECKBOX_COLUMN, TreeItem.CELL_MODE_CHECK)
 	tree_item.set_editable(CHECKBOX_COLUMN, true)
@@ -180,12 +182,24 @@ func _build_space_label(space_index: int) -> String:
 	return space_name
 
 
-func _get_or_create_color_icon(space_info: Dictionary) -> Texture2D:
+func _get_or_create_color_icon(space_info: Dictionary, space_index: int) -> Texture2D:
 	if _color_icon_cache == null:
 		_color_icon_cache = {}
 
+	
+	# Colorblind mode support:
+	
+	if SettingsManager.is_colorblind_enabled():
+		var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_index)
+		if symbol_texture != null:
+			return symbol_texture
+
+	
+	# Normal mode fallback: use colored square
+	
 	var color: Color = space_info.get("color", Color(0.7, 0.7, 0.7, 1.0))
 	var cache_key := "%0.3f_%0.3f_%0.3f_%0.3f" % [color.r, color.g, color.b, color.a]
+
 	if _color_icon_cache.has(cache_key):
 		return _color_icon_cache[cache_key]
 
@@ -286,13 +300,22 @@ func _format_space_summary(space_indexes: Array) -> String:
 		return "None"
 
 	var entries: Array[String] = []
+
 	for space_index_variant in space_indexes:
 		var space_index := int(space_index_variant)
 		var info := SpaceData.get_space_info(space_index)
 		var space_name := str(info.get("name", "Space " + str(space_index)))
-		var color: Color = info.get("color", Color(0.7, 0.7, 0.7, 1.0))
-		var color_hex := color.to_html(false)
-		entries.append("[color=#%s]%s[/color]" % [color_hex, space_name])
+
+		if SettingsManager.is_colorblind_enabled():
+			var symbol_text := ColorblindHelpers.get_symbol_text_for_space(space_index)
+			if symbol_text != "":
+				entries.append("%s %s" % [symbol_text, space_name])
+			else:
+				entries.append(space_name)
+		else:
+			var color: Color = info.get("color", Color(0.7, 0.7, 0.7, 1.0))
+			var color_hex := color.to_html(false)
+			entries.append("[color=#%s]%s[/color]" % [color_hex, space_name])
 
 	return ", ".join(entries)
 
@@ -335,6 +358,7 @@ func _on_submit_pressed() -> void:
 	status_label.text = ""
 	_set_review_mode(_summarize_trade_offer(trade_offer))
 
+
 func _on_cancel_pressed() -> void:
 	hide_popup()
 
@@ -371,6 +395,7 @@ func _on_trade_completed(_trade_offer: Dictionary) -> void:
 		return
 	status_label.text = "Trade completed successfully."
 	
+
 func show_for_player_with_preselected_offer(player_index: int, offered_space_index: int) -> void:
 	show_for_current_player(player_index)
 

@@ -40,6 +40,15 @@ texture_region_size = Vector2i(32, 32)
 0:3/0 = 0
 0:4/0 = 0
 1:4/0 = 0
+5:4/0 = 0
+5:5/0 = 0
+4:4/0 = 0
+4:5/0 = 0
+3:4/0 = 0
+2:4/0 = 0
+2:5/0 = 0
+3:5/0 = 0
+0:5/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_17g6i"]
 tile_shape = 1
@@ -84,3 +93,5 @@ zoom = Vector2(2.7, 2.7)
 position = Vector2(16.999998, 87.99999)
 scale = Vector2(0.044, 0.022)
 texture = ExtResource("3_fbkij")
+
+[node name="ColorBlindSymbols" type="Node2D" parent="."]

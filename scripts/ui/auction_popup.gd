@@ -1,9 +1,5 @@
 extends CanvasLayer
-# TODO:
-# maybe add a buffer or cushion so the bid buttons aren't so close to "details, bid, pass"
-# maybe have the feedback of the green floating number stay on screen just a tick or two longer
-# when user selects money to bid, it makes sure the user has available funds to bid once bid closes...
-# final total gets deducted from player balance
+
 # ======================================
 # Signals (communicates with Game Board)
 # ======================================
@@ -28,6 +24,10 @@ var current_space_num: int = -1
 @onready var color_bar: ColorRect = vbox.get_node("ColorBar")
 @onready var property_name_label: Label = %PropertyName
 @onready var property_type_label: Label = %PropertyType
+
+# Colorblind icon support
+@onready var color_symbol: TextureRect = vbox.get_node_or_null("ColorBar/ColorSymbol")
+@onready var color_symbol_shadow: TextureRect = vbox.get_node_or_null("ColorBar/ColorSymbolShadow")
 
 # Live-updating labels (Unique Name access)
 @onready var current_bidder_label: Label = %CurrentBidderLabel
@@ -73,6 +73,10 @@ func _ready() -> void:
 	if bid_50:
 		bid_50.text = "+$50"
 		bid_50.pressed.connect(func(): _emit_bid_increment(50, bid_50))
+
+	# Listen for colorblind mode toggles so the header updates immediately
+	if SettingsManager and not SettingsManager.colorblind_mode_changed.is_connected(_on_colorblind_mode_changed):
+		SettingsManager.colorblind_mode_changed.connect(_on_colorblind_mode_changed)
 
 
 # ============================
@@ -132,17 +136,17 @@ func show_popup(space_num: int) -> void:
 		property_name_label.text = "Unknown Space"
 		property_type_label.text = ""
 		color_bar.color = Color.GRAY
+
 		# Reset visible values each time the popup opens
 		set_status("")
-
-		var starting_price := int(space_info.get("price", 0))
-		set_high_bid(starting_price, "None")
-
+		set_high_bid(0, "None")
 		set_current_bidder("—")
 
+		_update_colorblind_symbol(space_num)
 		return
 
 	property_name_label.text = str(space_info.get("name", "Unknown Space"))
+
 	if space_info.has("color"):
 		color_bar.color = space_info.color
 	else:
@@ -162,6 +166,9 @@ func show_popup(space_num: int) -> void:
 	set_status("")
 	set_high_bid(0, "None")
 	set_current_bidder("—")
+
+	# Update symbol/header state for current property
+	_update_colorblind_symbol(space_num)
 
 
 func hide_popup() -> void:
@@ -186,6 +193,49 @@ func set_high_bid(amount: int, bidder_name: String) -> void:
 
 func set_status(text: String) -> void:
 	status_label.text = text
+
+
+# ============================
+# Colorblind Mode Support
+# ============================
+
+func _on_colorblind_mode_changed(_enabled: bool) -> void:
+	# If the popup is showing a valid property, refresh the symbol immediately
+	if current_space_num >= 0:
+		_update_colorblind_symbol(current_space_num)
+
+func _update_colorblind_symbol(space_num: int) -> void:
+	if not color_symbol or not color_symbol_shadow:
+		return
+
+	var colorblind_enabled := SettingsManager and SettingsManager.is_colorblind_enabled()
+
+	# Normal mode = hide symbols
+	if not colorblind_enabled:
+		color_symbol.visible = false
+		color_symbol.texture = null
+
+		color_symbol_shadow.visible = false
+		color_symbol_shadow.texture = null
+		return
+
+	# Colorblind mode = show symbol for this space if one exists
+	var tex := ColorblindHelpers.get_symbol_texture_for_space(space_num)
+
+	if tex:
+		# White foreground symbol
+		color_symbol.texture = tex
+		color_symbol.visible = true
+
+		# Black shadow / faux outline
+		color_symbol_shadow.texture = tex
+		color_symbol_shadow.visible = true
+	else:
+		color_symbol.visible = false
+		color_symbol.texture = null
+
+		color_symbol_shadow.visible = false
+		color_symbol_shadow.texture = null
 
 
 # ========================================

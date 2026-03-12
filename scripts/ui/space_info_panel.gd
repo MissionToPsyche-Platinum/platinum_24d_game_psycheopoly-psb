@@ -12,6 +12,8 @@ const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 @onready var details_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
 @onready var upgrade_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/UpgradeButton
 @onready var downgrade_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DowngradeButton
+@onready var color_symbol: TextureRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/ColorSymbol
+@onready var color_symbol_shadow: TextureRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/ColorSymbolShadow
 
 # Current space being displayed
 var current_space: int = 0
@@ -26,15 +28,28 @@ func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	downgrade_button.pressed.connect(_on_downgrade_pressed)
 	
-	# connect space display update to property purchase signal
+	# Connect space display update to property purchase signal
 	GameController.property_ownership_changed.connect(trigger_display_update)
+
+	# NEW: Refresh immediately when colorblind mode is toggled
+	if SettingsManager:
+		if SettingsManager.has_signal("colorblind_mode_changed"):
+			if not SettingsManager.colorblind_mode_changed.is_connected(_on_colorblind_mode_changed):
+				SettingsManager.colorblind_mode_changed.connect(_on_colorblind_mode_changed)
 	
 	# Update display with initial space
 	update_space_display(0)
 
-# function to trigger an update from the purchase property signal
-func trigger_display_update():
+
+# Function to trigger an update from the purchase property signal
+func trigger_display_update() -> void:
 	update_space_display(current_space)
+
+
+# NEW: Refresh current space immediately when colorblind mode changes
+func _on_colorblind_mode_changed(_enabled: bool) -> void:
+	update_space_display(current_space)
+
 
 # Update the display with information about a space
 func update_space_display(space_num: int) -> void:
@@ -107,8 +122,6 @@ func update_space_display(space_num: int) -> void:
 	upgrade_button.disabled = !can_upgrade
 	downgrade_button.disabled = !can_downgrade
 
-
-	
 	# Set color bar
 	if space_info.has("color"):
 		color_bar.color = space_info.color
@@ -116,6 +129,35 @@ func update_space_display(space_num: int) -> void:
 	else:
 		color_bar.visible = false
 
+	_update_colorblind_symbol(space_num)
+
+
+func _update_colorblind_symbol(space_num: int) -> void:
+	if not color_symbol or not color_symbol_shadow:
+		return
+
+	# Hide both by default
+	color_symbol.visible = false
+	color_symbol.texture = null
+
+	color_symbol_shadow.visible = false
+	color_symbol_shadow.texture = null
+
+	# Only show symbol overlays when colorblind mode is actually enabled
+	if not SettingsManager.is_colorblind_enabled():
+		return
+
+	var tex := ColorblindHelpers.get_symbol_texture_for_space(space_num)
+
+	if tex:
+		# Main white symbol
+		color_symbol.texture = tex
+		color_symbol.visible = true
+
+		# Black shadow / faux outline
+		color_symbol_shadow.texture = tex
+		color_symbol_shadow.visible = true
+		
 
 # Called when the Details button is pressed
 func _on_details_pressed() -> void:
@@ -140,12 +182,15 @@ func _on_details_pressed() -> void:
 			owner_str = GameState.get_player_display_name(owner_index)
 	_details_popup.show_space_details(current_space, owner_str, owner_color)  
 
+
 func _on_upgrade_pressed() -> void:
 	GameController.upgrade_property.emit(GameState.board[current_space], GameState.current_player_index)
 	print("upgrade pressed")
 	update_space_display(current_space)
 
+
 func _on_downgrade_pressed() -> void:
 	GameController.downgrade_property.emit(GameState.board[current_space], GameState.current_player_index)
 	print("downgrade pressed")
 	update_space_display(current_space)
+	

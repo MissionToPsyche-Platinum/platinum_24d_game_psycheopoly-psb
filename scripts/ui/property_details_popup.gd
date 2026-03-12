@@ -3,6 +3,8 @@ signal close_pressed
 
 # References to UI elements
 @onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
+@onready var color_symbol_shadow: TextureRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/ColorSymbolShadow
+@onready var color_symbol: TextureRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/ColorSymbol
 @onready var property_name: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/PropertyName
 @onready var property_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/PropertyType
 @onready var details_container: VBoxContainer = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/DetailsContainer
@@ -60,6 +62,8 @@ func show_space_details(space_num: int, owner_name: String = "Unowned", owner_co
 		color_bar.color = space_info.color
 	else:
 		color_bar.color = Color.GRAY
+		
+	_update_colorblind_symbol(space_num)
 	
 	# Set property type
 	match space_info.type:
@@ -194,3 +198,22 @@ func _on_close_pressed() -> void:
 	visible = false
 	emit_signal("close_pressed")
 	print("Popup closed")
+
+func _update_colorblind_symbol(space_num: int) -> void:
+	# Hide by default
+	color_symbol.visible = false
+	color_symbol_shadow.visible = false
+	color_symbol.texture = null
+	color_symbol_shadow.texture = null
+
+	var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_num)
+	if symbol_texture == null:
+		return
+
+	# Apply same texture to both
+	color_symbol.texture = symbol_texture
+	color_symbol_shadow.texture = symbol_texture
+
+	# Show both layers
+	color_symbol.visible = true
+	color_symbol_shadow.visible = true
