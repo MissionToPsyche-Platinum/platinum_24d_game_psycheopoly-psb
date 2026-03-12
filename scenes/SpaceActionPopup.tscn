@@ -76,6 +76,27 @@ custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 color = Color(0.4, 0.7, 1, 1)
 
+[node name="ColorSymbolShadow" type="TextureRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar"]
+modulate = Color(0, 0, 0, 1)
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 0
+offset_left = 11.5
+offset_top = 2.0
+offset_right = 23.5
+offset_bottom = 14.0
+scale = Vector2(0.65, 0.65)
+stretch_mode = 5
+
+[node name="ColorSymbol" type="TextureRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 6.0
+offset_right = 28.0
+offset_bottom = 18.0
+scale = Vector2(0.52, 0.52)
+stretch_mode = 5
+
 [node name="SpaceName" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar"]
 layout_mode = 1
 anchors_preset = 15

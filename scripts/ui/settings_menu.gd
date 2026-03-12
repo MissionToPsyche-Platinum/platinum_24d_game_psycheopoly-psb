@@ -11,6 +11,8 @@ signal closed
 
 @onready var mute_check: CheckBox = %MuteCheck
 @onready var close_button: Button = %CloseButton
+@onready var colorblind_check: CheckBox =%ColorblindCheck
+
 
 # Stores the user's previous volumes so we can restore them after unmuting
 var _last_master_volume: float = 80
@@ -19,7 +21,8 @@ var _last_music_volume: float = 80
 
 
 func _ready() -> void:
-	AudioManager.play_music("menu", 12.0, 0.0)
+	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+
 	# Initialize labels immediately
 	_update_master_label(master_slider.value)
 	_update_sfx_label(sfx_slider.value)
@@ -35,7 +38,8 @@ func _ready() -> void:
 
 	# Close behavior
 	close_button.pressed.connect(_on_close_pressed)
-
+	colorblind_check.button_pressed = SettingsManager.is_colorblind_enabled()
+	colorblind_check.toggled.connect(_on_colorblind_toggled)
 
 func _update_master_label(v: float) -> void:
 	master_value_label.text = str(int(round(v)))
@@ -76,7 +80,10 @@ func _on_mute_toggled(is_muted: bool) -> void:
 		sfx_slider.editable = true
 		music_slider.editable = true
 
-
+func _on_colorblind_toggled(enabled: bool) -> void:
+	SettingsManager.set_colorblind_mode(enabled)
+	print("Colorblind mode:", enabled)
+	
 func _on_close_pressed() -> void:
 	hide()
 	closed.emit()

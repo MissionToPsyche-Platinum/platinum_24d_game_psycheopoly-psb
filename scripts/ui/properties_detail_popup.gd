@@ -24,6 +24,7 @@ var _property_details_popup: CanvasLayer = null
 # When true, show per-asset "Trade/Sell" buttons in the list
 var _bankruptcy_mode: bool = false
 
+
 func _ready() -> void:
 	hide_popup()
 
@@ -157,12 +158,9 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
 
-	# Color indicator
-	var color_indicator := ColorRect.new()
-	color_indicator.custom_minimum_size = Vector2(20, 20)
-	color_indicator.color = prop.color
-	color_indicator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var space_index := int(prop.space_index)
 
+	# Color indicator OR colorblind symbol
 	var border_panel := PanelContainer.new()
 	var stylebox := StyleBoxFlat.new()
 	stylebox.bg_color = Color(0, 0, 0, 0)
@@ -172,8 +170,46 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	stylebox.border_width_bottom = 1
 	stylebox.border_color = Color(0.3, 0.3, 0.3, 1)
 	border_panel.add_theme_stylebox_override("panel", stylebox)
-	border_panel.add_child(color_indicator)
 	border_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_index)
+
+	if SettingsManager.is_colorblind_enabled() and symbol_texture != null:
+		# Create a small container for shadow + symbol
+		var icon_holder := Control.new()
+		icon_holder.custom_minimum_size = Vector2(20, 20)
+		icon_holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+		# Shadow (black outline layer)
+		var symbol_shadow := TextureRect.new()
+		symbol_shadow.texture = symbol_texture
+		symbol_shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		symbol_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		symbol_shadow.custom_minimum_size = Vector2(10, 10)
+		symbol_shadow.position = Vector2(5, 5)
+		symbol_shadow.scale = Vector2(1.0, 1.0)
+		symbol_shadow.modulate = Color.BLACK
+		icon_holder.add_child(symbol_shadow)
+
+		# Main symbol
+		var symbol := TextureRect.new()
+		symbol.texture = symbol_texture
+		symbol.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		symbol.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		symbol.custom_minimum_size = Vector2(10, 10)
+		symbol.position = Vector2(4, 4)
+		symbol.scale = Vector2(1.0, 1.0)
+		icon_holder.add_child(symbol)
+
+		border_panel.add_child(icon_holder)
+	else:
+		# Default normal color square
+		var color_indicator := ColorRect.new()
+		color_indicator.custom_minimum_size = Vector2(20, 20)
+		color_indicator.color = prop.color
+		color_indicator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		border_panel.add_child(color_indicator)
+
 	hbox.add_child(border_panel)
 
 	# Property info VBox
@@ -218,7 +254,6 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 		trade_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		trade_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-		var space_index := int(prop.space_index)
 		trade_btn.pressed.connect(_on_trade_sell_pressed.bind(space_index))
 		hbox.add_child(trade_btn)
 
@@ -232,7 +267,7 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	details_btn.focus_mode = Control.FOCUS_NONE
 	details_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	details_btn.pressed.connect(_show_property_details_popup.bind(int(prop.space_index)))
+	details_btn.pressed.connect(_show_property_details_popup.bind(space_index))
 	hbox.add_child(details_btn)
 
 	return hbox

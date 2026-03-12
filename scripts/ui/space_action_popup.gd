@@ -18,6 +18,8 @@ const ChanceCardPopup = preload("res://scenes/ChanceCardPopup.tscn")
 @onready var panel_container: Panel = $Control/PanelContainer
 @onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
 @onready var space_name_label: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/SpaceName
+@onready var color_symbol: TextureRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/ColorSymbol
+@onready var color_symbol_shadow: TextureRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/ColorSymbolShadow
 @onready var action_description: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/ActionDescription
 @onready var details_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/DetailsButton
 @onready var purchase_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/PurchaseButton
@@ -33,6 +35,7 @@ var current_space_num: int = -1
 var _details_popup: CanvasLayer = null
 var _chance_card_popup: CanvasLayer = null
 
+
 func _ready() -> void:
 	# Initially hidden
 	hide_popup()
@@ -46,6 +49,13 @@ func _ready() -> void:
 	auction_button.pressed.connect(_on_auction_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
+	# Refresh immediately when colorblind mode changes while popup is open
+	if SettingsManager:
+		if SettingsManager.has_signal("colorblind_mode_changed"):
+			if not SettingsManager.colorblind_mode_changed.is_connected(_on_colorblind_mode_changed):
+				SettingsManager.colorblind_mode_changed.connect(_on_colorblind_mode_changed)
+
+
 func show_actions(space_num: int) -> void:
 	current_space_num = space_num
 	var space_info = SpaceData.get_space_info(space_num)
@@ -58,6 +68,9 @@ func show_actions(space_num: int) -> void:
 		color_bar.visible = true
 	else:
 		color_bar.visible = false
+	
+	# Update symbol overlay for colorblind mode
+	_update_colorblind_symbol(space_num)
 	
 	# Determine what actions are available
 	var can_purchase = false
@@ -122,8 +135,43 @@ func show_actions(space_num: int) -> void:
 	# Show the UI
 	self.visible = true
 
+
 func hide_popup() -> void:
 	self.visible = false
+
+
+func _on_colorblind_mode_changed(_enabled: bool) -> void:
+	# If popup is currently showing a valid space, refresh just the symbol state
+	if current_space_num >= 0:
+		_update_colorblind_symbol(current_space_num)
+
+
+func _update_colorblind_symbol(space_num: int) -> void:
+	if not color_symbol or not color_symbol_shadow:
+		return
+
+	# Hide by default
+	color_symbol.visible = false
+	color_symbol.texture = null
+
+	color_symbol_shadow.visible = false
+	color_symbol_shadow.texture = null
+
+	# Only show symbol when colorblind mode is enabled
+	if not SettingsManager.is_colorblind_enabled():
+		return
+
+	var tex := ColorblindHelpers.get_symbol_texture_for_space(space_num)
+
+	if tex:
+		# Main white symbol
+		color_symbol.texture = tex
+		color_symbol.visible = true
+
+		# Black shadow / faux outline
+		color_symbol_shadow.texture = tex
+		color_symbol_shadow.visible = true
+
 
 func _on_details_pressed() -> void:
 	# Create popup if it doesn't exist
@@ -146,6 +194,7 @@ func _on_details_pressed() -> void:
 		
 	_details_popup.show_space_details(current_space_num, owner_str, owner_color)
 
+
 func _on_purchase_pressed() -> void:
 	purchase_pressed.emit(current_space_num)
 
@@ -156,6 +205,7 @@ func _on_purchase_pressed() -> void:
 
 	hide_popup()
 
+
 func _on_pay_pressed() -> void:
 	pay_pressed.emit(current_space_num)
 
@@ -163,6 +213,7 @@ func _on_pay_pressed() -> void:
 	# even when Player 2/3/etc landed here.
 	# now using the current active player index from GameState.
 	hide_popup()
+
 
 func _on_draw_pressed() -> void:
 	# Create popup if it doesn't exist
@@ -176,13 +227,16 @@ func _on_draw_pressed() -> void:
 	
 	hide_popup()
 	
+
 func _on_move_pressed() -> void:
 	move_pressed.emit(current_space_num)
 	hide_popup()
 
+
 func _on_auction_pressed() -> void:
 	auction_pressed.emit(current_space_num)
 	hide_popup()
+
 
 func _on_close_pressed() -> void:
 	close_pressed.emit()
