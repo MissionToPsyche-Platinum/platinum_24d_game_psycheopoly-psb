@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://bmvl3imlm0w2"]
+[gd_scene load_steps=20 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
 [ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/Background.tscn" id="2_j6af4"]
@@ -6,7 +6,6 @@
 [ext_resource type="Script" uid="uid://d0ne4ghwtfkp0" path="res://scripts/ui/title.gd" id="3_cp7se"]
 [ext_resource type="Texture2D" uid="uid://boddmgn7a5uod" path="res://assets/images/sprites/psyche_probe_pixel.png" id="4_kcs48"]
 [ext_resource type="Script" uid="uid://dhx6oudn2fwb0" path="res://scripts/ui/probe_sprite.gd" id="5_aso40"]
-[ext_resource type="PackedScene" uid="uid://byeqtctiiqjkl" path="res://scenes/SettingsMenu.tscn" id="9_sf8pk"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_kcs48"]
 line_spacing = 5.0
@@ -191,9 +190,6 @@ expand_margin_top = 10.0
 expand_margin_right = 10.0
 expand_margin_bottom = 10.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g1ph5"]
-bg_color = Color(0, 0, 0, 0.5019608)
-
 [node name="StartMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -372,44 +368,3 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_bx376")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_frkif")
 theme_override_styles/hover = SubResource("StyleBoxFlat_cuvp2")
 text = "Exit Game"
-
-[node name="SettingsPopUp" type="PopupPanel" parent="."]
-size = Vector2i(1920, 1080)
-theme_override_styles/panel = SubResource("StyleBoxFlat_g1ph5")
-
-[node name="Center" type="CenterContainer" parent="SettingsPopUp"]
-offset_right = 1920.0
-offset_bottom = 1080.0
-
-[node name="Box" type="VBoxContainer" parent="SettingsPopUp/Center"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="DifficultyRow" type="HBoxContainer" parent="SettingsPopUp/Center/Box"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="DifficultyLabel" type="Label" parent="SettingsPopUp/Center/Box/DifficultyRow"]
-layout_mode = 2
-text = "Computer Difficulty
-
-"
-horizontal_alignment = 2
-
-[node name="DifficultyOption" type="OptionButton" parent="SettingsPopUp/Center/Box/DifficultyRow"]
-layout_mode = 2
-item_count = 3
-popup/item_0/text = "Easy"
-popup/item_0/id = 0
-popup/item_1/text = "Normal"
-popup/item_1/id = 1
-popup/item_2/text = "Hard"
-popup/item_2/id = 2
-
-[node name="Close" type="Button" parent="SettingsPopUp/Center/Box"]
-layout_mode = 2
-text = "Close"
-
-[node name="SettingsMenu" parent="." instance=ExtResource("9_sf8pk")]
-visible = false
-layout_mode = 1

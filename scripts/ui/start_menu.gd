@@ -1,79 +1,79 @@
 extends Control
 
-# ============================
-#   NODE REFERENCES
-# ============================
+@onready var start_btn: Button = $CenterBox/Menu/Start
+@onready var settings_btn: Button = $CenterBox/Menu/Settings
+@onready var exit_btn: Button = $CenterBox/Menu/Exit
+@onready var main_menu: Control = $CenterBox
 
-@onready var start_btn: Button        = $CenterBox/Menu/Start
-@onready var settings_btn: Button     = $CenterBox/Menu/Settings
-@onready var exit_btn: Button         = $CenterBox/Menu/Exit
+const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 
-# Main menu container (so we can hide/show when SettingsMenu is open)
-@onready var main_menu: Control       = $CenterBox/Menu
+var settings_menu: Control = null
 
-@onready var settings_menu: Control   = $SettingsMenu
-
-# ============================
-#   WEB AUDIO UNLOCK OVERLAY
-# ============================
 var _audio_overlay: Button = null
 var _audio_unlocked: bool = false
 
-# Desired menu music volume (match what you want once unlocked)
 const MENU_MUSIC_DB := 12.0
 const MENU_FADE_IN := 0.25
 
-# ============================
-#   READY
-# ============================
 
 func _ready() -> void:
 	_connect_signals()
 
-	# Ensure settings menu starts hidden
-	if settings_menu:
-		settings_menu.hide()
+	# Build SettingsMenu after the tree is stable
+	call_deferred("_setup_settings_menu")
 
-	# Start music attempt (browser may block until user gesture)
-	# We still call it; worst case it won't be audible yet.
+	# Start menu music
 	AudioManager.play_music("menu", MENU_MUSIC_DB, 0.0)
 
-	# Web builds: require a user gesture to allow audio
+	# Web builds may require a user interaction before audio can fully start
 	if OS.has_feature("web"):
 		_create_audio_unlock_overlay()
 
 
-
-# ============================
-#   SIGNAL WIRING
-# ============================
-
 func _connect_signals() -> void:
-	start_btn.pressed.connect(_on_start_pressed)
-	settings_btn.pressed.connect(_on_settings_pressed)
-	exit_btn.pressed.connect(_on_exit_pressed)
+	if not start_btn.pressed.is_connected(_on_start_pressed):
+		start_btn.pressed.connect(_on_start_pressed)
 
-	# Listen for SettingsMenu "closed" signal (SettingsMenu.gd must have: signal closed)
-	if settings_menu and settings_menu.has_signal("closed"):
-		settings_menu.closed.connect(_on_settings_closed)
+	if not settings_btn.pressed.is_connected(_on_settings_pressed):
+		settings_btn.pressed.connect(_on_settings_pressed)
+
+	if not exit_btn.pressed.is_connected(_on_exit_pressed):
+		exit_btn.pressed.connect(_on_exit_pressed)
 
 
-# ===================================
-#   OVERLAY FOR START MENU / HANDLERS
-# ===================================
+func _setup_settings_menu() -> void:
+	# Prevent duplicates
+	if settings_menu and is_instance_valid(settings_menu):
+		return
+
+	settings_menu = SettingsMenuScene.instantiate()
+	settings_menu.name = "SettingsMenu"
+
+	# Add directly under StartMenu so Control layout behaves correctly
+	add_child(settings_menu)
+
+	# Let SettingsMenu finish _ready()
+	await get_tree().process_frame
+
+	if settings_menu and is_instance_valid(settings_menu):
+		settings_menu.hide()
+
+		if settings_menu.has_signal("closed") and not settings_menu.closed.is_connected(_on_settings_closed):
+			settings_menu.closed.connect(_on_settings_closed)
+
+	print("StartMenu: SettingsMenu created =", settings_menu != null)
+
 
 func _create_audio_unlock_overlay() -> void:
-	# Don’t create twice
 	if _audio_overlay != null:
 		return
 
-	# Create a full-screen button overlay (captures the first click)
 	_audio_overlay = Button.new()
 	_audio_overlay.name = "AudioUnlockOverlay"
 	_audio_overlay.text = "Click to Start"
 	_audio_overlay.focus_mode = Control.FOCUS_ALL
 
-	# Make it fill the whole screen
+	# Full-screen overlay
 	_audio_overlay.anchor_left = 0.0
 	_audio_overlay.anchor_top = 0.0
 	_audio_overlay.anchor_right = 1.0
@@ -83,14 +83,12 @@ func _create_audio_unlock_overlay() -> void:
 	_audio_overlay.offset_right = 0
 	_audio_overlay.offset_bottom = 0
 
-	# Put it on top of everything
 	_audio_overlay.z_index = 9999
+	_audio_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 
-	# Optional: make it look like an overlay
 	_audio_overlay.add_theme_color_override("font_color", Color(1, 1, 1))
 	_audio_overlay.add_theme_font_size_override("font_size", 32)
 
-	
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0, 0, 0, 0.65)
 
@@ -100,60 +98,87 @@ func _create_audio_unlock_overlay() -> void:
 
 	add_child(_audio_overlay)
 
-	# When clicked: unlock audio and remove overlay
-	_audio_overlay.pressed.connect(_on_audio_overlay_pressed)
+	if not _audio_overlay.pressed.is_connected(_on_audio_overlay_pressed):
+		_audio_overlay.pressed.connect(_on_audio_overlay_pressed)
 
-	# Helpful on web: ensure it’s ready for immediate click
 	_audio_overlay.grab_focus()
 
 
 func _on_audio_overlay_pressed() -> void:
 	if _audio_unlocked:
 		return
+
 	_audio_unlocked = true
 
-	# Play a tiny UI sound (this user gesture usually "unlocks" audio)
 	AudioManager.play_ui("click")
 
-	# Ensure menu music is playing and fade it in to target volume
+	# Some browsers need a user interaction before audio is fully allowed
 	AudioManager.play_music("menu", MENU_MUSIC_DB, 0.0)
-
-	# Fade in (requires AudioManager.fade_music_to; if you don't have it, we do a simple tween here)
-	# We'll tween the player volume by calling duck/unduck is messy, so do a local fade by replaying with fade:
 	AudioManager.play_music("menu", MENU_MUSIC_DB, MENU_FADE_IN)
 
-	# Remove overlay
-	if _audio_overlay:
+	if _audio_overlay and is_instance_valid(_audio_overlay):
 		_audio_overlay.queue_free()
 		_audio_overlay = null
 
 
-# ============================
-#   SIGNAL CALLBACKS
-# ============================
-
 func _on_start_pressed() -> void:
+	_cleanup_start_menu_ui()
 	get_tree().change_scene_to_file("res://scenes/GameSetupScreen.tscn")
 
 
 func _on_settings_pressed() -> void:
-	# Hide the start menu buttons and show the settings overlay
-	if main_menu:
-		main_menu.hide()
+	print("StartMenu: Settings button pressed")
 
-	if settings_menu:
-		settings_menu.show()
-		settings_menu.grab_focus()
+	# If web overlay is still up, remove it so it can't block the settings menu
+	if _audio_overlay and is_instance_valid(_audio_overlay):
+		_audio_overlay.queue_free()
+		_audio_overlay = null
+
+	# Rebuild if missing for any reason
+	if settings_menu == null or not is_instance_valid(settings_menu):
+		print("StartMenu: SettingsMenu missing, rebuilding...")
+		await _setup_settings_menu()
+
+	if settings_menu and is_instance_valid(settings_menu):
+		print("StartMenu: Opening SettingsMenu...")
+		print("Before open visible =", settings_menu.visible)
+
+		if settings_menu.has_method("open"):
+			settings_menu.call("open", false)
+		else:
+			settings_menu.show()
+			settings_menu.move_to_front()
+
+		print("After open visible =", settings_menu.visible)
+	else:
+		print("StartMenu ERROR: SettingsMenu still invalid")
 
 
 func _on_settings_closed() -> void:
-	# SettingsMenu already hides itself on close, but safe to ensure it hides:
-	if settings_menu:
+	print("StartMenu: Settings closed")
+
+	if settings_menu and is_instance_valid(settings_menu):
 		settings_menu.hide()
 
-	if main_menu:
-		main_menu.show()
+	if settings_btn:
+		settings_btn.grab_focus()
 
 
 func _on_exit_pressed() -> void:
+	_cleanup_start_menu_ui()
 	get_tree().quit()
+
+
+func _exit_tree() -> void:
+	_cleanup_start_menu_ui()
+
+
+func _cleanup_start_menu_ui() -> void:
+	if _audio_overlay and is_instance_valid(_audio_overlay):
+		_audio_overlay.queue_free()
+		_audio_overlay = null
+
+	if settings_menu and is_instance_valid(settings_menu):
+		settings_menu.queue_free()
+
+	settings_menu = null
