@@ -114,9 +114,11 @@ var bankruptcy_popup: BankruptcyPopup = null
 
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 var settings_menu: Control = null
+var settings_menu_layer: CanvasLayer = null
 
 const PauseMenuScene = preload("res://scenes/PauseMenu.tscn")
 var pause_menu: Control = null
+var pause_menu_layer: CanvasLayer = null
 
 # Pending debt info while player is resolving bankruptcy
 var pending_debtor_index: int = -1
@@ -1303,26 +1305,34 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_pause"):
 		# If settings is open, close settings first and return to pause menu
 		if settings_menu and settings_menu.visible:
-			settings_menu.hide()
-			if pause_menu:
-				pause_menu.show()
+			if settings_menu.has_method("close_menu"):
+				settings_menu.close_menu()
+			else:
+				settings_menu.hide()
+				if pause_menu and pause_menu.has_method("show_menu_only"):
+					pause_menu.show_menu_only()
+
 			get_viewport().set_input_as_handled()
 			return
 
-		# Otherwise toggle pause menu
+		# Toggle pause using the REAL pause state, not visibility
 		if pause_menu:
-			pause_menu.set_paused(not pause_menu.visible)
+			var currently_paused: bool = pause_menu.is_game_paused() if pause_menu.has_method("is_game_paused") else get_tree().paused
+			pause_menu.set_paused(not currently_paused)
 			get_viewport().set_input_as_handled()
 			
+			
 func _setup_pause_menu() -> void:
-	var canvas_layer := CanvasLayer.new()
-	canvas_layer.name = "PauseMenuLayer"
-	canvas_layer.layer = 100
+	pause_menu_layer = CanvasLayer.new()
+	pause_menu_layer.name = "PauseMenuLayer"
+	pause_menu_layer.layer = 500
 
 	pause_menu = PauseMenuScene.instantiate()
-	canvas_layer.add_child(pause_menu)
+	pause_menu.name = "PauseMenu"
 
-	get_tree().root.call_deferred("add_child", canvas_layer)
+	pause_menu_layer.add_child(pause_menu)
+	get_tree().root.call_deferred("add_child", pause_menu_layer)
+
 	pause_menu.hide()
 
 	if pause_menu.has_signal("settings_requested"):
@@ -1331,21 +1341,29 @@ func _setup_pause_menu() -> void:
 	if pause_menu.has_signal("quit_requested"):
 		pause_menu.quit_requested.connect(_on_pause_quit_requested)
 		
+		
 func _on_pause_settings_requested() -> void:
+	if pause_menu:
+		pause_menu.hide_menu_only()
+
 	if settings_menu:
-		pause_menu.hide()
-		settings_menu.show()
+		if settings_menu.has_method("open"):
+			settings_menu.open()
+		else:
+			settings_menu.show()
 		
 		
 func _setup_settings_menu() -> void:
-	var canvas_layer := CanvasLayer.new()
-	canvas_layer.name = "SettingsMenuLayer"
-	canvas_layer.layer = 101
+	settings_menu_layer = CanvasLayer.new()
+	settings_menu_layer.name = "SettingsMenuLayer"
+	settings_menu_layer.layer = 501
 
 	settings_menu = SettingsMenuScene.instantiate()
-	canvas_layer.add_child(settings_menu)
+	settings_menu.name = "SettingsMenu"
 
-	get_tree().root.call_deferred("add_child", canvas_layer)
+	settings_menu_layer.add_child(settings_menu)
+	get_tree().root.call_deferred("add_child", settings_menu_layer)
+
 	settings_menu.hide()
 
 	if settings_menu.has_signal("closed"):
@@ -1356,16 +1374,24 @@ func _on_settings_closed() -> void:
 	if settings_menu:
 		settings_menu.hide()
 
-	if pause_menu:
-		pause_menu.show()
+	
+	if pause_menu and pause_menu.has_method("show_menu_only"):
+		pause_menu.show_menu_only()
 
 func _on_pause_quit_requested() -> void:
-	get_tree().paused = false
+	if pause_menu:
+		pause_menu.set_paused(false)
+
 	_cleanup_root_ui()
+	call_deferred("_go_to_start_menu")
+
+
+func _go_to_start_menu() -> void:
 	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
 
 
 func _cleanup_root_ui() -> void:
+	# Free CanvasLayers / root-level UI added by Board
 	var names_to_remove := [
 		"DiceRollLayer",
 		"MoneyHUDLayer",
@@ -1373,31 +1399,50 @@ func _cleanup_root_ui() -> void:
 		"PlayerPropertiesPreviewLayer",
 		"EndTurnButtonLayer",
 		"PauseMenuLayer",
-		"SettingsMenuLayer",
-		"BankruptcyPopup"
+		"SettingsMenuLayer"
 	]
 
 	for child in get_tree().root.get_children():
 		if child.name in names_to_remove:
 			child.queue_free()
 
+	# Free root-added popups/panels that are instantiated directly
 	if space_info_panel and is_instance_valid(space_info_panel):
 		space_info_panel.queue_free()
+		space_info_panel = null
 
 	if space_action_popup and is_instance_valid(space_action_popup):
 		space_action_popup.queue_free()
+		space_action_popup = null
 
 	if trade_popup and is_instance_valid(trade_popup):
 		trade_popup.queue_free()
+		trade_popup = null
 
 	if auction_popup and is_instance_valid(auction_popup):
 		auction_popup.queue_free()
+		auction_popup = null
 
 	if property_details_popup and is_instance_valid(property_details_popup):
 		property_details_popup.queue_free()
+		property_details_popup = null
+
+	if bankruptcy_popup and is_instance_valid(bankruptcy_popup):
+		bankruptcy_popup.queue_free()
+		bankruptcy_popup = null
 
 	if assets_popup and is_instance_valid(assets_popup):
 		assets_popup.queue_free()
+		assets_popup = null
+
+	# Optional: if settings menu layer exists but wasn't found by name for some reason
+	if pause_menu_layer and is_instance_valid(pause_menu_layer):
+		pause_menu_layer.queue_free()
+		pause_menu_layer = null
+
+	if settings_menu_layer and is_instance_valid(settings_menu_layer):
+		settings_menu_layer.queue_free()
+		settings_menu_layer = null
 		
 		
 		

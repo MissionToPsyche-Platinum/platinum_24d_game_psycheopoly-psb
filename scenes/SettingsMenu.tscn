@@ -95,6 +95,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 script = ExtResource("1_yelko")
 
 [node name="DimOverlay" type="ColorRect" parent="."]
@@ -105,7 +106,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 color = Color(0, 0, 0, 0.6039216)
 
 [node name="SettingsBackground" type="TextureRect" parent="."]
@@ -115,6 +115,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 texture = SubResource("GradientTexture2D_1yw23")
 
 [node name="Panel" type="PanelContainer" parent="."]
@@ -132,6 +133,7 @@ offset_right = 280.0
 offset_bottom = 234.5
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_8e5yf")
 
 [node name="Padding" type="MarginContainer" parent="Panel"]
@@ -180,24 +182,6 @@ popup/item_0/id = 0
 popup/item_1/text = "Normal"
 popup/item_1/id = 1
 popup/item_2/text = "Hard"
-popup/item_2/id = 2
-
-[node name="SpeedLabel" type="Label" parent="Panel/Padding/Content/GameplayGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Game Speed"
-
-[node name="SpeedOption" type="OptionButton" parent="Panel/Padding/Content/GameplayGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-selected = 1
-item_count = 3
-popup/item_0/text = "Slow"
-popup/item_0/id = 0
-popup/item_1/text = "Normal"
-popup/item_1/id = 1
-popup/item_2/text = "Fast"
 popup/item_2/id = 2
 
 [node name="AudioHeader" type="Label" parent="Panel/Padding/Content"]
@@ -282,20 +266,10 @@ text = "Accessibility"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="HighContrastCheck" type="CheckBox" parent="Panel/Padding/Content/AccessibilityBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "High Contrast Mode"
-
 [node name="ColorblindCheck" type="CheckBox" parent="Panel/Padding/Content/AccessibilityBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Colorblind-Friendly Mode"
-
-[node name="ReducedMotionCheck" type="CheckBox" parent="Panel/Padding/Content/AccessibilityBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Reduced Motion"
 
 [node name="CloseButton" type="Button" parent="Panel/Padding/Content"]
 unique_name_in_owner = true
