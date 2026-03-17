@@ -26,6 +26,10 @@ signal turn_ended(player_index: int)
 ## Emitted when a player rolls the dice
 signal player_rolled(player: PlayerState)
 
+## Emitted when a player goes to or leaves jail
+signal player_sent_to_jail(player_index: int)
+signal player_released_from_jail(player_index: int)
+
 ## Emitted when a player completes an action (purchase, pay, etc.)
 signal action_completed()
 
@@ -424,8 +428,27 @@ func _is_player_active(index: int) -> bool:
 		return true
 	return bool(GameState.player_active[index])
 
+func send_player_to_jail(player_index: int) -> void:
+	if not _is_valid_player_index(player_index):
+		return
+	
+	var player = GameState.players[player_index]
+	player.is_in_jail = true
+	player.turns_in_jail = 0
+	player.doubles_count = 0
+	player.has_rolled = true
+	
+	emit_signal("player_sent_to_jail", player_index)
 
-
+func release_player_from_jail(player_index: int) -> void:
+	if not _is_valid_player_index(player_index):
+		return
+		
+	var player = GameState.players[player_index]
+	player.is_in_jail = false
+	player.turns_in_jail = 0
+	
+	emit_signal("player_released_from_jail", player_index)
 
 func end_turn() -> void:
 	var current_player = get_current_player()

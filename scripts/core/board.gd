@@ -112,6 +112,10 @@ var auction_popup: CanvasLayer = null
 const BankruptcyPopupScene = preload("res://scenes/BankruptcyPopup.tscn")
 var bankruptcy_popup: BankruptcyPopup = null
 
+const JailPopupScene = preload("res://scenes/JailPopup.tscn")
+var jail_popup: Control = null
+var jail_popup_layer: CanvasLayer = null
+
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 var settings_menu: Control = null
 var settings_menu_layer: CanvasLayer = null
@@ -202,6 +206,7 @@ func _ready() -> void:
 	_setup_card_movement()
 
 	call_deferred("_setup_bankruptcy_popup_async")
+	_setup_jail_popup()
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -248,11 +253,19 @@ func _setup_dice_roll_ui() -> void:
 
 	# Connect the dice_rolled signal to move the piece
 	dice_roll_ui.dice_rolled.connect(_on_dice_rolled)
-	
+
 	dice_roll_ui.doubles_rolled.connect(_on_doubles_rolled)
 
-func _setup_money_hud() -> void:
-	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
+func _setup_jail_popup() -> void:
+	jail_popup_layer = CanvasLayer.new()
+	jail_popup_layer.name = "JailPopupLayer"
+	jail_popup_layer.layer = 50 # High priority
+
+	jail_popup = JailPopupScene.instantiate()
+	jail_popup_layer.add_child(jail_popup)
+	get_tree().root.call_deferred("add_child", jail_popup_layer)
+
+func _setup_money_hud() -> void:	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
 	var canvas_layer = CanvasLayer.new()
 	canvas_layer.name = "MoneyHUDLayer"
 	canvas_layer.layer = 9 # Just below dice UI layer
@@ -462,6 +475,12 @@ func _on_turn_started(player_index: int) -> void:
 
 	if space_info_panel:
 		space_info_panel.update_space_display(current_piece.board_space)
+		
+	var current_player := GameController.get_current_player()
+	if current_player and current_player.is_in_jail:
+		current_player.has_rolled = true # Disable regular rolling temporarily
+		if jail_popup and jail_popup.has_method("show_for_player"):
+			jail_popup.show_for_player(player_index)
 
 
 func _on_turn_ended(player_index: int) -> void:
@@ -623,6 +642,7 @@ func _on_move_pressed(space_num: int) -> void:
 			# Update both spaces
 			update_piece_layouts_at(old_space)
 			update_piece_layouts_at(10)
+		GameController.send_player_to_jail(GameState.current_player_index)
 	GameController.action_completed.emit()
 
 
@@ -878,13 +898,6 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 	# Store last roll (useful for rent/cost math)
 	GameState.last_roll = total
 
-	# Move the piece
-	var old_space: int = int(current_piece.board_space)
-	current_piece.move_forward(total)
-
-	# Re-layout pieces on the space we left so stacks look correct
-	update_piece_layouts_at(old_space)
-
 	print("Dice rolled: %d + %d = %d%s" % [
 		d1,
 		d2,
@@ -892,18 +905,75 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		" (Doubles!)" if is_doubles else ""
 	])
 
-	# Mark roll state on the player model
 	var current_player := GameController.get_current_player()
+	
 	if current_player:
+		if current_player.is_in_jail:
+			_handle_jail_roll(current_player, total, is_doubles)
+			return
+			
 		current_player.has_rolled = true
 		current_player.last_roll_was_doubles = is_doubles
+		
+		if is_doubles:
+			current_player.doubles_count += 1
+			if current_player.doubles_count == 3:
+				print("Rolled 3 doubles! Go to jail.")
+				GameController.send_player_to_jail(GameState.current_player_index)
+				_card_teleport_movement(10) # Jail space
+				GameController.emit_signal("player_rolled", current_player)
+				GameController.action_completed.emit()
+				# Do NOT move the piece normally, return early
+				return
+		else:
+			current_player.doubles_count = 0
 
+	# Move the piece
+	var old_space: int = int(current_piece.board_space)
+	current_piece.move_forward(total)
+
+	# Re-layout pieces on the space we left so stacks look correct
+	update_piece_layouts_at(old_space)
+
+	if current_player:
+		GameController.emit_signal("player_rolled", current_player)
+
+func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> void:
+	player.turns_in_jail += 1
+	player.has_rolled = true
+	# Doubles out of jail do not grant an extra turn, so we reset flags
+	player.last_roll_was_doubles = false
+	player.doubles_count = 0
+	
 	if is_doubles:
-		current_player.doubles_count += 1
+		print("Rolled doubles! Escaped jail.")
+		GameController.release_player_from_jail(GameState.current_player_index)
+		# Move the rolled amount
+		var old_space: int = int(current_piece.board_space)
+		current_piece.move_forward(total)
+		update_piece_layouts_at(old_space)
 	else:
-		current_player.doubles_count = 0
+		if player.turns_in_jail == 3:
+			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
+			# Try to pay 50. If they can't, they go bankrupt, but we'll try our best.
+			# Using debit which handles emitting signals but doesn't auto-bankrupt yet in standard flow unless handled by action.
+			# But actually if they can't pay, they should go bankrupt.
+			if GameController.get_player_balance(GameState.current_player_index) < 50:
+				GameController.emit_signal("bankruptcy_needed", GameState.current_player_index, -1, 50, "Launch Permit")
+				# They still get released and move assuming they resolve bankruptcy, but let's release them anyway
+			else:
+				GameController.debit(GameState.current_player_index, 50, "Launch Permit")
+			
+			GameController.release_player_from_jail(GameState.current_player_index)
+			var old_space: int = int(current_piece.board_space)
+			current_piece.move_forward(total)
+			update_piece_layouts_at(old_space)
+		else:
+			print("Did not roll doubles. Stay in jail.")
+			# Don't move, turn effectively over. Need to simulate action completed so End Turn button enables.
+			GameController.action_completed.emit()
 
-	GameController.emit_signal("player_rolled", current_player)
+	GameController.emit_signal("player_rolled", player)
 
 
 func _card_forward_movement(move_spaces: int) -> void:

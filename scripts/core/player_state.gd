@@ -22,6 +22,10 @@ var has_rolled: bool = false
 var doubles_count: int = 0
 var last_roll_was_doubles: bool = false
 
+# Jail state
+var is_in_jail: bool = false
+var turns_in_jail: int = 0
+
 # Upgrade Counter
 var total_data_points: int = 0
 var total_discoveries: int = 0

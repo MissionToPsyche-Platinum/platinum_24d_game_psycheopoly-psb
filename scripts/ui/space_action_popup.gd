@@ -118,6 +118,7 @@ func show_actions(space_num: int) -> void:
 			description = space_info.description if space_info.has("description") else "Welcome to %s." % space_info.name
 			# Check for Solar Storm specifically
 			if current_space_num == 30:
+				description = "Solar Storm! Go directly to Launch Pad. Do not pass Go."
 				can_move = true
 		"reward":
 			description = "You have earned $%d." % space_info.get("amount", 0)
