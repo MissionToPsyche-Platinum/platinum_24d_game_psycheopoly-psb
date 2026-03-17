@@ -5,9 +5,9 @@ uniform float star_density : hint_range(0.0, 1.0) = 0.01;
 uniform float pixel_size : hint_range(1.0, 10.0) = 2.0;
 
 float hash(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
+    vec3 p3  = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
 }
 
 void fragment() {
