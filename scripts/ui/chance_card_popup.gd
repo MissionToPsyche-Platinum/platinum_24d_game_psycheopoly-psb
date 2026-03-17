@@ -3,7 +3,8 @@ extends CanvasLayer
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
 
 #Reference for Card Information
-@onready var card_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardType
+@onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
+@onready var card_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/CardType
 @onready var card_description: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardInfoContainer/CardDescription
 @onready var card_effect: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer/Effect
 @onready var card_effect_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer/EffectValue
@@ -57,6 +58,7 @@ func show_card_details(space_num: int) -> void:
 	match card_info.type:
 		"Metal":
 			card_type.text = "METAL CARD"
+			color_bar.color = Color.LIGHT_BLUE
 			if current_card == 14:
 				var pay_opponents = (GameState.player_count - 1) * 50
 				card_effect_value.text = str(pay_opponents)
@@ -77,6 +79,7 @@ func show_card_details(space_num: int) -> void:
 				card_effect_value.text = str(card_info.value)
 		"Silicate":
 			card_type.text = "SILICATE CARD"
+			color_bar.color = Color.ORANGE
 			card_effect_value.text = card_info.value
 
 	

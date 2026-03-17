@@ -70,13 +70,25 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="CardType" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+[node name="ColorBar" type="ColorRect" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_fonts/font = ExtResource("2_k0jgk")
+color = Color(0.4, 0.7, 1, 1)
+
+[node name="CardType" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+theme_override_fonts/font = ExtResource("3_rlfmp")
 theme_override_font_sizes/font_size = 16
 text = "Card Type"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="HSeparator3" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
 layout_mode = 2
