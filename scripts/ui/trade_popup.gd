@@ -155,7 +155,6 @@ func _refresh_space_lists() -> void:
 
 func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> void:
 	var info := SpaceData.get_space_info(space_index)
-	var item_label := _build_space_label(space_index)
 	var item_icon := _get_or_create_color_icon(info, space_index)
 	var tree_item := list_node.create_item(root_item)
 	tree_item.set_cell_mode(CHECKBOX_COLUMN, TreeItem.CELL_MODE_CHECK)
@@ -164,8 +163,18 @@ func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> 
 	tree_item.set_selectable(CHECKBOX_COLUMN, false)
 	tree_item.set_custom_bg_color(CHECKBOX_COLUMN, CHECKBOX_BG_COLOR)
 
+	var is_mortgaged := space_index < GameState.board.size() \
+		and GameState.board[space_index] is Ownable \
+		and (GameState.board[space_index] as Ownable)._is_mortgaged
+
+	var item_label := _build_space_label(space_index)
+	if is_mortgaged:
+		item_label += " [MORTGAGED]"
+
 	tree_item.set_icon(PROPERTY_COLUMN, item_icon)
 	tree_item.set_text(PROPERTY_COLUMN, item_label)
+	if is_mortgaged:
+		tree_item.set_custom_color(PROPERTY_COLUMN, Color(0.9, 0.2, 0.2, 1))
 	tree_item.set_selectable(PROPERTY_COLUMN, true)
 	tree_item.set_metadata(PROPERTY_COLUMN, space_index)
 	tree_item.set_text(DETAILS_COLUMN, "...")
@@ -305,17 +314,21 @@ func _format_space_summary(space_indexes: Array) -> String:
 		var space_index := int(space_index_variant)
 		var info := SpaceData.get_space_info(space_index)
 		var space_name := str(info.get("name", "Space " + str(space_index)))
+		var is_mortgaged := space_index < GameState.board.size() \
+			and GameState.board[space_index] is Ownable \
+			and (GameState.board[space_index] as Ownable)._is_mortgaged
+		var mortgaged_tag := " [color=#e03333][MORTGAGED][/color]" if is_mortgaged else ""
 
 		if SettingsManager.is_colorblind_enabled():
 			var symbol_text := ColorblindHelpers.get_symbol_text_for_space(space_index)
 			if symbol_text != "":
-				entries.append("%s %s" % [symbol_text, space_name])
+				entries.append("%s %s%s" % [symbol_text, space_name, mortgaged_tag])
 			else:
-				entries.append(space_name)
+				entries.append(space_name + mortgaged_tag)
 		else:
 			var color: Color = info.get("color", Color(0.7, 0.7, 0.7, 1.0))
 			var color_hex := color.to_html(false)
-			entries.append("[color=#%s]%s[/color]" % [color_hex, space_name])
+			entries.append("[color=#%s]%s[/color]%s" % [color_hex, space_name, mortgaged_tag])
 
 	return ", ".join(entries)
 

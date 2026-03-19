@@ -6,6 +6,8 @@ extends CanvasLayer
 ## - Clicking it emits trade_sell_requested(space_index)
 
 signal trade_sell_requested(space_index: int)
+signal mortgage_requested(space_index: int)
+signal unmortgage_requested(space_index: int)
 
 const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup.tscn")
 
@@ -34,6 +36,9 @@ func _ready() -> void:
 		prev_button.pressed.connect(_on_prev_pressed)
 	if next_button:
 		next_button.pressed.connect(_on_next_pressed)
+
+	GameController.property_ownership_changed.connect(_on_property_ownership_changed)
+	GameController.player_money_updated.connect(_on_player_money_updated)
 
 
 func show_popup() -> void:
@@ -217,11 +222,22 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", 2)
 
+	var is_mortgaged := (prop.space is Ownable) and (prop.space as Ownable)._is_mortgaged
+
 	var name_label := Label.new()
 	name_label.text = str(prop.name)
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
 	name_label.add_theme_font_size_override("font_size", 14)
 	vbox.add_child(name_label)
+
+	if is_mortgaged:
+		var mortgaged_label := Label.new()
+		mortgaged_label.text = "[MORTGAGED]"
+		mortgaged_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+		mortgaged_label.add_theme_font_size_override("font_size", 11)
+		mortgaged_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2, 1))
+		vbox.add_child(mortgaged_label)
 
 	var details_label := Label.new()
 	var type_name := _get_type_display_name(str(prop.type))
@@ -233,8 +249,8 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 
 	hbox.add_child(vbox)
 
-	# Rent label for properties
-	if str(prop.type) == "property" and prop.has("rent"):
+	# Rent label for properties (hidden when mortgaged — no rent is collected)
+	if str(prop.type) == "property" and prop.has("rent") and not is_mortgaged:
 		var rent_label := Label.new()
 		rent_label.text = "Rent: $%d" % int(prop.rent)
 		rent_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8.ttf"))
@@ -253,9 +269,41 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 		trade_btn.focus_mode = Control.FOCUS_NONE
 		trade_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		trade_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-
 		trade_btn.pressed.connect(_on_trade_sell_pressed.bind(space_index))
 		hbox.add_child(trade_btn)
+
+	# Mortgage/unmortgage button — shown when it's the current player's turn in normal mode
+	var is_player_turn := not _bankruptcy_mode and _current_player_index == GameState.current_player_index
+	if is_player_turn and prop.space is Ownable:
+		var ownable := prop.space as Ownable
+		if ownable._is_mortgaged:
+			var unmortgage_btn := Button.new()
+			unmortgage_btn.text = "Unmortgage"
+			unmortgage_btn.custom_minimum_size = Vector2(90, 24)
+			unmortgage_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+			unmortgage_btn.add_theme_font_size_override("font_size", 10)
+			unmortgage_btn.flat = false
+			unmortgage_btn.focus_mode = Control.FOCUS_NONE
+			unmortgage_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+			unmortgage_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			unmortgage_btn.disabled = not GameController.check_unmortgage_valid(ownable, _current_player_index)
+			unmortgage_btn.tooltip_text = "$%d (mortgage + 10%%)" % GameController.get_unmortgage_cost(ownable)
+			unmortgage_btn.pressed.connect(_on_unmortgage_pressed.bind(space_index))
+			hbox.add_child(unmortgage_btn)
+		else:
+			var mortgage_btn := Button.new()
+			mortgage_btn.text = "Mortgage"
+			mortgage_btn.custom_minimum_size = Vector2(90, 24)
+			mortgage_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+			mortgage_btn.add_theme_font_size_override("font_size", 10)
+			mortgage_btn.flat = false
+			mortgage_btn.focus_mode = Control.FOCUS_NONE
+			mortgage_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+			mortgage_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			mortgage_btn.disabled = not GameController.check_mortgage_valid(ownable, _current_player_index)
+			mortgage_btn.tooltip_text = "Receive $%d" % GameController.get_mortgage_value(ownable)
+			mortgage_btn.pressed.connect(_on_mortgage_pressed.bind(space_index))
+			hbox.add_child(mortgage_btn)
 
 	# Details button
 	var details_btn := Button.new()
@@ -326,3 +374,25 @@ func _on_prev_pressed() -> void:
 
 func _on_next_pressed() -> void:
 	_show_player_by_index(_current_player_index + 1)
+
+
+func _on_property_ownership_changed() -> void:
+	if visible:
+		_show_player_by_index(_current_player_index)
+
+
+func _on_player_money_updated(_player) -> void:
+	if visible:
+		_show_player_by_index(_current_player_index)
+
+
+func _on_mortgage_pressed(space_index: int) -> void:
+	var space = GameState.board[space_index]
+	if space is Ownable:
+		GameController.mortgage_property.emit(space, _current_player_index)
+
+
+func _on_unmortgage_pressed(space_index: int) -> void:
+	var space = GameState.board[space_index]
+	if space is Ownable:
+		GameController.unmortgage_property.emit(space, _current_player_index)

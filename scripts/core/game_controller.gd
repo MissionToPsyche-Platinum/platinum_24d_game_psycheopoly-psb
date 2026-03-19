@@ -53,6 +53,8 @@ signal pay_rent(property, player)
 signal purchase_property(property, player)
 signal upgrade_property(property, player)
 signal downgrade_property(property, player)
+signal mortgage_property(property, player)
+signal unmortgage_property(property, player)
 
 # Other signals
 signal difficulty_changed(new_value: String)
@@ -65,6 +67,8 @@ func _ready() -> void:
 	purchase_property.connect(_purchase_property)
 	upgrade_property.connect(_upgrade_property)
 	downgrade_property.connect(_downgrade_property)
+	mortgage_property.connect(_mortgage_property)
+	unmortgage_property.connect(_unmortgage_property)
 
 
 func debit(player_index: int, amount: int, reason: String = "") -> void:
@@ -224,6 +228,8 @@ func _check_if_upgrade_is_valid(property: PropertySpace, player: int) -> bool:
 			upgrade_valid = false
 		elif (property._current_upgrades > property_set[i]._current_upgrades):
 			upgrade_valid = false
+		elif property_set[i]._is_mortgaged:
+			upgrade_valid = false
 	if (property._current_upgrades > 4):
 		upgrade_valid = false
 	if (property._upgrade_cost > GameState.players[player].balance):
@@ -282,6 +288,79 @@ func _downgrade_property(property: PropertySpace, player: int) -> void:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
 
+## Returns the mortgage value for any Ownable subtype
+func _get_mortgage_value(property: Ownable) -> int:
+	if property is PropertySpace:
+		return (property as PropertySpace)._mortgage_value
+	elif property is InstrumentSpace:
+		return (property as InstrumentSpace)._mortgage_value
+	elif property is PlanetSpace:
+		return (property as PlanetSpace)._mortgage_value
+	return 0
+
+
+## Returns the cost to unmortgage a property (mortgage value + 10% interest, rounded up)
+func _get_unmortgage_cost(property: Ownable) -> int:
+	return int(ceil(_get_mortgage_value(property) * 1.1))
+
+
+func _check_if_mortgage_is_valid(property: Ownable, player: int) -> bool:
+	if not property._is_owned or property._player_owner != player:
+		return false
+	if property._is_mortgaged:
+		return false
+	# PropertySpace: no upgrades allowed on any set member
+	if property is PropertySpace:
+		for set_property in _get_property_set(property as PropertySpace):
+			if set_property._current_upgrades > 0:
+				return false
+	return true
+
+
+func _check_if_unmortgage_is_valid(property: Ownable, player: int) -> bool:
+	if not property._is_owned or property._player_owner != player:
+		return false
+	if not property._is_mortgaged:
+		return false
+	return get_player_balance(player) >= _get_unmortgage_cost(property)
+
+
+## Public accessors for UI validation
+func check_mortgage_valid(property: Ownable, player: int) -> bool:
+	return _check_if_mortgage_is_valid(property, player)
+
+func check_unmortgage_valid(property: Ownable, player: int) -> bool:
+	return _check_if_unmortgage_is_valid(property, player)
+
+func get_mortgage_value(property: Ownable) -> int:
+	return _get_mortgage_value(property)
+
+func get_unmortgage_cost(property: Ownable) -> int:
+	return _get_unmortgage_cost(property)
+
+
+func _mortgage_property(property: Ownable, player: int) -> void:
+	if not _check_if_mortgage_is_valid(property, player):
+		print("Mortgage invalid")
+		return
+	var value := _get_mortgage_value(property)
+	credit(player, value, "mortgage")
+	property._is_mortgaged = true
+	property_ownership_changed.emit()
+	print("Player ", GameState.players[player].player_name, " mortgaged a property for $", value)
+
+
+func _unmortgage_property(property: Ownable, player: int) -> void:
+	if not _check_if_unmortgage_is_valid(property, player):
+		print("Unmortgage invalid")
+		return
+	var cost := _get_unmortgage_cost(property)
+	debit(player, cost, "unmortgage")
+	property._is_mortgaged = false
+	property_ownership_changed.emit()
+	print("Player ", GameState.players[player].player_name, " unmortgaged a property for $", cost)
+
+
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
 	property.set_property_owner(player)
@@ -320,6 +399,9 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 
 func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
+		return
+	# Mortgaged properties collect no rent
+	if property._is_mortgaged:
 		return
 
 	var owner: int = int(property._player_owner)
