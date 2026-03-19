@@ -25,6 +25,7 @@ const ColorblindHelpers = preload("res://scripts/ui/colorblind_helpers.gd")
 var _offering_player: int = -1
 var _pending_offer: Dictionary = {}
 var _color_icon_cache: Dictionary = {}
+var _in_review_mode: bool = false
 
 const CHECKBOX_COLUMN := 0
 const PROPERTY_COLUMN := 1
@@ -50,6 +51,10 @@ func _ready() -> void:
 	accept_button.pressed.connect(_on_accept_pressed)
 	offered_list.gui_input.connect(_on_tree_gui_input.bind(offered_list))
 	requested_list.gui_input.connect(_on_tree_gui_input.bind(requested_list))
+	offered_list.item_edited.connect(_update_review_if_active)
+	requested_list.item_edited.connect(_update_review_if_active)
+	offer_cash_spin.value_changed.connect(_on_offer_value_changed)
+	request_cash_spin.value_changed.connect(_on_offer_value_changed)
 
 	_configure_property_tree(offered_list)
 	_configure_property_tree(requested_list)
@@ -93,16 +98,29 @@ func hide_popup() -> void:
 
 
 func _set_compose_mode() -> void:
+	_in_review_mode = false
 	compose_buttons.visible = true
 	review_box.visible = false
 	title_label.text = "Create Trade Offer"
 
 
 func _set_review_mode(summary: String) -> void:
+	_in_review_mode = true
 	compose_buttons.visible = false
 	review_box.visible = true
 	title_label.text = "Trade Review"
 	review_label.text = summary
+
+
+func _update_review_if_active() -> void:
+	if not _in_review_mode:
+		return
+	_pending_offer = _build_offer_from_ui()
+	review_label.text = _summarize_trade_offer(_pending_offer)
+
+
+func _on_offer_value_changed(_value: float) -> void:
+	_update_review_if_active()
 
 
 func _refresh_target_options() -> void:
@@ -253,6 +271,7 @@ func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
 		# Let's try manually toggling only if it's NOT the checkbox column.
 		if clicked_column != CHECKBOX_COLUMN:
 			clicked_item.set_checked(CHECKBOX_COLUMN, not clicked_item.is_checked(CHECKBOX_COLUMN))
+		_update_review_if_active()
 
 
 
