@@ -1,0 +1,134 @@
+[gd_scene load_steps=4 format=3 uid="uid://cykondp5io7v6"]
+
+[ext_resource type="Script" uid="uid://dvk64dvwn4wos" path="res://scripts/ui/credits_menu.gd" id="1_04pys"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_04pys"]
+bg_color = Color(0.09411765, 0.07450981, 0.12156863, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_18siu"]
+bg_color = Color(0.82808334, 0.34980312, 0.40466648, 1)
+
+[node name="CreditsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_04pys")
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7490196)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(900, 700)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_04pys")
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Credits & Acknowledgements"
+horizontal_alignment = 1
+
+[node name="CreditsScroll" type="ScrollContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/CreditsScroll"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="CreditsContent" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/CreditsScroll/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CreditsText" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/CreditsScroll/MarginContainer/CreditsContent"]
+custom_minimum_size = Vector2(800, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91764706, 0.91764706, 0.91764706, 1)
+text = "Acquiring Asteroids 
+
+Development Team :
+
+- Jason Baris : Developer , Game Logic and  Mechanics
+
+- Chris Buckley :  Developer, UI Designer
+
+- John Fugate : Developer , Backend Logic and AI
+
+- Giovanni Zarillo : Developer, Game logic and Mechanics
+
+
+Project Inspiration & Sponsorship
+
+Inspired by the original Psyche-opoly board game created through the
+Psyche Capstone program at Arizona State University, sponsored by
+NASA’s Psyche mission.
+
+
+Tools & Technologies
+
+- Godot Engine
+- GDScript
+- Git / GitHub
+-Libresprite
+
+
+Special Thanks :
+
+Special thanks to our instructors, teammates, and the original
+Psyche Capstone project for the inspiration behind this digital adaptation.
+
+
+Academic Acknowledgement & Disclaimer :
+
+This work was created in partial fulfillment of Penn State University
+Capstone Course SWENG 480 / SWENG 481.
+
+This project is part of the Psyche Student Collaborations component
+of NASA’s Psyche Mission.
+
+“Psyche: A Journey to a Metal World” [Contract number NNM16AA09C]
+is part of NASA’s Discovery Program mission to solar system targets.
+
+Trade names and trademarks of ASU and NASA are used in this work
+for identification only and do not constitute an official endorsement,
+expressed or implied, by Arizona State University or NASA.
+
+The content is solely the responsibility of the authors and does not
+necessarily represent the official views of ASU or NASA."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="CloseButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_18siu")
+text = "Close"

@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://bmvl3imlm0w2"]
+[gd_scene load_steps=21 format=3 uid="uid://bmvl3imlm0w2"]
 
 [ext_resource type="Script" uid="uid://3mudijjy20c6" path="res://scripts/ui/start_menu.gd" id="1_bx376"]
 [ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/Background.tscn" id="2_j6af4"]
@@ -57,7 +57,7 @@ border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.7882353, 0.2901961, 0.3529412, 1)
+border_color = Color(0.78431374, 0.21176471, 0.32941177, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -95,17 +95,17 @@ expand_margin_top = 10.0
 expand_margin_right = 10.0
 expand_margin_bottom = 10.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fgoeh"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sf8pk"]
 content_margin_left = 18.0
 content_margin_top = 10.0
 content_margin_right = 18.0
 content_margin_bottom = 10.0
-bg_color = Color(0.35686275, 0.13725491, 0.2784314, 1)
+bg_color = Color(0.3370865, 0.0413595, 0.40284967, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.5568628, 0.2901961, 0.41960785, 1)
+border_color = Color(0.78622055, 0.21321025, 0.3288807, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -139,6 +139,22 @@ expand_margin_top = 10.0
 expand_margin_right = 10.0
 expand_margin_bottom = 10.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fgoeh"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.4204057, 0.08326123, 0.19223836, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.78622055, 0.21321025, 0.3288807, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bx376"]
 content_margin_left = 18.0
 content_margin_top = 10.0
@@ -149,7 +165,7 @@ border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.35686275, 0.13725491, 0.2784314, 1)
+border_color = Color(0.78431374, 0.21176471, 0.32941177, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -352,10 +368,23 @@ theme_override_colors/font_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
 theme_override_colors/font_pressed_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("StyleBoxFlat_fgoeh")
+theme_override_styles/normal = SubResource("StyleBoxFlat_sf8pk")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_aso40")
 theme_override_styles/hover = SubResource("StyleBoxFlat_kcs48")
 text = "Settings"
+
+[node name="Credits" type="Button" parent="CenterBox/Menu"]
+custom_minimum_size = Vector2(260, 52)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
+theme_override_colors/font_pressed_color = Color(0.9490196, 0.9137255, 0.9254902, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_fgoeh")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_aso40")
+theme_override_styles/hover = SubResource("StyleBoxFlat_kcs48")
+text = "Credits"
 
 [node name="Exit" type="Button" parent="CenterBox/Menu"]
 custom_minimum_size = Vector2(260, 52)
