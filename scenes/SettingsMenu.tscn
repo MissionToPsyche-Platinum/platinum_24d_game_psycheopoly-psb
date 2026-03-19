@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://byeqtctiiqjkl"]
+[gd_scene load_steps=12 format=3 uid="uid://byeqtctiiqjkl"]
 
 [ext_resource type="Script" uid="uid://cf7wevrjmhi8t" path="res://scripts/ui/settings_menu.gd" id="1_yelko"]
 
@@ -87,6 +87,9 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nuakw"]
+bg_color = Color(0.78431374, 0.21176471, 0.32941177, 1)
 
 [node name="SettingsMenu" type="Control"]
 layout_mode = 3
@@ -274,4 +277,5 @@ text = "Colorblind-Friendly Mode"
 [node name="CloseButton" type="Button" parent="Panel/Padding/Content"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_nuakw")
 text = "Close"

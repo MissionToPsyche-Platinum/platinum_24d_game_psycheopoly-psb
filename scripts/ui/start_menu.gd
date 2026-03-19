@@ -2,12 +2,17 @@ extends Control
 
 @onready var start_btn: Button = $CenterBox/Menu/Start
 @onready var settings_btn: Button = $CenterBox/Menu/Settings
+@onready var credits_btn: Button = $CenterBox/Menu/Credits
 @onready var exit_btn: Button = $CenterBox/Menu/Exit
 @onready var main_menu: Control = $CenterBox
 
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 
+const CreditsMenuScene = preload("res://scenes/CreditsMenu.tscn")
+
 var settings_menu: Control = null
+
+var credits_menu: Control = null
 
 var _audio_overlay: Button = null
 var _audio_unlocked: bool = false
@@ -21,6 +26,8 @@ func _ready() -> void:
 
 	# Build SettingsMenu after the tree is stable
 	call_deferred("_setup_settings_menu")
+	
+	call_deferred("_setup_credits_menu")
 
 	# Start menu music
 	AudioManager.play_music("menu", MENU_MUSIC_DB, 0.0)
@@ -39,6 +46,9 @@ func _connect_signals() -> void:
 
 	if not exit_btn.pressed.is_connected(_on_exit_pressed):
 		exit_btn.pressed.connect(_on_exit_pressed)
+		
+	if not credits_btn.pressed.is_connected(_on_credits_pressed):
+		credits_btn.pressed.connect(_on_credits_pressed)
 
 
 func _setup_settings_menu() -> void:
@@ -181,4 +191,67 @@ func _cleanup_start_menu_ui() -> void:
 	if settings_menu and is_instance_valid(settings_menu):
 		settings_menu.queue_free()
 
+	if credits_menu and is_instance_valid(credits_menu):
+		credits_menu.queue_free()
+
 	settings_menu = null
+	credits_menu = null
+
+func _setup_credits_menu() -> void:
+	# Prevent duplicates
+	if credits_menu and is_instance_valid(credits_menu):
+		return
+
+	credits_menu = CreditsMenuScene.instantiate()
+	credits_menu.name = "CreditsMenu"
+
+	add_child(credits_menu)
+
+	# Let CreditsMenu finish _ready()
+	await get_tree().process_frame
+
+	if credits_menu and is_instance_valid(credits_menu):
+		credits_menu.hide()
+
+		if credits_menu.has_signal("closed") and not credits_menu.closed.is_connected(_on_credits_closed):
+			credits_menu.closed.connect(_on_credits_closed)
+
+	print("StartMenu: CreditsMenu created =", credits_menu != null)
+	
+
+func _on_credits_pressed() -> void:
+	print("StartMenu: Credits button pressed")
+
+	# If web overlay is still up, remove it so it can't block the credits menu
+	if _audio_overlay and is_instance_valid(_audio_overlay):
+		_audio_overlay.queue_free()
+		_audio_overlay = null
+
+	# Rebuild if missing for any reason
+	if credits_menu == null or not is_instance_valid(credits_menu):
+		print("StartMenu: CreditsMenu missing, rebuilding...")
+		await _setup_credits_menu()
+
+	if credits_menu and is_instance_valid(credits_menu):
+		print("StartMenu: Opening CreditsMenu...")
+		print("Before open visible =", credits_menu.visible)
+
+		if credits_menu.has_method("open"):
+			credits_menu.call("open")
+		else:
+			credits_menu.show()
+			credits_menu.move_to_front()
+
+		print("After open visible =", credits_menu.visible)
+	else:
+		print("StartMenu ERROR: CreditsMenu still invalid")
+
+
+func _on_credits_closed() -> void:
+	print("StartMenu: Credits closed")
+
+	if credits_menu and is_instance_valid(credits_menu):
+		credits_menu.hide()
+
+	if credits_btn:
+		credits_btn.grab_focus()
