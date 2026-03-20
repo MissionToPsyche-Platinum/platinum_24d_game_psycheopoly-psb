@@ -38,6 +38,7 @@ func _ready() -> void:
 		next_button.pressed.connect(_on_next_pressed)
 
 	GameController.property_ownership_changed.connect(_on_property_ownership_changed)
+	GameController.property_upgraded.connect(_on_property_ownership_changed)
 	GameController.player_money_updated.connect(_on_player_money_updated)
 
 
@@ -105,13 +106,22 @@ func _show_player_by_index(player_index: int) -> void:
 					var price := int(space_info.get("price", 0))
 					total_value += price
 
+					var current_rent := int(space_info.get("rent", 0))
+					if space is PropertySpace:
+						match (space as PropertySpace)._current_upgrades:
+							1: current_rent = int(space_info.get("rent1data", 0))
+							2: current_rent = int(space_info.get("rent2data", 0))
+							3: current_rent = int(space_info.get("rent3data", 0))
+							4: current_rent = int(space_info.get("rent4data", 0))
+							5: current_rent = int(space_info.get("rentDiscovery", 0))
+
 					owned_properties.append({
 						"space_index": i,
 						"name": space_info.get("name", "Unknown"),
 						"color": space_info.get("color", Color.WHITE),
 						"type": space_info.get("type", "property"),
 						"price": price,
-						"rent": int(space_info.get("rent", 0)),
+						"rent": current_rent,
 						"space": space
 					})
 

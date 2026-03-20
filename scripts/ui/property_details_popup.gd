@@ -105,8 +105,18 @@ func show_space_details(space_num: int, owner_name: String = "Unowned", owner_co
 func _show_property_details(space_info: Dictionary) -> void:
 	details_container.visible = true
 	
+	var is_mortgaged := current_space >= 0 \
+		and current_space < GameState.board.size() \
+		and GameState.board[current_space] is Ownable \
+		and (GameState.board[current_space] as Ownable)._is_mortgaged
+
 	# Calculate rent values (typical Monopoly progression)
-	rent_value.text = "$" + str(space_info.rent)
+	if is_mortgaged:
+		rent_value.text = "$0"
+		rent_value.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2, 1))
+	else:
+		rent_value.text = "$" + str(space_info.rent)
+		rent_value.remove_theme_color_override("font_color")
 	rent1_value.text = "$" + str(space_info.rent1data)
 	rent2_value.text = "$" + str(space_info.rent2data)
 	rent3_value.text = "$" + str(space_info.rent3data)
@@ -133,6 +143,26 @@ func _show_property_details(space_info: Dictionary) -> void:
 		
 		# Discovery cost is the data point cost plus 4 data points
 		discovery_cost.text = " $" + str(dp_cost) + " plus 4 Data Pts"
+
+	# Bold the row matching the current upgrade level; regular for all others
+	var upgrades := 0
+	if current_space >= 0 and current_space < GameState.board.size():
+		var space = GameState.board[current_space]
+		if space is PropertySpace:
+			upgrades = (space as PropertySpace)._current_upgrades
+	_set_rent_row_bold(rent_value.get_parent(), upgrades == 0)
+	_set_rent_row_bold(rent1_container, upgrades == 1)
+	_set_rent_row_bold(rent2_container, upgrades == 2)
+	_set_rent_row_bold(rent3_container, upgrades == 3)
+	_set_rent_row_bold(rent4_container, upgrades == 4)
+	_set_rent_row_bold(rent_full_container, upgrades == 5)
+
+
+func _set_rent_row_bold(container: Control, bold: bool) -> void:
+	var font: Font = load("res://assets/fonts/PixelOperator8-Bold.ttf" if bold else "res://assets/fonts/PixelOperator8.ttf")
+	for child in container.get_children():
+		if child is Label:
+			child.add_theme_font_override("font", font)
 
 
 # Display instrument (railroad equivalent) details

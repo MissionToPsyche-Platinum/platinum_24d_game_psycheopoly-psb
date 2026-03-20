@@ -36,6 +36,9 @@ signal action_completed()
 ## Emitted when property ownership changes
 signal property_ownership_changed()
 
+## Emitted when a property is upgraded or downgraded
+signal property_upgraded()
+
 ## Emitted when a player cannot afford a required payment (rent/cost/etc.)
 signal bankruptcy_needed(debtor_index: int, creditor_index: int, amount: int, reason: String)
 
@@ -266,6 +269,7 @@ func _upgrade_property(property: PropertySpace, player: int) -> void:
 		else:
 			GameState.players[player].total_data_points = total_data_points + 1
 		_adjust_upgrade_level(property, 1)
+		property_upgraded.emit()
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
@@ -284,6 +288,7 @@ func _downgrade_property(property: PropertySpace, player: int) -> void:
 			GameState.players[player].total_data_points = total_data_points - 1
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
 		_adjust_upgrade_level(property, -1)
+		property_upgraded.emit()
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
@@ -615,3 +620,52 @@ func get_player_balance(player_index: int) -> int:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return 0
 	return GameState.players[player_index].balance
+
+
+## Returns the current rent owed for a property, mirroring _pay_rent logic.
+## Returns 0 if mortgaged or unowned.
+func calculate_rent(property: Ownable) -> int:
+	if not property._is_owned or property._is_mortgaged:
+		return 0
+
+	var owner: int = int(property._player_owner)
+	var scr: Script = property.get_script() as Script
+	var gname: String = scr.get_global_name() if scr != null else ""
+
+	match gname:
+		"PropertySpace":
+			match property._current_upgrades:
+				0: return property._default_rent
+				1: return property._one_data_rent
+				2: return property._two_data_rent
+				3: return property._three_data_rent
+				4: return property._four_data_rent
+				5: return property._discovery_rent
+
+		"InstrumentSpace":
+			var count := 0
+			for s in GameState.board:
+				if s is Ownable:
+					var s_scr: Script = s.get_script() as Script
+					if s_scr != null and s_scr.get_global_name() == "InstrumentSpace":
+						var ownable := s as Ownable
+						if ownable._is_owned and int(ownable._player_owner) == owner:
+							count += 1
+			match count:
+				1: return 25
+				2: return 50
+				3: return 100
+				4: return 200
+
+		"PlanetSpace":
+			var count := 0
+			for s in GameState.board:
+				if s is Ownable:
+					var s_scr: Script = s.get_script() as Script
+					if s_scr != null and s_scr.get_global_name() == "PlanetSpace":
+						var ownable := s as Ownable
+						if ownable._is_owned and int(ownable._player_owner) == owner:
+							count += 1
+			return int(GameState.last_roll) * (10 if count >= 2 else 4)
+
+	return 0

@@ -101,10 +101,14 @@ func show_actions(space_num: int) -> void:
 					description = "You landed on %s." % space_info.name
 			elif property is Ownable and property._is_owned:
 				if property._player_owner == GameState.current_player_index:
-					description = "You landed on %s. You own this property." % [space_info.name]
+					description = "You landed on %s. You own this space." % [space_info.name]
 				else:
 					var owner_name := GameState.get_player_display_name(int(property._player_owner))
-					description = "You landed on %s. It is owned by %s." % [space_info.name, owner_name]
+					if property._is_mortgaged:
+						description = "You landed on %s. It is owned by %s and is mortgaged — no rent is owed." % [space_info.name, owner_name]
+					else:
+						var rent: int = GameController.calculate_rent(property)
+						description = "You landed on %s. It is owned by %s. You owe $%d in research funding." % [space_info.name, owner_name, rent]
 					can_pay = true
 			else:
 				description = "You landed on %s." % space_info.name

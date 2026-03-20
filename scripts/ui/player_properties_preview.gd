@@ -33,6 +33,8 @@ func _ready() -> void:
 			GameController.current_player_changed.connect(_on_current_player_changed)
 		if not GameController.property_ownership_changed.is_connected(_on_property_ownership_changed):
 			GameController.property_ownership_changed.connect(_on_property_ownership_changed)
+		if not GameController.property_upgraded.is_connected(_on_property_ownership_changed):
+			GameController.property_upgraded.connect(_on_property_ownership_changed)
 
 		# Initial update if game already started
 		var current = GameController.get_current_player()

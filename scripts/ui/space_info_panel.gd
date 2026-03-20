@@ -28,8 +28,9 @@ func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	downgrade_button.pressed.connect(_on_downgrade_pressed)
 	
-	# Connect space display update to property purchase signal
+	# Connect space display update to property purchase/upgrade signals
 	GameController.property_ownership_changed.connect(trigger_display_update)
+	GameController.property_upgraded.connect(trigger_display_update)
 
 	# NEW: Refresh immediately when colorblind mode is toggled
 	if SettingsManager:
