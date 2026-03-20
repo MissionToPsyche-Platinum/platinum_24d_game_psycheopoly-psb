@@ -63,30 +63,23 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		
 		emit_signal ("request_move_forward", forward_movement)
 		
-	elif card_num in [28, 29]: #move to nearest scientific instrument
-		var instrument1_distance = abs(space_number - 5)
-		var instrument2_distance = abs(space_number - 15)
-		var instrument3_distance = abs(space_number - 25)
-		var instrument4_distance = abs(space_number - 35)
-		var instrucment_movement = min(instrument1_distance, instrument2_distance, instrument3_distance, instrument4_distance)
-		
-		if instrucment_movement == instrument1_distance:
-			emit_signal ("request_teleport_movement", 5)
-		elif instrucment_movement == instrument2_distance:
-			emit_signal ("request_teleport_movement", 15)
-		elif instrucment_movement == instrument3_distance:
-			emit_signal ("request_teleport_movement", 25)
-		elif instrucment_movement == instrument4_distance:
-			emit_signal ("request_teleport_movement", 35)
-	
-	elif card_num == 30: #move to nearest planet
-		var mars_distance = abs(space_number - 12)
-		var jupiter_distance = abs(space_number - 27)
-		
-		if mars_distance < jupiter_distance:
-			emit_signal ("request_teleport_movement", 12)
-		else:
-			emit_signal ("request_teleport_movement", 27)
+	elif card_num in [28, 29]: #advance to nearest scientific instrument
+		var instrument_spaces = [5, 15, 25, 35]
+		var min_dist = 40
+		for target in instrument_spaces:
+			var dist: int
+			if target > space_number:
+				dist = target - space_number
+			else:
+				dist = (40 - space_number) + target
+			if dist < min_dist:
+				min_dist = dist
+		emit_signal("request_move_forward", min_dist)
+
+	elif card_num == 30: #advance to nearest planet
+		var mars_dist: int = (12 - space_number) if 12 > space_number else (40 - space_number) + 12
+		var jupiter_dist: int = (27 - space_number) if 27 > space_number else (40 - space_number) + 27
+		emit_signal("request_move_forward", min(mars_dist, jupiter_dist))
 		
 	elif card_num == 31: #move back 3 spaces
 		var backward_movement = -1
