@@ -17,7 +17,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Hebe",
-		"description": "SCIENTIFIC DATA - Research Funding $2",
+		"description": "Research Funding $2",
 		"price": 60,
 		"rent": 2,
 		"rent1data": 10,
@@ -40,7 +40,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Elektra",
-		"description": "SCIENTIFIC DATA - Research Funding $4",
+		"description": "Research Funding $4",
 		"price": 60,
 		"rent": 4,
 		"rent1data": 20,
@@ -76,7 +76,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Iris",
-		"description": "SCIENTIFIC DATA - Research Funding $6",
+		"description": "Research Funding $6",
 		"price": 100,
 		"rent": 6,
 		"rent1data": 30,
@@ -99,7 +99,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Egeria",
-		"description": "SCIENTIFIC DATA - Research Funding $6",
+		"description": "Research Funding $6",
 		"price": 100,
 		"rent": 6,
 		"rent1data": 30,
@@ -115,7 +115,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Amphitrite",
-		"description": "SCIENTIFIC DATA - Research Funding $8",
+		"description": "Research Funding $8",
 		"price": 120,
 		"rent": 8,
 		"rent1data": 40,
@@ -140,7 +140,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Themis",
-		"description": "SCIENTIFIC DATA - Research Funding $10",
+		"description": "Research Funding $10",
 		"price": 140,
 		"rent": 10,
 		"rent1data": 50,
@@ -166,7 +166,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Fortuna",
-		"description": "SCIENTIFIC DATA - Research Funding $10",
+		"description": "Research Funding $10",
 		"price": 140,
 		"rent": 10,
 		"rent1data": 50,
@@ -182,7 +182,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Doris",
-		"description": "SCIENTIFIC DATA - Research Funding $12",
+		"description": "Research Funding $12",
 		"price": 160,
 		"rent": 12,
 		"rent1data": 60,
@@ -210,7 +210,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Thisbe",
-		"description": "SCIENTIFIC DATA - Research Funding $14",
+		"description": "Research Funding $14",
 		"price": 180,
 		"rent": 14,
 		"rent1data": 70,
@@ -233,7 +233,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Psyche",
-		"description": "SCIENTIFIC DATA - Research Funding $14",
+		"description": "Research Funding $14",
 		"price": 180,
 		"rent": 14,
 		"rent1data": 70,
@@ -249,7 +249,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Bamberga",
-		"description": "SCIENTIFIC DATA - Research Funding $16",
+		"description": "Research Funding $16",
 		"price": 200,
 		"rent": 16,
 		"rent1data": 80,
@@ -275,7 +275,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Juno",
-		"description": "SCIENTIFIC DATA - Research Funding $18",
+		"description": "Research Funding $18",
 		"price": 220,
 		"rent": 18,
 		"rent1data": 90,
@@ -298,7 +298,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Euphrosyne",
-		"description": "SCIENTIFIC DATA - Research Funding $18",
+		"description": "Research Funding $18",
 		"price": 220,
 		"rent": 18,
 		"rent1data": 90,
@@ -314,7 +314,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Eunomia",
-		"description": "SCIENTIFIC DATA - Research Funding $20",
+		"description": "Research Funding $20",
 		"price": 240,
 		"rent": 20,
 		"rent1data": 100,
@@ -342,7 +342,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Sylvia",
-		"description": "SCIENTIFIC DATA - Research Funding $22",
+		"description": "Research Funding $22",
 		"price": 260,
 		"rent": 22,
 		"rent1data": 110,
@@ -368,7 +368,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Davida",
-		"description": "SCIENTIFIC DATA - Research Funding $22",
+		"description": "Research Funding $22",
 		"price": 260,
 		"rent": 22,
 		"rent1data": 110,
@@ -384,7 +384,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Europa",
-		"description": "SCIENTIFIC DATA - Research Funding $24",
+		"description": "Research Funding $24",
 		"price": 280,
 		"rent": 24,
 		"rent1data": 120,
@@ -409,7 +409,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Interamnia",
-		"description": "SCIENTIFIC DATA - Research Funding $26",
+		"description": "Research Funding $26",
 		"price": 300,
 		"rent": 26,
 		"rent1data": 130,
@@ -432,7 +432,7 @@ const SPACE_INFO = [
 		{
 		"type": "property",
 		"name": "Hygiea",
-		"description": "SCIENTIFIC DATA - Research Funding $26",
+		"description": "Research Funding $26",
 		"price": 300,
 		"rent": 26,
 		"rent1data": 130,
@@ -448,7 +448,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Pallas",
-		"description": "SCIENTIFIC DATA - Research Funding $28",
+		"description": "Research Funding $28",
 		"price": 320,
 		"rent": 28,
 		"rent1data": 150,
@@ -483,7 +483,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Vesta",
-		"description": "SCIENTIFIC DATA - Research Funding $35",
+		"description": "Research Funding $35",
 		"price": 350,
 		"rent": 35,
 		"rent1data": 175,
@@ -507,7 +507,7 @@ const SPACE_INFO = [
 	{
 		"type": "property",
 		"name": "Ceres",
-		"description": "SCIENTIFIC DATA - Research Funding $50",
+		"description": "Research Funding $50",
 		"price": 400,
 		"rent": 50,
 		"rent1data": 200,

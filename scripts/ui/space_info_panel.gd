@@ -89,8 +89,18 @@ func update_space_display(space_num: int) -> void:
 		_:
 			space_type_label.text = ""
 	
-	# Set description
-	description_label.text = space_info.description if space_info.has("description") else ""
+	# Set description — use dynamic rent for ownable spaces
+	if space_info.type in ["property", "instrument", "planet"] and space_info.has("rent"):
+		var space_obj = GameState.board[space_num]
+		var rent: int
+		if space_obj is Ownable and (space_obj as Ownable)._is_owned:
+			rent = GameController.calculate_rent(space_obj as Ownable)
+		else:
+			rent = int(space_info.rent)
+		var desc: String = space_info.get("description", "")
+		description_label.text = desc.left(desc.rfind("$") + 1) + str(rent)
+	else:
+		description_label.text = space_info.description if space_info.has("description") else ""
 	
 	# Set price display
 	if space_info.has("price"):
