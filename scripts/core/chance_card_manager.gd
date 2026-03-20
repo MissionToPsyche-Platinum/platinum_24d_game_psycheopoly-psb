@@ -92,8 +92,8 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		emit_signal ("request_teleport_movement", backward_movement)
 		
 	elif card_num in [32, 33]: #move directly to jail
-		emit_signal("request_teleport_movement", movement_value)
 		GameController.send_player_to_jail(current_player)
+		emit_signal("request_teleport_movement", movement_value)
 		
 	elif card_num == 34: #get out of jail card (needs a lock for inventory)
 		go_for_launch1_available = false
