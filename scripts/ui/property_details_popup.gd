@@ -1,6 +1,9 @@
 extends CanvasLayer
 signal close_pressed
 
+const _FONT_REGULAR := preload("res://assets/fonts/PixelOperator8.ttf")
+const _FONT_BOLD := preload("res://assets/fonts/PixelOperator8-Bold.ttf")
+
 # References to UI elements
 @onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
 @onready var color_symbol_shadow: TextureRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/ColorSymbolShadow
@@ -159,7 +162,7 @@ func _show_property_details(space_info: Dictionary) -> void:
 
 
 func _set_rent_row_bold(container: Control, bold: bool) -> void:
-	var font: Font = load("res://assets/fonts/PixelOperator8-Bold.ttf" if bold else "res://assets/fonts/PixelOperator8.ttf")
+	var font: Font = _FONT_BOLD if bold else _FONT_REGULAR
 	for child in container.get_children():
 		if child is Label:
 			child.add_theme_font_override("font", font)

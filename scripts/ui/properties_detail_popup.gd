@@ -6,8 +6,6 @@ extends CanvasLayer
 ## - Clicking it emits trade_sell_requested(space_index)
 
 signal trade_sell_requested(space_index: int)
-signal mortgage_requested(space_index: int)
-signal unmortgage_requested(space_index: int)
 
 const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup.tscn")
 

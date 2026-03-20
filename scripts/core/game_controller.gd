@@ -643,6 +643,7 @@ func calculate_rent(property: Ownable) -> int:
 				5: return property._discovery_rent
 
 		"InstrumentSpace":
+			var instrument := property as InstrumentSpace
 			var count := 0
 			for s in GameState.board:
 				if s is Ownable:
@@ -652,12 +653,13 @@ func calculate_rent(property: Ownable) -> int:
 						if ownable._is_owned and int(ownable._player_owner) == owner:
 							count += 1
 			match count:
-				1: return 25
-				2: return 50
-				3: return 100
-				4: return 200
+				1: return instrument._default_rent
+				2: return instrument._two_instrument_rent
+				3: return instrument._three_instrument_rent
+				4: return instrument._four_instrument_rent
 
 		"PlanetSpace":
+			var planet := property as PlanetSpace
 			var count := 0
 			for s in GameState.board:
 				if s is Ownable:
@@ -666,6 +668,6 @@ func calculate_rent(property: Ownable) -> int:
 						var ownable := s as Ownable
 						if ownable._is_owned and int(ownable._player_owner) == owner:
 							count += 1
-			return int(GameState.last_roll) * (10 if count >= 2 else 4)
+			return int(GameState.last_roll) * (planet._two_planet_multiplier if count >= 2 else planet._default_multiplier)
 
 	return 0

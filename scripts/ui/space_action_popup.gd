@@ -111,7 +111,7 @@ func show_actions(space_num: int) -> void:
 						var rent: int = GameController.calculate_rent(property)
 						description = "You landed on %s. It is owned by %s. You owe $%d in research funding." % [space_info.name, owner_name, rent]
 						pay_amount = rent
-					can_pay = true
+						can_pay = true
 			else:
 				description = "You landed on %s." % space_info.name
 		"cost":
