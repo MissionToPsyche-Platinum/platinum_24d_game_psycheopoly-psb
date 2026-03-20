@@ -1,7 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://bx8ec1enup4gj"]
+[gd_scene load_steps=5 format=3 uid="uid://bx8ec1enup4gj"]
 
 [ext_resource type="Script" uid="uid://dfj0guqdndb4m" path="res://scripts/core/game_setup_screen.gd" id="1_086pk"]
 [ext_resource type="PackedScene" uid="uid://xrsun7pg06y8" path="res://scenes/Background.tscn" id="2_fdyvb"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fdyvb"]
+bg_color = Color(0.827451, 0.34901962, 0.40392157, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dh1w5"]
+bg_color = Color(0.827451, 0.34901962, 0.40392157, 1)
 
 [node name="GameSetupScreen" type="Control"]
 layout_mode = 3
@@ -135,6 +141,7 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_fdyvb")
 text = "Back"
 
 [node name="Spacer" type="Control" parent="CenterPanel/MarginContainer/Vbox/BottomRow"]
@@ -145,4 +152,5 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_dh1w5")
 text = "Start Game"
