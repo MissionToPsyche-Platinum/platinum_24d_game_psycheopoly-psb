@@ -1,118 +1,119 @@
-[gd_scene load_steps=5 format=3 uid="uid://e1sg7t8v1rk0"]
+[gd_scene format=3 uid="uid://e1sg7t8v1rk0"]
 
 [ext_resource type="Script" uid="uid://btel5475shx7m" path="res://scripts/ui/chance_card_popup.gd" id="1_mhufo"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_k0jgk"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_rlfmp"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rr1nq"]
-bg_color = Color(0.15, 0.15, 0.2, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.4, 0.4, 0.5, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+bg_color = Color(0.1, 0.1, 0.15, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.3, 0.6, 0.9, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_size = 10
+shadow_offset = Vector2(5, 5)
 
-[node name="SilicateCardPopup" type="CanvasLayer"]
+[node name="SilicateCardPopup" type="CanvasLayer" unique_id=1266248015]
 layer = 10
 script = ExtResource("1_mhufo")
 
-[node name="Control" type="Control" parent="."]
+[node name="Control" type="Control" parent="." unique_id=637457361]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 1026.0
-offset_bottom = 768.0
-mouse_filter = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="DimBackground" type="ColorRect" parent="Control"]
+[node name="DimBackground" type="ColorRect" parent="Control" unique_id=671909910]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = -1.0
-offset_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.6)
+color = Color(0, 0, 0, 0.4)
 
-[node name="CenterContainer" type="CenterContainer" parent="Control"]
+[node name="PanelContainer" type="Panel" parent="Control" unique_id=1401870566]
 layout_mode = 1
-anchors_preset = -1
-anchor_right = 1.0
-anchor_bottom = 0.9710001
-offset_right = -2.0
-offset_bottom = 22.271973
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -173.0
+offset_right = 310.0
+offset_bottom = 213.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Panel" type="Panel" parent="Control/CenterContainer"]
-custom_minimum_size = Vector2(620, 310)
-layout_mode = 2
-mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_rr1nq")
 
-[node name="PanelContainer" type="MarginContainer" parent="Control/CenterContainer/Panel"]
+[node name="MarginContainer" type="MarginContainer" parent="Control/PanelContainer" unique_id=103160233]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/PanelContainer/MarginContainer" unique_id=999634673]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 15
+alignment = 1
 
-[node name="ColorBar" type="ColorRect" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 24)
+[node name="ColorBar" type="ColorRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1753179468]
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 color = Color(0.4, 0.7, 1, 1)
 
-[node name="CardType" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar"]
+[node name="CardType" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar" unique_id=1694471392]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
 theme_override_fonts/font = ExtResource("3_rlfmp")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 20
 text = "Card Type"
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 3
 
-[node name="HSeparator3" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1076403606]
 layout_mode = 2
 
-[node name="CardInfoContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-layout_mode = 2
-alignment = 1
-
-[node name="CardDescription" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardInfoContainer"]
+[node name="CardDescription" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1724692961]
+custom_minimum_size = Vector2(40, 10)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_k0jgk")
 theme_override_font_sizes/font_size = 16
 text = "Card Information"
 horizontal_alignment = 1
+autowrap_mode = 3
 
-[node name="HSeparator5" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1693657466]
 layout_mode = 2
 
-[node name="CardEffectContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+[node name="CardEffectContainer" type="HBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=842470997]
 layout_mode = 2
+theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Effect" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer"]
+[node name="Effect" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer" unique_id=1890158073]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_k0jgk")
@@ -120,28 +121,25 @@ theme_override_font_sizes/font_size = 16
 text = "[effect]"
 horizontal_alignment = 1
 
-[node name="EffectValue" type="Label" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer"]
+[node name="EffectValue" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer" unique_id=1518069487]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_k0jgk")
 theme_override_font_sizes/font_size = 16
 text = "[effect value]"
+horizontal_alignment = 1
 
-[node name="HSeparator4" type="HSeparator" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=945295060]
 layout_mode = 2
 
-[node name="Spacer" type="Control" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 4)
+[node name="ButtonContainer" type="HBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=582161669]
 layout_mode = 2
-
-[node name="ButtonContainer" type="HBoxContainer" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 20
 alignment = 1
 
-[node name="CloseButton" type="Button" parent="Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(100, 32)
+[node name="CloseButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer" unique_id=799482521]
+custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_rlfmp")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
 text = "Close"

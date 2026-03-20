@@ -3,14 +3,14 @@ extends CanvasLayer
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
 
 #Reference for Card Information
-@onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
-@onready var card_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/CardType
-@onready var card_description: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardInfoContainer/CardDescription
-@onready var card_effect: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer/Effect
-@onready var card_effect_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer/EffectValue
+@onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
+@onready var card_type: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/CardType
+@onready var card_description: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardDescription
+@onready var card_effect: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer/Effect
+@onready var card_effect_value: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer/EffectValue
 
 #close button
-@onready var close_button: Button = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer/CloseButton
+@onready var close_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/CloseButton
 
 # Current card being displayed
 var current_card: int = 0
