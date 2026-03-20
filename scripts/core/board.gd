@@ -116,6 +116,10 @@ const JailPopupScene = preload("res://scenes/JailPopup.tscn")
 var jail_popup: Control = null
 var jail_popup_layer: CanvasLayer = null
 
+const NotificationPopupScene = preload("res://scenes/NotificationPopup.tscn")
+var notification_popup: Control = null
+var notification_popup_layer: CanvasLayer = null
+
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 var settings_menu: Control = null
 var settings_menu_layer: CanvasLayer = null
@@ -207,6 +211,7 @@ func _ready() -> void:
 
 	call_deferred("_setup_bankruptcy_popup_async")
 	_setup_jail_popup()
+	_setup_notification_popup()
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -264,6 +269,15 @@ func _setup_jail_popup() -> void:
 	jail_popup = JailPopupScene.instantiate()
 	jail_popup_layer.add_child(jail_popup)
 	get_tree().root.call_deferred("add_child", jail_popup_layer)
+
+func _setup_notification_popup() -> void:
+	notification_popup_layer = CanvasLayer.new()
+	notification_popup_layer.name = "NotificationPopupLayer"
+	notification_popup_layer.layer = 110 # Above all other popups
+
+	notification_popup = NotificationPopupScene.instantiate()
+	notification_popup_layer.add_child(notification_popup)
+	get_tree().root.call_deferred("add_child", notification_popup_layer)
 
 func _setup_money_hud() -> void:	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
 	var canvas_layer = CanvasLayer.new()
@@ -643,6 +657,9 @@ func _on_move_pressed(space_num: int) -> void:
 			update_piece_layouts_at(old_space)
 			update_piece_layouts_at(10)
 		GameController.send_player_to_jail(GameState.current_player_index)
+		if notification_popup:
+			notification_popup.show_notification("Solar Storm!", "You have been sent to the Launch Pad.")
+			await notification_popup.dismissed
 	GameController.action_completed.emit()
 
 
@@ -922,6 +939,9 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				GameController.send_player_to_jail(GameState.current_player_index)
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
+				if notification_popup:
+					notification_popup.show_notification("3 Doubles!", "You rolled doubles 3 times!\nYou have been sent to the Launch Pad.")
+					await notification_popup.dismissed
 				GameController.action_completed.emit()
 				# Do NOT move the piece normally, return early
 				return
@@ -1297,11 +1317,8 @@ func _show_win_screen(winner_index: int) -> void:
 
 	var winner_name := GameState.players[winner_index].player_name
 
-	# TODO: Replace with real WinScreen scene later
-	var dialog := AcceptDialog.new()
-	dialog.dialog_text = winner_name + " Wins the Game!"
-	get_tree().root.add_child(dialog)
-	dialog.popup_centered()
+	if notification_popup:
+		notification_popup.show_notification(winner_name + " Wins!", "Congratulations! The game is over.")
 
 
 func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
@@ -1348,17 +1365,8 @@ func _on_action_completed() -> void:
 		p.last_roll_was_doubles = false
 
 func _on_doubles_rolled() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.dialog_text = "Doubles! Roll again."
-	dialog.title = "" 
-	get_tree().root.add_child(dialog)
-
-	dialog.popup_centered()
-
-	# Auto-close + cleanup
-	await get_tree().create_timer(2.5).timeout
-	if is_instance_valid(dialog):
-		dialog.queue_free()
+	if notification_popup:
+		notification_popup.show_notification("Doubles!", "Roll again.")
 		
 
 func _on_colorblind_mode_changed(enabled: bool) -> void:
