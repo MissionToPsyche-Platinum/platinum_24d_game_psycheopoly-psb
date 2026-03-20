@@ -166,27 +166,53 @@ func _set_rent_row_bold(container: Control, bold: bool) -> void:
 
 
 # Display instrument (railroad equivalent) details
-func _show_instrument_details(_space_info: Dictionary) -> void:
+func _show_instrument_details(space_info: Dictionary) -> void:
 	details_container.visible = true
-	
-	# Instruments have fixed rent based on how many you own
-	rent_value.text = "$25 (1 owned)"
-	rent1_value.text = "$50 (2 owned)"
-	rent2_value.text = "$100 (3 owned)"
-	rent3_value.text = "$200 (4 owned)"
-	
-	# Rename labels for instruments
+
+	# Count how many instruments the owner of this space has
+	var owner_count := 0
+	if current_space >= 0 and current_space < GameState.board.size():
+		var space = GameState.board[current_space]
+		if space is Ownable:
+			var ownable := space as Ownable
+			if ownable._is_owned:
+				var owner_id := int(ownable._player_owner)
+				for s in GameState.board:
+					if s is Ownable:
+						var s_scr: Script = s.get_script() as Script
+						if s_scr != null and s_scr.get_global_name() == "InstrumentSpace":
+							var s_ownable := s as Ownable
+							if s_ownable._is_owned and int(s_ownable._player_owner) == owner_id:
+								owner_count += 1
+
+	var rent1 := int(space_info.get("rent1instrument", 25))
+	var rent2 := int(space_info.get("rent2instrument", 50))
+	var rent3 := int(space_info.get("rent3instrument", 100))
+	var rent4 := int(space_info.get("rent4instrument", 200))
+
+	# Rename labels and set values for instruments
+	rent_value.get_parent().get_node("Label").text = "With 1 Instrument:"
+	rent_value.text = "$%d" % rent1
 	rent1_container.get_node("Label").text = "With 2 Instruments:"
+	rent1_value.text = "$%d" % rent2
 	rent2_container.get_node("Label").text = "With 3 Instruments:"
+	rent2_value.text = "$%d" % rent3
 	rent3_container.get_node("Label").text = "With 4 Instruments:"
-	
+	rent3_value.text = "$%d" % rent4
+
 	# Show only relevant containers
 	rent1_container.visible = true
 	rent2_container.visible = true
 	rent3_container.visible = true
 	rent4_container.visible = false
 	rent_full_container.visible = false
-	
+
+	# Bold the row matching how many instruments the owner currently has
+	_set_rent_row_bold(rent_value.get_parent(), owner_count == 1)
+	_set_rent_row_bold(rent1_container, owner_count == 2)
+	_set_rent_row_bold(rent2_container, owner_count == 3)
+	_set_rent_row_bold(rent3_container, owner_count == 4)
+
 	# Hide additional info for instruments
 	additional_info_container.visible = false
 
