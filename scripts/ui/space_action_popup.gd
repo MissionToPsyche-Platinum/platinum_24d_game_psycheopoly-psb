@@ -80,6 +80,7 @@ func show_actions(space_num: int) -> void:
 	var can_move = false
 	var has_details = false
 	var description = ""
+	var pay_amount := 0
 	
 	match space_info.type:
 		"property", "instrument", "planet":
@@ -101,15 +102,21 @@ func show_actions(space_num: int) -> void:
 					description = "You landed on %s." % space_info.name
 			elif property is Ownable and property._is_owned:
 				if property._player_owner == GameState.current_player_index:
-					description = "You landed on %s. You own this property." % [space_info.name]
+					description = "You landed on %s. You own this space." % [space_info.name]
 				else:
 					var owner_name := GameState.get_player_display_name(int(property._player_owner))
-					description = "You landed on %s. It is owned by %s." % [space_info.name, owner_name]
-					can_pay = true
+					if property._is_mortgaged:
+						description = "You landed on %s. It is owned by %s and is mortgaged — no rent is owed." % [space_info.name, owner_name]
+					else:
+						var rent: int = GameController.calculate_rent(property)
+						description = "You landed on %s. It is owned by %s. You owe $%d in research funding." % [space_info.name, owner_name, rent]
+						pay_amount = rent
+						can_pay = true
 			else:
 				description = "You landed on %s." % space_info.name
 		"cost":
-			description = "You must pay $%d." % space_info.get("amount", 0)
+			pay_amount = space_info.get("amount", 0)
+			description = "You must pay $%d." % pay_amount
 			can_pay = true
 		"card":
 			description = space_info.description if space_info.has("description") else "Draw a card!"
@@ -125,6 +132,7 @@ func show_actions(space_num: int) -> void:
 			GameController.credit(GameState.current_player_index, space_info.get("amount", 0))
 			
 	action_description.text = description
+	pay_button.text = "Pay $%d" % pay_amount if can_pay else "Pay"
 	purchase_button.visible = can_purchase
 	pay_button.visible = can_pay
 	draw_button.visible = can_draw

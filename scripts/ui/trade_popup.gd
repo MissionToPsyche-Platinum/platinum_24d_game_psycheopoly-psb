@@ -25,6 +25,7 @@ const ColorblindHelpers = preload("res://scripts/ui/colorblind_helpers.gd")
 var _offering_player: int = -1
 var _pending_offer: Dictionary = {}
 var _color_icon_cache: Dictionary = {}
+var _in_review_mode: bool = false
 
 const CHECKBOX_COLUMN := 0
 const PROPERTY_COLUMN := 1
@@ -50,6 +51,10 @@ func _ready() -> void:
 	accept_button.pressed.connect(_on_accept_pressed)
 	offered_list.gui_input.connect(_on_tree_gui_input.bind(offered_list))
 	requested_list.gui_input.connect(_on_tree_gui_input.bind(requested_list))
+	offered_list.item_edited.connect(_update_review_if_active)
+	requested_list.item_edited.connect(_update_review_if_active)
+	offer_cash_spin.value_changed.connect(_on_offer_value_changed)
+	request_cash_spin.value_changed.connect(_on_offer_value_changed)
 
 	_configure_property_tree(offered_list)
 	_configure_property_tree(requested_list)
@@ -93,16 +98,29 @@ func hide_popup() -> void:
 
 
 func _set_compose_mode() -> void:
+	_in_review_mode = false
 	compose_buttons.visible = true
 	review_box.visible = false
 	title_label.text = "Create Trade Offer"
 
 
 func _set_review_mode(summary: String) -> void:
+	_in_review_mode = true
 	compose_buttons.visible = false
 	review_box.visible = true
 	title_label.text = "Trade Review"
 	review_label.text = summary
+
+
+func _update_review_if_active() -> void:
+	if not _in_review_mode:
+		return
+	_pending_offer = _build_offer_from_ui()
+	review_label.text = _summarize_trade_offer(_pending_offer)
+
+
+func _on_offer_value_changed(_value: float) -> void:
+	_update_review_if_active()
 
 
 func _refresh_target_options() -> void:
@@ -155,7 +173,6 @@ func _refresh_space_lists() -> void:
 
 func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> void:
 	var info := SpaceData.get_space_info(space_index)
-	var item_label := _build_space_label(space_index)
 	var item_icon := _get_or_create_color_icon(info, space_index)
 	var tree_item := list_node.create_item(root_item)
 	tree_item.set_cell_mode(CHECKBOX_COLUMN, TreeItem.CELL_MODE_CHECK)
@@ -164,8 +181,18 @@ func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> 
 	tree_item.set_selectable(CHECKBOX_COLUMN, false)
 	tree_item.set_custom_bg_color(CHECKBOX_COLUMN, CHECKBOX_BG_COLOR)
 
+	var is_mortgaged := space_index < GameState.board.size() \
+		and GameState.board[space_index] is Ownable \
+		and (GameState.board[space_index] as Ownable)._is_mortgaged
+
+	var item_label := _build_space_label(space_index)
+	if is_mortgaged:
+		item_label += " [MORTGAGED]"
+
 	tree_item.set_icon(PROPERTY_COLUMN, item_icon)
 	tree_item.set_text(PROPERTY_COLUMN, item_label)
+	if is_mortgaged:
+		tree_item.set_custom_color(PROPERTY_COLUMN, Color(0.9, 0.2, 0.2, 1))
 	tree_item.set_selectable(PROPERTY_COLUMN, true)
 	tree_item.set_metadata(PROPERTY_COLUMN, space_index)
 	tree_item.set_text(DETAILS_COLUMN, "...")
@@ -244,6 +271,7 @@ func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
 		# Let's try manually toggling only if it's NOT the checkbox column.
 		if clicked_column != CHECKBOX_COLUMN:
 			clicked_item.set_checked(CHECKBOX_COLUMN, not clicked_item.is_checked(CHECKBOX_COLUMN))
+		_update_review_if_active()
 
 
 
@@ -305,17 +333,21 @@ func _format_space_summary(space_indexes: Array) -> String:
 		var space_index := int(space_index_variant)
 		var info := SpaceData.get_space_info(space_index)
 		var space_name := str(info.get("name", "Space " + str(space_index)))
+		var is_mortgaged := space_index < GameState.board.size() \
+			and GameState.board[space_index] is Ownable \
+			and (GameState.board[space_index] as Ownable)._is_mortgaged
+		var mortgaged_tag := " [color=#e03333][MORTGAGED][/color]" if is_mortgaged else ""
 
 		if SettingsManager.is_colorblind_enabled():
 			var symbol_text := ColorblindHelpers.get_symbol_text_for_space(space_index)
 			if symbol_text != "":
-				entries.append("%s %s" % [symbol_text, space_name])
+				entries.append("%s %s%s" % [symbol_text, space_name, mortgaged_tag])
 			else:
-				entries.append(space_name)
+				entries.append(space_name + mortgaged_tag)
 		else:
 			var color: Color = info.get("color", Color(0.7, 0.7, 0.7, 1.0))
 			var color_hex := color.to_html(false)
-			entries.append("[color=#%s]%s[/color]" % [color_hex, space_name])
+			entries.append("[color=#%s]%s[/color]%s" % [color_hex, space_name, mortgaged_tag])
 
 	return ", ".join(entries)
 

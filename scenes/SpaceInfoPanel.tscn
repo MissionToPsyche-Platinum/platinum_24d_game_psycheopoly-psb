@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://cjr8v3km7h5pq"]
+[gd_scene format=3 uid="uid://cjr8v3km7h5pq"]
 
 [ext_resource type="Script" uid="uid://85uj7td7206u" path="res://scripts/ui/space_info_panel.gd" id="1_space_info"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
@@ -16,11 +16,11 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="SpaceInfoPanel" type="CanvasLayer"]
+[node name="SpaceInfoPanel" type="CanvasLayer" unique_id=44461715]
 layer = 99
 script = ExtResource("1_space_info")
 
-[node name="Control" type="Control" parent="."]
+[node name="Control" type="Control" parent="." unique_id=1326012808]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -29,7 +29,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="PanelContainer" type="Panel" parent="Control"]
+[node name="PanelContainer" type="Panel" parent="Control" unique_id=253290929]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
@@ -41,7 +41,7 @@ offset_bottom = 192.0
 grow_horizontal = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="Control/PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="Control/PanelContainer" unique_id=1968649235]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -53,16 +53,16 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/PanelContainer/MarginContainer" unique_id=1241213274]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="ColorBar" type="ColorRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ColorBar" type="ColorRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=2033654036]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 color = Color(0.4, 0.7, 1, 1)
 
-[node name="ColorSymbolShadow" type="TextureRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar"]
+[node name="ColorSymbolShadow" type="TextureRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar" unique_id=1059446485]
 modulate = Color(0, 0, 0, 1)
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 0
@@ -72,7 +72,7 @@ offset_right = 23.0
 offset_bottom = 8.5
 scale = Vector2(0.6, 0.6)
 
-[node name="ColorSymbol" type="TextureRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar"]
+[node name="ColorSymbol" type="TextureRect" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar" unique_id=323518710]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 0
 offset_left = 14.0
@@ -81,7 +81,7 @@ offset_bottom = 12.0
 scale = Vector2(0.5, 0.5)
 stretch_mode = 3
 
-[node name="SpaceName" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar"]
+[node name="SpaceName" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar" unique_id=695778067]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -96,10 +96,10 @@ text = "Space Name"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1641153038]
 layout_mode = 2
 
-[node name="SpaceType" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="SpaceType" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=151222642]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 theme_override_fonts/font = ExtResource("2_font")
@@ -107,19 +107,20 @@ theme_override_font_sizes/font_size = 16
 text = "Property"
 horizontal_alignment = 1
 
-[node name="HSeparator2" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=363158751]
 layout_mode = 2
 
-[node name="Description" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Description" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1383285584]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
 text = "Space description goes here. It can wrap to multiple lines."
+horizontal_alignment = 1
 autowrap_mode = 3
 clip_text = true
 
-[node name="PriceLabel" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="PriceLabel" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1419961532]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.8, 0.2, 1)
 theme_override_fonts/font = ExtResource("3_font_bold")
@@ -127,25 +128,25 @@ theme_override_font_sizes/font_size = 16
 text = "Price: $100"
 horizontal_alignment = 1
 
-[node name="HSeparator3" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=2066972674]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ButtonContainer" type="HBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer" unique_id=1171060748]
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="DetailsButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+[node name="DetailsButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer" unique_id=450302834]
 custom_minimum_size = Vector2(100, 32)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 16
 text = "Details"
 
-[node name="UpgradeButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+[node name="UpgradeButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer" unique_id=1985455335]
 layout_mode = 2
 text = "Upgrade"
 
-[node name="DowngradeButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+[node name="DowngradeButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer" unique_id=1242823524]
 layout_mode = 2
 text = "Downgrade"

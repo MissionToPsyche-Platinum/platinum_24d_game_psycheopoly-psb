@@ -3,14 +3,14 @@ extends CanvasLayer
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
 
 #Reference for Card Information
-@onready var color_bar: ColorRect = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar
-@onready var card_type: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ColorBar/CardType
-@onready var card_description: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardInfoContainer/CardDescription
-@onready var card_effect: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer/Effect
-@onready var card_effect_value: Label = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/CardEffectContainer/EffectValue
+@onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
+@onready var card_type: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/CardType
+@onready var card_description: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardDescription
+@onready var card_effect: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer/Effect
+@onready var card_effect_value: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer/EffectValue
 
 #close button
-@onready var close_button: Button = $Control/CenterContainer/Panel/PanelContainer/VBoxContainer/ButtonContainer/CloseButton
+@onready var close_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/CloseButton
 
 # Current card being displayed
 var current_card: int = 0
@@ -95,6 +95,9 @@ func show_card_details(space_num: int) -> void:
 	
 	
 func _on_close_pressed() -> void:
-	ChanceCardMgr.resolve_card(current_card,money_value,movement_value,space_number)
-	
+	var is_jail_card := current_card in [32, 33]
+	ChanceCardMgr.resolve_card(current_card, money_value, movement_value, space_number)
 	visible = false
+	# For jail cards, board.gd shows the notification then emits action_completed
+	if not is_jail_card:
+		GameController.action_completed.emit()

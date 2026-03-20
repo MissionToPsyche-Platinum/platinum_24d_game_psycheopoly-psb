@@ -36,6 +36,9 @@ signal action_completed()
 ## Emitted when property ownership changes
 signal property_ownership_changed()
 
+## Emitted when a property is upgraded or downgraded
+signal property_upgraded()
+
 ## Emitted when a player cannot afford a required payment (rent/cost/etc.)
 signal bankruptcy_needed(debtor_index: int, creditor_index: int, amount: int, reason: String)
 
@@ -53,6 +56,8 @@ signal pay_rent(property, player)
 signal purchase_property(property, player)
 signal upgrade_property(property, player)
 signal downgrade_property(property, player)
+signal mortgage_property(property, player)
+signal unmortgage_property(property, player)
 
 # Other signals
 signal difficulty_changed(new_value: String)
@@ -65,6 +70,8 @@ func _ready() -> void:
 	purchase_property.connect(_purchase_property)
 	upgrade_property.connect(_upgrade_property)
 	downgrade_property.connect(_downgrade_property)
+	mortgage_property.connect(_mortgage_property)
+	unmortgage_property.connect(_unmortgage_property)
 
 
 func debit(player_index: int, amount: int, reason: String = "") -> void:
@@ -224,6 +231,8 @@ func _check_if_upgrade_is_valid(property: PropertySpace, player: int) -> bool:
 			upgrade_valid = false
 		elif (property._current_upgrades > property_set[i]._current_upgrades):
 			upgrade_valid = false
+		elif property_set[i]._is_mortgaged:
+			upgrade_valid = false
 	if (property._current_upgrades > 4):
 		upgrade_valid = false
 	if (property._upgrade_cost > GameState.players[player].balance):
@@ -260,6 +269,7 @@ func _upgrade_property(property: PropertySpace, player: int) -> void:
 		else:
 			GameState.players[player].total_data_points = total_data_points + 1
 		_adjust_upgrade_level(property, 1)
+		property_upgraded.emit()
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
@@ -278,8 +288,82 @@ func _downgrade_property(property: PropertySpace, player: int) -> void:
 			GameState.players[player].total_data_points = total_data_points - 1
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
 		_adjust_upgrade_level(property, -1)
+		property_upgraded.emit()
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
+
+
+## Returns the mortgage value for any Ownable subtype
+func _get_mortgage_value(property: Ownable) -> int:
+	if property is PropertySpace:
+		return (property as PropertySpace)._mortgage_value
+	elif property is InstrumentSpace:
+		return (property as InstrumentSpace)._mortgage_value
+	elif property is PlanetSpace:
+		return (property as PlanetSpace)._mortgage_value
+	return 0
+
+
+## Returns the cost to unmortgage a property (mortgage value + 10% interest, rounded up)
+func _get_unmortgage_cost(property: Ownable) -> int:
+	return int(ceil(_get_mortgage_value(property) * 1.1))
+
+
+func _check_if_mortgage_is_valid(property: Ownable, player: int) -> bool:
+	if not property._is_owned or property._player_owner != player:
+		return false
+	if property._is_mortgaged:
+		return false
+	# PropertySpace: no upgrades allowed on any set member
+	if property is PropertySpace:
+		for set_property in _get_property_set(property as PropertySpace):
+			if set_property._current_upgrades > 0:
+				return false
+	return true
+
+
+func _check_if_unmortgage_is_valid(property: Ownable, player: int) -> bool:
+	if not property._is_owned or property._player_owner != player:
+		return false
+	if not property._is_mortgaged:
+		return false
+	return get_player_balance(player) >= _get_unmortgage_cost(property)
+
+
+## Public accessors for UI validation
+func check_mortgage_valid(property: Ownable, player: int) -> bool:
+	return _check_if_mortgage_is_valid(property, player)
+
+func check_unmortgage_valid(property: Ownable, player: int) -> bool:
+	return _check_if_unmortgage_is_valid(property, player)
+
+func get_mortgage_value(property: Ownable) -> int:
+	return _get_mortgage_value(property)
+
+func get_unmortgage_cost(property: Ownable) -> int:
+	return _get_unmortgage_cost(property)
+
+
+func _mortgage_property(property: Ownable, player: int) -> void:
+	if not _check_if_mortgage_is_valid(property, player):
+		print("Mortgage invalid")
+		return
+	var value := _get_mortgage_value(property)
+	credit(player, value, "mortgage")
+	property._is_mortgaged = true
+	property_ownership_changed.emit()
+	print("Player ", GameState.players[player].player_name, " mortgaged a property for $", value)
+
+
+func _unmortgage_property(property: Ownable, player: int) -> void:
+	if not _check_if_unmortgage_is_valid(property, player):
+		print("Unmortgage invalid")
+		return
+	var cost := _get_unmortgage_cost(property)
+	debit(player, cost, "unmortgage")
+	property._is_mortgaged = false
+	property_ownership_changed.emit()
+	print("Player ", GameState.players[player].player_name, " unmortgaged a property for $", cost)
 
 
 ## Changes the ownership of an ownable property
@@ -320,6 +404,9 @@ func _purchase_owned_property(property: Ownable, buyer: int, seller: int, purcha
 
 func _pay_rent(property: Ownable, player: int) -> void:
 	if !property._is_owned or property._player_owner == player:
+		return
+	# Mortgaged properties collect no rent
+	if property._is_mortgaged:
 		return
 
 	var owner: int = int(property._player_owner)
@@ -533,3 +620,54 @@ func get_player_balance(player_index: int) -> int:
 	if player_index < 0 or player_index >= GameState.players.size():
 		return 0
 	return GameState.players[player_index].balance
+
+
+## Returns the current rent owed for a property, mirroring _pay_rent logic.
+## Returns 0 if mortgaged or unowned.
+func calculate_rent(property: Ownable) -> int:
+	if not property._is_owned or property._is_mortgaged:
+		return 0
+
+	var owner: int = int(property._player_owner)
+	var scr: Script = property.get_script() as Script
+	var gname: String = scr.get_global_name() if scr != null else ""
+
+	match gname:
+		"PropertySpace":
+			match property._current_upgrades:
+				0: return property._default_rent
+				1: return property._one_data_rent
+				2: return property._two_data_rent
+				3: return property._three_data_rent
+				4: return property._four_data_rent
+				5: return property._discovery_rent
+
+		"InstrumentSpace":
+			var instrument := property as InstrumentSpace
+			var count := 0
+			for s in GameState.board:
+				if s is Ownable:
+					var s_scr: Script = s.get_script() as Script
+					if s_scr != null and s_scr.get_global_name() == "InstrumentSpace":
+						var ownable := s as Ownable
+						if ownable._is_owned and int(ownable._player_owner) == owner:
+							count += 1
+			match count:
+				1: return instrument._default_rent
+				2: return instrument._two_instrument_rent
+				3: return instrument._three_instrument_rent
+				4: return instrument._four_instrument_rent
+
+		"PlanetSpace":
+			var planet := property as PlanetSpace
+			var count := 0
+			for s in GameState.board:
+				if s is Ownable:
+					var s_scr: Script = s.get_script() as Script
+					if s_scr != null and s_scr.get_global_name() == "PlanetSpace":
+						var ownable := s as Ownable
+						if ownable._is_owned and int(ownable._player_owner) == owner:
+							count += 1
+			return int(GameState.last_roll) * (planet._two_planet_multiplier if count >= 2 else planet._default_multiplier)
+
+	return 0
