@@ -95,6 +95,9 @@ func show_card_details(space_num: int) -> void:
 	
 	
 func _on_close_pressed() -> void:
-	ChanceCardMgr.resolve_card(current_card,money_value,movement_value,space_number)
-	
+	var is_jail_card := current_card in [32, 33]
+	ChanceCardMgr.resolve_card(current_card, money_value, movement_value, space_number)
 	visible = false
+	# For jail cards, board.gd shows the notification then emits action_completed
+	if not is_jail_card:
+		GameController.action_completed.emit()

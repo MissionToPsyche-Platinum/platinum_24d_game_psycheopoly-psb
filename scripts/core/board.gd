@@ -227,6 +227,8 @@ func _ready() -> void:
 		GameController.turn_ended.connect(_on_turn_ended)
 	if not GameController.bankruptcy_needed.is_connected(_on_bankruptcy_needed):
 		GameController.bankruptcy_needed.connect(_on_bankruptcy_needed)
+	if not GameController.player_sent_to_jail.is_connected(_on_player_sent_to_jail):
+		GameController.player_sent_to_jail.connect(_on_player_sent_to_jail)
 
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
@@ -531,6 +533,12 @@ func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
 	update_piece_layouts_at(space_num)
 
+	# Skip space action popup if the player was just sent to jail — the
+	# notification popup and jail popup handle everything from here.
+	var current_player := GameController.get_current_player()
+	if current_player and current_player.is_in_jail:
+		return
+
 	if space_action_popup:
 		if not space_action_popup.is_node_ready():
 			await space_action_popup.ready
@@ -649,25 +657,26 @@ func _on_move_pressed(space_num: int) -> void:
 	# Handling for "Solar Storm" (Go to Jail/Launch Pad)
 	if space_num == 30:
 		print("Solar Storm! Transporting to Launch Pad...")
-		# Teleport to space 10 (Launch Pad)
+		# Jail must be set before teleporting so movement_finished skips the space action popup
+		GameController.send_player_to_jail(GameState.current_player_index)
 		if current_piece:
 			var old_space: int = int(current_piece.board_space)
 			current_piece.teleport_to_space(10)
-			# Update both spaces
 			update_piece_layouts_at(old_space)
 			update_piece_layouts_at(10)
-		GameController.send_player_to_jail(GameState.current_player_index)
-		if notification_popup:
-			notification_popup.show_notification("Solar Storm!", "You have been sent to the Launch Pad.")
-			await notification_popup.dismissed
+		# _on_player_sent_to_jail handles the notification and action_completed
+		return
 	GameController.action_completed.emit()
 
 
-func _on_draw_card_pressed(space_num: int) -> void:
-	print("Player drawing card at space: ", space_num)
-	# TODO: Implement card deck system
-	var space_info = SpaceDataRef.get_space_info(space_num)
-	print("Card type: ", space_info.name)
+func _on_draw_card_pressed(_space_num: int) -> void:
+	pass # action_completed is emitted by chance_card_popup once the card is closed
+
+
+func _on_player_sent_to_jail(_player_index: int) -> void:
+	if notification_popup:
+		notification_popup.show_notification("Sent to the Launch Pad!", "You have been sent to the Launch Pad.")
+		await notification_popup.dismissed
 	GameController.action_completed.emit()
 
 
@@ -939,11 +948,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				GameController.send_player_to_jail(GameState.current_player_index)
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
-				if notification_popup:
-					notification_popup.show_notification("3 Doubles!", "You rolled doubles 3 times!\nYou have been sent to the Launch Pad.")
-					await notification_popup.dismissed
-				GameController.action_completed.emit()
-				# Do NOT move the piece normally, return early
+				# _on_player_sent_to_jail handles the notification and action_completed
 				return
 		else:
 			current_player.doubles_count = 0
