@@ -1,6 +1,7 @@
 extends Node
 class_name AuctionManager
 
+const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 
 signal auction_started(space_num: int, property_ref, participants: Array[int])
 signal turn_changed(current_player_index: int)
@@ -50,6 +51,16 @@ func start_auction(_space_num: int, _participants: Array[int], _starting_bid: in
 	min_increment = max(1, _min_increment)
 
 	state = State.RUNNING
+
+	# Turn log: auction started
+	var property_name := "Space %d" % space_num
+	var space_info := SpaceDataRef.get_space_info(space_num)
+	if space_info.has("name"):
+		var candidate := str(space_info["name"]).strip_edges()
+		if candidate != "":
+			property_name = candidate
+
+	GameController.log_transaction("Auction started for %s." % property_name)
 
 	emit_signal("auction_started", space_num, property_ref, participants)
 	emit_signal("bid_updated", high_bid, high_bidder_index)
@@ -116,14 +127,10 @@ func pass_turn() -> void:
 	if p_idx == -1:
 		return
 
-	# If you're the current high bidder, "pass" = "hold" (don't raise)
-	# You are NOT removed from the auction.
 	if high_bidder_index != -1 and p_idx == high_bidder_index:
-		emit_signal("message", GameState.players[p_idx].player_name + " holds.")
-		_advance_turn()
+		_end_auction()
 		return
 
-	# Otherwise you're out (passed)
 	passed[p_idx] = true
 	emit_signal("message", GameState.players[p_idx].player_name + " passes.")
 
@@ -143,15 +150,22 @@ func _announce_turn(initial: bool = false) -> void:
 	var p_idx := get_current_player_index()
 	emit_signal("turn_changed", p_idx)
 
-	# AI hook later:
-	# if _is_ai(p_idx): _request_ai_action(p_idx)
+
 
 
 func _finish_auction() -> void:
 	var winner_index := high_bidder_index
 
+	var property_name := "Space %d" % space_num
+	var space_info := SpaceDataRef.get_space_info(space_num)
+	if space_info.has("name"):
+		var candidate := str(space_info["name"]).strip_edges()
+		if candidate != "":
+			property_name = candidate
+
 	# If nobody ever bid, treat as no winner
 	if winner_index == -1 or high_bid <= 0:
+		GameController.log_transaction("Auction ended with no bids. %s remains unowned." % property_name)
 		emit_signal("message", "Auction ended with no valid bids.")
 		emit_signal("auction_ended", -1, 0, space_num, property_ref)
 		_reset()
@@ -164,6 +178,10 @@ func _finish_auction() -> void:
 	if property_ref is Ownable:
 		(property_ref as Ownable).set_property_owner(winner_index)
 		GameController.property_ownership_changed.emit()
+
+	var winner_name := GameController.get_player_log_name(winner_index)
+
+	GameController.log_transaction("%s won the auction for %s for $%d." % [winner_name, property_name, high_bid])
 
 	emit_signal("message", GameState.players[winner_index].player_name + " wins for $" + str(high_bid) + "!")
 	emit_signal("auction_ended", winner_index, high_bid, space_num, property_ref)
@@ -215,19 +233,23 @@ func _advance_turn() -> void:
 		_end_auction()
 		return
 
+	# If there's already a high bidder and everyone else has passed,
+	# end immediately instead of cycling back to the high bidder.
+	if high_bidder_index != -1 and _should_end_auction():
+		_end_auction()
+		return
+
 	var safety := 0
-	while safety < participants.size() + 1:
+	while safety < participants.size():
 		turn_index = (turn_index + 1) % participants.size()
 		var next_idx: int = participants[turn_index]
 
-		# High bidder is always eligible (even if others passed)
-		if next_idx == high_bidder_index and high_bidder_index != -1:
-			break
-
-		# Otherwise skip anyone who has passed
+		# Skip anyone who has passed
 		if not _is_passed(next_idx):
-			break
+			_announce_turn()
+			return
 
 		safety += 1
 
-	_announce_turn()
+
+	_end_auction()

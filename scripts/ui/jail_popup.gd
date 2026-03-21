@@ -44,10 +44,25 @@ func _on_pay_btn_pressed() -> void:
 	hide_popup()
 
 func _on_card_btn_pressed() -> void:
-	if _player_index < 0: return
+	if _player_index < 0:
+		return
+	
 	var player = GameState.players[_player_index]
 	if player.go_for_launch_cards > 0:
 		player.go_for_launch_cards -= 1
+		
+		# Build player display name for turn history
+		var player_name := "Player %d" % (_player_index + 1)
+		if GameState.has_method("get_player_display_name"):
+			var display_name := str(GameState.get_player_display_name(_player_index)).strip_edges()
+			if display_name != "":
+				player_name = display_name
+		elif _player_index >= 0 and _player_index < GameState.players.size():
+			var p = GameState.players[_player_index]
+			if p and "player_name" in p:
+				var candidate := str(p.player_name).strip_edges()
+				if candidate != "":
+					player_name = candidate
 		
 		# Return it to the chance card deck
 		if not ChanceCardMgr.go_for_launch1_available:
@@ -56,6 +71,10 @@ func _on_card_btn_pressed() -> void:
 		elif not ChanceCardMgr.go_for_launch2_available:
 			ChanceCardMgr.go_for_launch2_available = true
 			ChanceCardMgr.go_for_launch2_owner = -1
+		
+		# Log card usage before release
+		if GameController.has_method("log_transaction"):
+			GameController.log_transaction("%s used a Go For Launch card and left the Launch Pad." % player_name)
 		
 		GameController.release_player_from_jail(_player_index)
 		player.has_rolled = false

@@ -23,6 +23,7 @@ var tile_map_layer: TileMapLayer = null
 var highlight_layer: TileMapLayer = null
 
 @onready var board_tilemap: Node = $TileMap # reference to tilemap so we can implement the colorblind mode.
+@onready var turn_log_panel: Control = $TurnLogLayer/TurnLogPanel
 
 # Space info panel reference and scene
 const SpaceInfoPanelScene = preload("res://scenes/SpaceInfoPanel.tscn")
@@ -164,6 +165,9 @@ func _ready() -> void:
 		
 	if not GameController.action_completed.is_connected(_on_action_completed):
 		GameController.action_completed.connect(_on_action_completed)
+		
+	if not GameController.transaction_logged.is_connected(_on_transaction_logged):
+		GameController.transaction_logged.connect(_on_transaction_logged)
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -472,6 +476,16 @@ func _on_turn_started(player_index: int) -> void:
 
 	active_player_index = player_index
 	GameState.current_player_index = player_index
+	
+	var player_name := get_player_log_name(player_index)
+
+	var turn_number: int = _calculate_display_turn_number(player_index)
+	var is_new_round: bool = _is_first_active_player_of_round(player_index)
+
+	if turn_log_panel and turn_log_panel.has_method("add_turn_header"):
+		turn_log_panel.add_turn_header(player_index, player_name, turn_number, is_new_round)
+	else:
+			log_event("Turn %d - %s's turn" % [turn_number, player_name])
 
 	if current_piece != null and is_instance_valid(current_piece):
 		if current_piece.space_changed.is_connected(_on_piece_space_changed):
@@ -501,6 +515,10 @@ func _on_turn_started(player_index: int) -> void:
 
 func _on_turn_ended(player_index: int) -> void:
 	print("Board: Turn ended for player ", player_index)
+
+	var player_name := get_player_log_name(player_index)
+	log_event("%s ended their turn." % player_name)
+	
 
 
 func end_turn() -> void:
@@ -533,6 +551,31 @@ func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
 	update_piece_layouts_at(space_num)
 
+	var player_name := get_player_log_name(GameState.current_player_index)
+	var default_space_name := "Space %d" % space_num
+	var space_name := default_space_name
+
+	if space_num >= 0 and space_num < GameState.board.size():
+		var landed_space = GameState.board[space_num]
+
+		if landed_space != null and landed_space.has_method("get_name"):
+			var candidate = str(landed_space.get_name()).strip_edges()
+			if candidate != "":
+				space_name = candidate
+		elif landed_space != null and "space_name" in landed_space:
+			var candidate = str(landed_space.space_name).strip_edges()
+			if candidate != "":
+				space_name = candidate
+
+	if space_name == default_space_name:
+		var info = SpaceDataRef.get_space_info(space_num)
+		if info.has("name"):
+			var fallback_name = str(info["name"]).strip_edges()
+			if fallback_name != "":
+				space_name = fallback_name
+
+	log_event("%s landed on %s." % [player_name, space_name])
+
 	# Skip space action popup if the player was just sent to jail — the
 	# notification popup and jail popup handle everything from here.
 	var current_player := GameController.get_current_player()
@@ -552,7 +595,29 @@ func _on_piece_movement_finished(space_num: int) -> void:
 
 func _on_purchase_pressed(space_num: int) -> void:
 	print("Player wants to purchase space: ", space_num)
-	# TODO: Implement actual purchase logic
+
+	if space_num < 0 or space_num >= GameState.board.size():
+		push_warning("Purchase pressed with invalid space number: %d" % space_num)
+		GameController.action_completed.emit()
+		return
+
+	var player_index := GameState.current_player_index
+	if player_index < 0 or player_index >= GameState.players.size():
+		push_warning("Purchase pressed with invalid player index: %d" % player_index)
+		GameController.action_completed.emit()
+		return
+
+	var space = GameState.board[space_num]
+	if space == null:
+		push_warning("Purchase pressed but space is null at index: %d" % space_num)
+		GameController.action_completed.emit()
+		return
+
+	if space is Ownable:
+		GameController.purchase_property.emit(space, player_index)
+	else:
+		push_warning("Purchase pressed on non-ownable space: %d" % space_num)
+
 	GameController.action_completed.emit()
 
 
@@ -669,14 +734,30 @@ func _on_move_pressed(space_num: int) -> void:
 	GameController.action_completed.emit()
 
 
-func _on_draw_card_pressed(_space_num: int) -> void:
-	pass # action_completed is emitted by chance_card_popup once the card is closed
+func _on_draw_card_pressed(space_num: int) -> void:
+	var player_name := get_player_log_name(GameState.current_player_index)
+	var space_name := "a card space"
+
+	var space_info = SpaceDataRef.get_space_info(space_num)
+	if space_info.has("name"):
+		var candidate := str(space_info["name"]).strip_edges()
+		if candidate != "":
+			space_name = candidate
+
+	log_event("%s drew a card from %s." % [player_name, space_name])
+
+	# action_completed is emitted by chance_card_popup once the card is closed
+	pass
 
 
-func _on_player_sent_to_jail(_player_index: int) -> void:
+func _on_player_sent_to_jail(player_index: int) -> void:
+	var player_name := get_player_log_name(player_index)
+	log_event("%s was sent to the Launch Pad." % player_name)
+
 	if notification_popup:
 		notification_popup.show_notification("Sent to the Launch Pad!", "You have been sent to the Launch Pad.")
 		await notification_popup.dismissed
+
 	GameController.action_completed.emit()
 
 
@@ -689,6 +770,15 @@ func _on_pay_pressed(space_num: int) -> void:
 		GameController.action_completed.emit()
 		return
 
+	var player_name := get_player_log_name(current_player)
+	var space_name := "Space %d" % space_num
+
+	var space_info = SpaceDataRef.get_space_info(space_num)
+	if space_info.has("name"):
+		var candidate := str(space_info["name"]).strip_edges()
+		if candidate != "":
+			space_name = candidate
+
 	var space := GameState.board[space_num]
 
 	if space is Ownable:
@@ -698,14 +788,13 @@ func _on_pay_pressed(space_num: int) -> void:
 		GameController.action_completed.emit()
 		return
 
-	var space_info = SpaceDataRef.get_space_info(space_num)
 	var t := str(space_info.get("type", ""))
 
-	# handling both expense and cost variation of sapces.
 	if t == "cost" or t == "expense":
 		var amount := int(space_info.get("amount", 0))
 		if amount > 0:
 			GameController.debit(current_player, amount, "space cost")
+			log_event("%s paid $%d on %s." % [player_name, amount, space_name])
 		else:
 			push_warning("PAY: cost/expense space but amount missing/0 at space " + str(space_num))
 
@@ -714,6 +803,36 @@ func _on_pay_pressed(space_num: int) -> void:
 
 func _on_close_pressed() -> void:
 	print("Player closed the action popup")
+
+	var space_num := -1
+	if current_piece and is_instance_valid(current_piece):
+		space_num = int(current_piece.board_space)
+
+	var player_name := get_player_log_name(GameState.current_player_index)
+
+	if space_num >= 0:
+		var space_name := "Space %d" % space_num
+		var space_info = SpaceDataRef.get_space_info(space_num)
+
+		if space_info.has("name"):
+			var candidate := str(space_info["name"]).strip_edges()
+			if candidate != "":
+				space_name = candidate
+
+		match space_num:
+			0:
+				log_event("%s landed on %s." % [player_name, space_name])
+			10:
+				var current_player := GameController.get_current_player()
+				if current_player and current_player.is_in_jail:
+					pass
+				else:
+					log_event("%s is just visiting the Launch Pad." % player_name)
+			20:
+				log_event("%s landed on %s." % [player_name, space_name])
+			_:
+				pass
+
 	GameController.action_completed.emit()
 
 
@@ -765,6 +884,14 @@ func _on_property_details_closed() -> void:
 
 func _input(event: InputEvent) -> void:
 	if get_tree().paused:
+		return
+
+	# If the mouse is over the Turn Log UI, do not allow board hover/click handling.
+	if turn_log_panel and turn_log_panel.has_method("is_mouse_over_ui") and turn_log_panel.is_mouse_over_ui():
+		# Clear hover highlight while hovering over the turn log area
+		if hovered_tile != Vector2i(-1, -1) and hovered_tile != selected_tile:
+			highlight_layer.erase_cell(hovered_tile)
+		hovered_tile = Vector2i(-1, -1)
 		return
 
 	if event is InputEventMouseMotion:
@@ -930,6 +1057,13 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 		total,
 		" (Doubles!)" if is_doubles else ""
 	])
+	
+	var roller_name := get_player_log_name(GameState.current_player_index)
+
+	if is_doubles:
+		log_event("%s rolled %d + %d = %d (Doubles!)" % [roller_name, d1, d2, total])
+	else:
+		log_event("%s rolled %d + %d = %d" % [roller_name, d1, d2, total])
 
 	var current_player := GameController.get_current_player()
 	
@@ -945,6 +1079,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			current_player.doubles_count += 1
 			if current_player.doubles_count == 3:
 				print("Rolled 3 doubles! Go to jail.")
+				log_event("%s rolled doubles three times and was sent to the Launch Pad." % roller_name)
 				GameController.send_player_to_jail(GameState.current_player_index)
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
@@ -969,10 +1104,24 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	# Doubles out of jail do not grant an extra turn, so we reset flags
 	player.last_roll_was_doubles = false
 	player.doubles_count = 0
-	
+
+	var player_name := get_player_log_name(GameState.current_player_index)
+	var die_1 := 0
+	var die_2 := 0
+
+	# We only know total + doubles here, not the original d1/d2 values.
+	# So we log the total cleanly for jail resolution.
+	if is_doubles:
+		log_event("%s rolled doubles (%d) in the Launch Pad." % [player_name, total])
+	else:
+		log_event("%s rolled %d in the Launch Pad and did not get doubles." % [player_name, total])
+
 	if is_doubles:
 		print("Rolled doubles! Escaped jail.")
+		log_event("%s escaped the Launch Pad and moves %d spaces." % [player_name, total])
+
 		GameController.release_player_from_jail(GameState.current_player_index)
+
 		# Move the rolled amount
 		var old_space: int = int(current_piece.board_space)
 		current_piece.move_forward(total)
@@ -980,21 +1129,26 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	else:
 		if player.turns_in_jail == 3:
 			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
+			log_event("%s failed to escape after 3 turns and must pay $50 for a Launch Permit." % player_name)
+
 			# Try to pay 50. If they can't, they go bankrupt, but we'll try our best.
-			# Using debit which handles emitting signals but doesn't auto-bankrupt yet in standard flow unless handled by action.
-			# But actually if they can't pay, they should go bankrupt.
 			if GameController.get_player_balance(GameState.current_player_index) < 50:
+				log_event("%s cannot afford the $50 Launch Permit and may go bankrupt." % player_name)
 				GameController.emit_signal("bankruptcy_needed", GameState.current_player_index, -1, 50, "Launch Permit")
 				# They still get released and move assuming they resolve bankruptcy, but let's release them anyway
 			else:
+				log_event("%s pays $50 for a Launch Permit and leaves the Launch Pad." % player_name)
 				GameController.debit(GameState.current_player_index, 50, "Launch Permit")
-			
+
 			GameController.release_player_from_jail(GameState.current_player_index)
+
 			var old_space: int = int(current_piece.board_space)
 			current_piece.move_forward(total)
 			update_piece_layouts_at(old_space)
 		else:
 			print("Did not roll doubles. Stay in jail.")
+			log_event("%s remains in the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
+
 			# Don't move, turn effectively over. Need to simulate action completed so End Turn button enables.
 			GameController.action_completed.emit()
 
@@ -1145,8 +1299,47 @@ func _on_bankruptcy_declared() -> void:
 	print("BOARD: bankruptcy declared for player ", pending_debtor_index)
 
 	var eliminated_player := pending_debtor_index
+	var creditor := pending_creditor_index
+	var amount := pending_amount_owed
+	var reason := pending_reason
 
-	# Mark player as inactive in GameState
+	if eliminated_player < 0 or eliminated_player >= GameState.players.size():
+		push_warning("Board: invalid eliminated player during bankruptcy.")
+		return
+
+	# Capture names BEFORE we clear anything
+	var debtor_name := get_player_log_name(eliminated_player)
+	var creditor_name := "the Bank"
+
+	if creditor >= 0 and creditor < GameState.players.size():
+		creditor_name = get_player_log_name(creditor)
+
+	# -------------------------
+	# Turn Log: bankruptcy declaration
+	# -------------------------
+	if creditor >= 0 and creditor < GameState.players.size():
+		log_event("%s declared bankruptcy to %s." % [debtor_name, creditor_name])
+	else:
+		log_event("%s declared bankruptcy to the Bank." % debtor_name)
+
+	# Optional detail line (nice for clarity in the log)
+	if amount > 0 and reason.strip_edges() != "":
+		log_event("%s could not pay $%d for %s." % [debtor_name, amount, reason])
+	elif amount > 0:
+		log_event("%s could not pay $%d." % [debtor_name, amount])
+
+	# Resolve transfer of assets/cash before elimination
+	_resolve_bankruptcy_transfer(eliminated_player, creditor)
+
+	# Log asset transfer result
+
+	if creditor >= 0 and creditor < GameState.players.size():
+		log_event("%s's remaining assets were transferred to %s." % [debtor_name, creditor_name])
+	else:
+		log_event("%s's remaining assets were returned to the Bank." % debtor_name)
+
+	# Mark player inactive in GameState
+
 	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
 		GameState.player_active[eliminated_player] = false
 
@@ -1160,11 +1353,13 @@ func _on_bankruptcy_declared() -> void:
 	if bankruptcy_popup:
 		bankruptcy_popup.hide_popup()
 
+	# Final elimination log
+	log_event("%s was removed from the game." % debtor_name)
+
 	_clear_pending_bankruptcy()
 
-	# -------------------------
+
 	# Check win condition
-	# -------------------------
 	var active_count := 0
 	var last_active := -1
 	for i in range(GameState.player_active.size()):
@@ -1173,14 +1368,14 @@ func _on_bankruptcy_declared() -> void:
 			last_active = i
 
 	if active_count == 1:
+		log_event("%s wins the game!" % get_player_log_name(last_active))
 		_show_win_screen(last_active)
 		return
 
-	# -------------------------
-	# advance turn immediately so we never land on a bankrupt player
-	# -------------------------
-	call_deferred("_advance_after_bankruptcy")
 
+	# Advance turn immediately so we never land on a bankrupt player
+
+	call_deferred("_advance_after_bankruptcy")
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
 	pending_debtor_index = debtor_idx
@@ -1263,9 +1458,9 @@ func _resolve_bankruptcy_transfer(debtor_idx: int, creditor_idx: int) -> void:
 
 	# Mark debtor eliminated
 	if debtor_idx >= 0 and debtor_idx < GameState.players.size():
-		if GameState.players[debtor_idx].has_variable("is_bankrupt"):
+		if "is_bankrupt" in GameState.players[debtor_idx]:
 			GameState.players[debtor_idx].is_bankrupt = true
-		if GameState.players[debtor_idx].has_variable("is_active"):
+		if "is_active" in GameState.players[debtor_idx]:
 			GameState.players[debtor_idx].is_active = false
 
 	# remove debtor piece so it doesn't keep moving
@@ -1281,10 +1476,10 @@ func _count_active_players() -> int:
 	var count := 0
 	for p in GameState.players:
 		var active := true
-		if p.has_variable("is_active"):
+		if "is_active" in p:
 			active = p.is_active
-		elif p.has_variable("is_bankrupt"):
-			active = not p.is_bankru
+		elif "is_bankrupt" in p:
+			active = not p.is_bankrupt
 		if active:
 			count += 1
 	return count
@@ -1294,9 +1489,9 @@ func _get_last_active_player_index() -> int:
 	for i in range(GameState.players.size()):
 		var p = GameState.players[i]
 		var active := true
-		if p.has_variable("is_active"):
+		if "is_active" in p:
 			active = p.is_active
-		elif p.has_variable("is_bankrupt"):
+		elif "is_bankrupt" in p:
 			active = not p.is_bankrupt
 		if active:
 			return i
@@ -1386,6 +1581,9 @@ func _on_colorblind_mode_changed(enabled: bool) -> void:
 		_spawn_colorblind_symbols()
 
 	$ColorBlindSymbols.visible = enabled
+	
+func _on_transaction_logged(message: String) -> void:
+	log_event(message)
 	
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1665,3 +1863,49 @@ func _get_symbol_offset_for_space(space_index: int, coords: Vector2i) -> Vector2
 		return Vector2(-5, 1)
 
 	return Vector2.ZERO
+
+
+func log_event(message: String) -> void:
+	if turn_log_panel and turn_log_panel.has_method("add_log_entry"):
+		turn_log_panel.add_log_entry(message)
+		
+		
+
+func get_player_log_name(player_index: int) -> String:
+	if player_index < 0 or player_index >= GameState.players.size():
+		return "Unknown Player"
+
+	if GameState.has_method("get_player_display_name"):
+		var display_name = str(GameState.get_player_display_name(player_index)).strip_edges()
+		if display_name != "":
+			return display_name
+
+	var player = GameState.players[player_index]
+	if player and player.has_variable("player_name"):
+		var player_name = str(player.player_name).strip_edges()
+		if player_name != "":
+			return player_name
+
+	return "Player %d" % (player_index + 1)
+	
+func _calculate_display_turn_number(player_index: int) -> int:
+	var total_players: int = maxi(1, GameState.player_count)
+
+	# Track how many turn-start events we've processed
+	if not has_meta("turn_start_counter"):
+		set_meta("turn_start_counter", 0)
+
+	var counter: int = int(get_meta("turn_start_counter"))
+
+	var round_number: int = int(floor(float(counter) / float(total_players))) + 1
+	set_meta("turn_start_counter", counter + 1)
+
+	return round_number
+
+func _is_first_active_player_of_round(player_index: int) -> bool:
+	if not GameState.player_active.is_empty():
+		for i in range(GameState.player_active.size()):
+			if GameState.player_active[i]:
+				return i == player_index
+
+	return player_index == 0
