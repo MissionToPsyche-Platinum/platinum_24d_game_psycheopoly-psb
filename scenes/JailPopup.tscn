@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://jail_popup_uid123"]
+[gd_scene load_steps=5 format=3 uid="uid://dec08lvaqam8o"]
 
-[ext_resource type="Script" uid="uid://jail_popup_script_uid1" path="res://scripts/ui/jail_popup.gd" id="1_jail"]
+[ext_resource type="Script" uid="uid://b3ypgeux7r17a" path="res://scripts/ui/jail_popup.gd" id="1_jail"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_font_bold"]
 

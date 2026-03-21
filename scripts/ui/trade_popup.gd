@@ -388,6 +388,12 @@ func _on_submit_pressed() -> void:
 
 	_pending_offer = trade_offer
 	status_label.text = ""
+
+	# Turn log: trade proposed
+	var offering_name := GameState.get_player_display_name(int(trade_offer.get("offering_player", -1)))
+	var target_name := GameState.get_player_display_name(int(trade_offer.get("target_player", -1)))
+	GameController.log_transaction("%s proposed a trade to %s." % [offering_name, target_name])
+
 	_set_review_mode(_summarize_trade_offer(trade_offer))
 
 
@@ -400,6 +406,11 @@ func _on_back_pressed() -> void:
 
 
 func _on_reject_pressed() -> void:
+	if not _pending_offer.is_empty():
+		var offering_name := GameState.get_player_display_name(int(_pending_offer.get("offering_player", -1)))
+		var target_name := GameState.get_player_display_name(int(_pending_offer.get("target_player", -1)))
+		GameController.log_transaction("%s declined the trade offer from %s." % [target_name, offering_name])
+
 	status_label.text = "Trade rejected."
 	hide_popup()
 
@@ -422,9 +433,13 @@ func _on_trade_failed(reason: String) -> void:
 	_set_compose_mode()
 
 
-func _on_trade_completed(_trade_offer: Dictionary) -> void:
+func _on_trade_completed(trade_offer: Dictionary) -> void:
+	# Turn log: accepted trade summary
+	GameController.log_transaction(_build_trade_log_summary(trade_offer))
+
 	if not visible:
 		return
+
 	status_label.text = "Trade completed successfully."
 	
 
@@ -451,3 +466,67 @@ func _check_space_in_tree(tree: Tree, space_index: int) -> void:
 			return
 
 		item = item.get_next()
+		
+func _get_space_names(space_indexes: Array) -> Array[String]:
+	var names: Array[String] = []
+
+	for space_index_variant in space_indexes:
+		var space_index := int(space_index_variant)
+		var info := SpaceData.get_space_info(space_index)
+		var space_name := str(info.get("name", "Space " + str(space_index)))
+		names.append(space_name)
+
+	return names
+
+
+func _join_natural(parts: Array[String]) -> String:
+	if parts.is_empty():
+		return ""
+
+	if parts.size() == 1:
+		return parts[0]
+
+	if parts.size() == 2:
+		return parts[0] + " and " + parts[1]
+
+	var all_but_last := parts.slice(0, parts.size() - 1)
+	return ", ".join(all_but_last) + ", and " + parts[parts.size() - 1]
+
+
+func _build_trade_side_summary(cash_amount: int, space_indexes: Array) -> String:
+	var parts: Array[String] = []
+
+	if cash_amount > 0:
+		parts.append("$" + str(cash_amount))
+
+	var property_names := _get_space_names(space_indexes)
+	for property_name in property_names:
+		parts.append(property_name)
+
+	if parts.is_empty():
+		return "nothing"
+
+	return _join_natural(parts)
+
+
+func _build_trade_log_summary(trade_offer: Dictionary) -> String:
+	var offering_player := int(trade_offer.get("offering_player", -1))
+	var target_player := int(trade_offer.get("target_player", -1))
+
+	var offering_name := GameState.get_player_display_name(offering_player)
+	var target_name := GameState.get_player_display_name(target_player)
+
+	var offer_cash := int(trade_offer.get("offer_cash", 0))
+	var request_cash := int(trade_offer.get("request_cash", 0))
+	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
+	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
+
+	var offering_gives := _build_trade_side_summary(offer_cash, offered_spaces)
+	var target_gives := _build_trade_side_summary(request_cash, requested_spaces)
+
+	return "%s traded %s to %s for %s." % [
+		offering_name,
+		offering_gives,
+		target_name,
+		target_gives
+	]

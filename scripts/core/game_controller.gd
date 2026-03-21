@@ -7,6 +7,7 @@ extends Node
 ##    - Handle game logic
 ## ============================================================================
 
+const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 
 # ------------------------------------------------------------------------------
 # Global Signals
@@ -48,6 +49,8 @@ signal trade_completed(trade_offer: Dictionary)
 ## Emitted when a trade execution attempt fails validation
 signal trade_failed(reason: String)
 
+## Emitted when a game action resolves and should be written to the turn log
+signal transaction_logged(message: String)
 
 # ------------------------------------------------------------------------------
 # Signals to be called from space action popup
@@ -262,15 +265,53 @@ func _upgrade_property(property: PropertySpace, player: int) -> void:
 	var total_discoveries = GameState.players[player].total_discoveries
 
 	if (player == property._player_owner && property.is_owned()):
-		debit(property._player_owner, property._upgrade_cost, "property upgrade")
+		var previous_level := property._current_upgrades
+		var upgrade_cost := property._upgrade_cost
+
+		debit(property._player_owner, upgrade_cost, "property upgrade")
+
 		if property._current_upgrades == 4:
 			GameState.players[player].total_data_points = total_data_points - 4
 			GameState.players[player].total_discoveries = total_discoveries + 1
 		else:
 			GameState.players[player].total_data_points = total_data_points + 1
+
 		_adjust_upgrade_level(property, 1)
 		property_upgraded.emit()
+
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
+
+		# Turn Log: property upgrade
+		var player_name := get_player_log_name(player)
+		var property_name := "Property"
+
+		if property != null:
+			if property.has_method("get_name"):
+				var candidate := str(property.get_name()).strip_edges()
+				if candidate != "":
+					property_name = candidate
+
+			if property_name == "Property" and "space_name" in property:
+				var candidate := str(property.space_name).strip_edges()
+				if candidate != "":
+					property_name = candidate
+
+			if property_name == "Property":
+				for i in range(GameState.board.size()):
+					if GameState.board[i] == property:
+						var info = SpaceDataRef.get_space_info(i)
+						if info.has("name"):
+							var candidate := str(info["name"]).strip_edges()
+							if candidate != "":
+								property_name = candidate
+						break
+
+		if previous_level == 4:
+			transaction_logged.emit("%s upgraded %s to a discovery for $%d." % [player_name, property_name, upgrade_cost])
+		else:
+			var new_level := property._current_upgrades
+			transaction_logged.emit("%s added a data point to %s (Level %d) for $%d." % [player_name, property_name, new_level, upgrade_cost])
+
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
@@ -278,17 +319,56 @@ func _upgrade_property(property: PropertySpace, player: int) -> void:
 func _downgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
+
 	if (player == property._player_owner && property.is_owned()):
-		var downgradeRefund = property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
-		credit(property._player_owner, downgradeRefund, "property downgrade")
+		var previous_level := property._current_upgrades
+		var downgrade_refund := property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
+
+		credit(property._player_owner, downgrade_refund, "property downgrade")
+
 		if property._current_upgrades == 5:
 			GameState.players[player].total_data_points = total_data_points + 4
 			GameState.players[player].total_discoveries = total_discoveries - 1
 		else:
 			GameState.players[player].total_data_points = total_data_points - 1
+
 		print("your data points/discoveries are: ", GameState.players[player].total_data_points, " ", GameState.players[player].total_discoveries)
+
 		_adjust_upgrade_level(property, -1)
 		property_upgraded.emit()
+
+
+		# Turn Log: property downgrade
+		var player_name := get_player_log_name(player)
+		var property_name := "Property"
+
+		if property != null:
+			if property.has_method("get_name"):
+				var candidate := str(property.get_name()).strip_edges()
+				if candidate != "":
+					property_name = candidate
+
+			if property_name == "Property" and "space_name" in property:
+				var candidate := str(property.space_name).strip_edges()
+				if candidate != "":
+					property_name = candidate
+
+			if property_name == "Property":
+				for i in range(GameState.board.size()):
+					if GameState.board[i] == property:
+						var info = SpaceDataRef.get_space_info(i)
+						if info.has("name"):
+							var candidate := str(info["name"]).strip_edges()
+							if candidate != "":
+								property_name = candidate
+						break
+
+		if previous_level == 5:
+			transaction_logged.emit("%s downgraded %s from a discovery and received $%d." % [player_name, property_name, downgrade_refund])
+		else:
+			var new_level := property._current_upgrades
+			transaction_logged.emit("%s removed a data point from %s (Level %d) and received $%d." % [player_name, property_name, new_level, downgrade_refund])
+
 	else:
 		print("Error, incorrect player attempted to downgrade property or property is unowned")
 
@@ -348,22 +428,80 @@ func _mortgage_property(property: Ownable, player: int) -> void:
 	if not _check_if_mortgage_is_valid(property, player):
 		print("Mortgage invalid")
 		return
+
 	var value := _get_mortgage_value(property)
 	credit(player, value, "mortgage")
 	property._is_mortgaged = true
 	property_ownership_changed.emit()
+
 	print("Player ", GameState.players[player].player_name, " mortgaged a property for $", value)
+
+	# Turn Log: mortgage
+	var player_name := get_player_log_name(player)
+	var property_name := "Property"
+
+	if property != null:
+		if property.has_method("get_name"):
+			var candidate := str(property.get_name()).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		if property_name == "Property" and "space_name" in property:
+			var candidate := str(property.space_name).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		if property_name == "Property":
+			for i in range(GameState.board.size()):
+				if GameState.board[i] == property:
+					var info = SpaceDataRef.get_space_info(i)
+					if info.has("name"):
+						var candidate := str(info["name"]).strip_edges()
+						if candidate != "":
+							property_name = candidate
+					break
+
+	transaction_logged.emit("%s mortgaged %s for $%d." % [player_name, property_name, value])
 
 
 func _unmortgage_property(property: Ownable, player: int) -> void:
 	if not _check_if_unmortgage_is_valid(property, player):
 		print("Unmortgage invalid")
 		return
+
 	var cost := _get_unmortgage_cost(property)
 	debit(player, cost, "unmortgage")
 	property._is_mortgaged = false
 	property_ownership_changed.emit()
+
 	print("Player ", GameState.players[player].player_name, " unmortgaged a property for $", cost)
+
+	# Turn Log: unmortgage
+	var player_name := get_player_log_name(player)
+	var property_name := "Property"
+
+	if property != null:
+		if property.has_method("get_name"):
+			var candidate := str(property.get_name()).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		if property_name == "Property" and "space_name" in property:
+			var candidate := str(property.space_name).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		if property_name == "Property":
+			for i in range(GameState.board.size()):
+				if GameState.board[i] == property:
+					var info = SpaceDataRef.get_space_info(i)
+					if info.has("name"):
+						var candidate := str(info["name"]).strip_edges()
+						if candidate != "":
+							property_name = candidate
+					break
+
+	transaction_logged.emit("%s unmortgaged %s for $%d." % [player_name, property_name, cost])
 
 
 ## Changes the ownership of an ownable property
@@ -393,6 +531,35 @@ func _purchase_property(property: Ownable, player: int) -> void:
 func _purchase_unowned_property(property: Ownable, player: int, purchase_price: int) -> void:
 	debit(player, purchase_price, "purchase unowned")
 	_transfer_property(property, player)
+
+	var player_name := GameState.get_player_display_name(player)
+	var property_name := "Property"
+
+	if property != null:
+		# Try direct object name first
+		if property.has_method("get_name"):
+			var candidate := str(property.get_name()).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		# Fallback: explicit space_name field if present
+		if property_name == "Property" and "space_name" in property:
+			var candidate := str(property.space_name).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		# Strong fallback: use board index + SpaceData
+		if property_name == "Property":
+			for i in range(GameState.board.size()):
+				if GameState.board[i] == property:
+					var info = SpaceDataRef.get_space_info(i)
+					if info.has("name"):
+						var candidate := str(info["name"]).strip_edges()
+						if candidate != "":
+							property_name = candidate
+					break
+
+	transaction_logged.emit("%s purchased %s for $%d." % [player_name, property_name, purchase_price])
 
 
 ## Purchases an owned property - handles money transfer between players
@@ -472,6 +639,34 @@ func _pay_rent(property: Ownable, player: int) -> void:
 		return
 
 	transfer(player, owner, rent, "rent")
+
+	# Turn log: rent payment entry
+	var payer_name := GameState.get_player_display_name(player)
+	var owner_name := GameState.get_player_display_name(owner)
+	var property_name := "Property"
+
+	if property != null:
+		if property.has_method("get_name"):
+			var candidate := str(property.get_name()).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		if property_name == "Property" and "space_name" in property:
+			var candidate := str(property.space_name).strip_edges()
+			if candidate != "":
+				property_name = candidate
+
+		if property_name == "Property":
+			for i in range(GameState.board.size()):
+				if GameState.board[i] == property:
+					var info = SpaceDataRef.get_space_info(i)
+					if info.has("name"):
+						var candidate := str(info["name"]).strip_edges()
+						if candidate != "":
+							property_name = candidate
+					break
+
+	transaction_logged.emit("%s paid $%d rent to %s for %s." % [payer_name, rent, owner_name, property_name])
 
 
 
@@ -671,3 +866,24 @@ func calculate_rent(property: Ownable) -> int:
 			return int(GameState.last_roll) * (planet._two_planet_multiplier if count >= 2 else planet._default_multiplier)
 
 	return 0
+
+
+func log_transaction(message: String) -> void:
+	transaction_logged.emit(message)
+	
+func get_player_log_name(player_index: int) -> String:
+	var fallback := "Player %d" % (player_index + 1)
+	
+	if GameState.has_method("get_player_display_name"):
+		var display_name := str(GameState.get_player_display_name(player_index)).strip_edges()
+		if display_name != "":
+			return display_name
+	
+	if player_index >= 0 and player_index < GameState.players.size():
+		var p = GameState.players[player_index]
+		if p != null:
+			var candidate := str(p.player_name).strip_edges()
+			if candidate != "":
+				return candidate
+	
+	return fallback
