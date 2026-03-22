@@ -2,14 +2,14 @@ extends RefCounted
 class_name ColorblindHelpers
 
 static var SYMBOL_TEXTURES := {
-	"Yellow": preload("res://assets/images/circle.png"),
-	"Orange": preload("res://assets/images/star.png"),
-	"Dark Orange": preload("res://assets/images/diamond.png"),
-	"Pink": preload("res://assets/images/pentagon.png"),
-	"Dark Red": preload("res://assets/images/triangle.png"),
-	"Purple": preload("res://assets/images/square.png"),
-	"Dark Purple": preload("res://assets/images/cross.png"),
-	"Light Purple": preload("res://assets/images/hex.png")
+	"Yellow": preload("res://assets/images/circle.png"),        # circle
+	"Orange": preload("res://assets/images/star.png"),          # star
+	"Dark Orange": preload("res://assets/images/diamond.png"),  # diamond
+	"Pink": preload("res://assets/images/pentagon.png"),        # pentagon
+	"Dark Red": preload("res://assets/images/triangle.png"),    # triangle
+	"Purple": preload("res://assets/images/square.png"),        # square
+	"Dark Purple": preload("res://assets/images/cross.png"),    # cross
+	"Light Purple": preload("res://assets/images/hex.png")      # hex
 }
 
 static var COLORBLIND_SYMBOL_SPACES := {
@@ -53,7 +53,6 @@ static func get_symbol_texture_for_set(set_name: String) -> Texture2D:
 
 	return null
 
-
 static func get_symbol_texture_for_space(space_index: int) -> Texture2D:
 	if not SettingsManager.is_colorblind_enabled():
 		return null
@@ -61,13 +60,15 @@ static func get_symbol_texture_for_space(space_index: int) -> Texture2D:
 	if not COLORBLIND_SYMBOL_SPACES.has(space_index):
 		return null
 
-	var set_name := str(COLORBLIND_SYMBOL_SPACES[space_index])
-	return get_symbol_texture_for_set(set_name)
+	var symbol_group := str(COLORBLIND_SYMBOL_SPACES[space_index])
 
+	if SYMBOL_TEXTURES.has(symbol_group):
+		return SYMBOL_TEXTURES[symbol_group]
+
+	return null
 
 static func get_symbol_group_for_space(space_index: int) -> String:
 	return COLORBLIND_SYMBOL_SPACES.get(space_index, "")
-
 
 static func get_symbol_text_for_space(space_index: int) -> String:
 	var group := get_symbol_group_for_space(space_index)

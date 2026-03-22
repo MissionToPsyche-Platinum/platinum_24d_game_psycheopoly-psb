@@ -849,6 +849,9 @@ func _on_piece_space_changed(space_num: int) -> void:
 	if not is_tile_selected and space_info_panel:
 		space_info_panel.update_space_display(space_num)
 
+	if has_node("ColorBlindSymbols"):
+		$ColorBlindSymbols.visible = SettingsManager.is_colorblind_enabled()
+
 
 func _on_auction_details_requested() -> void:
 	if not auction_popup:
@@ -1574,13 +1577,14 @@ func _on_doubles_rolled() -> void:
 		
 
 func _on_colorblind_mode_changed(enabled: bool) -> void:
-	if not has_node("ColorBlindSymbols"):
-		return
+	if has_node("ColorBlindSymbols"):
+		if enabled:
+			_spawn_colorblind_symbols()
 
-	if enabled:
-		_spawn_colorblind_symbols()
+		$ColorBlindSymbols.visible = enabled
 
-	$ColorBlindSymbols.visible = enabled
+	if space_info_panel and current_piece and not is_tile_selected:
+		space_info_panel.update_space_display(current_piece.board_space)
 	
 func _on_transaction_logged(message: String) -> void:
 	log_event(message)
