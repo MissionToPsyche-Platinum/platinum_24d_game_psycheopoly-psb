@@ -586,7 +586,10 @@ func _on_piece_movement_finished(space_num: int) -> void:
 		if not space_action_popup.is_node_ready():
 			await space_action_popup.ready
 
-		space_action_popup.show_actions(space_num)
+		if (current_player.player_is_ai == false):
+			space_action_popup.show_actions(space_num)
+		else:
+			AiManager.ai_lands_on_space(space_num)
 
 		await get_tree().process_frame
 		if not space_action_popup.visible:
