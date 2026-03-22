@@ -27,6 +27,7 @@ AuctionMgr="*res://scripts/core/auction_manager.gd"
 ChanceCardMgr="*res://scripts/core/chance_card_manager.gd"
 GameController="*res://scripts/core/game_controller.gd"
 SettingsManager="*res://scripts/core/settings_manager.gd"
+AiManager="*res://scripts/core/ai_manager.gd"
 
 [display]
 

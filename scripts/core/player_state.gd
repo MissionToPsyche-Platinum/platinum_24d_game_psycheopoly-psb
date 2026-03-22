@@ -4,6 +4,7 @@ class_name PlayerState
 # Player identification
 var player_id: int = 0
 var player_name: String = "Player"
+var player_is_ai: bool = false
 
 # Visual identity (token/UI)
 var player_color: Color = Color.WHITE
