@@ -65,6 +65,7 @@ func _ready() -> void:
 		_roll_text_idle = roll_button.text
 
 	roll_button.pressed.connect(_on_roll_pressed)
+	AiManager.ai_dice_roll.connect(roll_dice)
 
 	if GameController:
 		if not GameController.turn_started.is_connected(_on_turn_started):
@@ -220,4 +221,4 @@ func _update_button_states() -> void:
 		return
 
 	if roll_button:
-		roll_button.disabled = current_player.has_rolled or is_rolling
+		roll_button.disabled = current_player.has_rolled or is_rolling or current_player.player_is_ai
