@@ -1570,7 +1570,7 @@ func _on_action_completed() -> void:
 		p.last_roll_was_doubles = false
 
 func _on_doubles_rolled() -> void:
-	if notification_popup:
+	if notification_popup && GameController.get_current_player().player_is_ai == false:
 		var current_player := GameController.get_current_player()
 		if current_player and current_player.is_in_jail:
 			notification_popup.show_notification("Doubles!", "Go for Launch! Move forward.")

@@ -141,3 +141,4 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 	else: # in place of an error
 		pass
+	card_resolved.emit(card_num)
