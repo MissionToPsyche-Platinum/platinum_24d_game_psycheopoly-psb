@@ -5,6 +5,7 @@ const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 
 signal request_move_forward(spaces: int)
 signal request_teleport_movement(space: int)
+signal card_resolved(card_num: int)
 
 var player_count = -1
 var current_player = -1
@@ -141,4 +142,5 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 	else: # in place of an error
 		pass
+
 	card_resolved.emit(card_num)
