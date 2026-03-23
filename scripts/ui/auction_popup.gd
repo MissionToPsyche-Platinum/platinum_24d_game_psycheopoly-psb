@@ -63,6 +63,8 @@ func _ready() -> void:
 	pass_btn.pressed.connect(_on_pass_pressed)
 	bid_btn.pressed.connect(_on_bid_pressed)
 
+	AiManager.ai_auction_pass.connect(_on_pass_pressed)
+
 	# Bid increment buttons (only if row exists)
 	if bid_1:
 		bid_1.text = "+$1"

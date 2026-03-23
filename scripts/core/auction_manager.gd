@@ -149,7 +149,9 @@ func _announce_turn(initial: bool = false) -> void:
 
 	var p_idx := get_current_player_index()
 	emit_signal("turn_changed", p_idx)
-
+	
+	if (GameState.players[p_idx].player_is_ai == true):
+		AiManager.ai_auction_turn.emit()
 
 
 
