@@ -2,6 +2,8 @@ extends Node
 
 signal ai_dice_roll()
 signal ai_auction_start(space_num: int)
+signal ai_draw_card(space_num: int)
+
 
 func _ready() -> void:
 	GameController.turn_started.connect(check_if_ai_turn)
@@ -30,9 +32,11 @@ func ai_lands_on_space(space_num: int) -> void:
 				GameController.pay_rent.emit(property, GameState.current_player_index)
 			else:
 				ai_lands_on_unowned_property(space_num)
-		"SpecialSpace", "CardSpace", "ExpenseSpace":
+		"CardSpace":
+			ai_draw_card.emit(space_num)
+		"SpecialSpace", "ExpenseSpace":
 			pass
-	ai_turn_mid()
+	#ai_turn_mid() #temporarily commented out to test AI behaviour
 	
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:

@@ -49,6 +49,8 @@ func _ready() -> void:
 	auction_button.pressed.connect(_on_auction_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
+	AiManager.ai_draw_card.connect(_ai_draw_pressed)
+
 	# Refresh immediately when colorblind mode changes while popup is open
 	if SettingsManager:
 		if SettingsManager.has_signal("colorblind_mode_changed"):
@@ -222,6 +224,10 @@ func _on_pay_pressed() -> void:
 	# even when Player 2/3/etc landed here.
 	# now using the current active player index from GameState.
 	hide_popup()
+
+func _ai_draw_pressed(space_num: int) -> void:
+	current_space_num = space_num
+	_on_draw_pressed()
 
 
 func _on_draw_pressed() -> void:
