@@ -341,6 +341,7 @@ func _setup_space_action_popup() -> void:
 	space_action_popup.move_pressed.connect(_on_move_pressed)
 	space_action_popup.close_pressed.connect(_on_close_pressed)
 
+	AiManager.ai_auction_start.connect(_start_auction)
 
 func _setup_end_turn_button() -> void:
 	# Create a CanvasLayer to hold the end turn button (always on top)
@@ -625,6 +626,9 @@ func _on_purchase_pressed(space_num: int) -> void:
 
 
 func _on_auction_pressed(space_num: int) -> void:
+	_start_auction(space_num)
+	
+func _start_auction(space_num: int) -> void:
 	print("Auction started for space: ", space_num)
 
 	# Hide the action popup so it doesn't sit on top

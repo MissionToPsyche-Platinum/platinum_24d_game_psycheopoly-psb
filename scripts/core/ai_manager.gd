@@ -1,6 +1,7 @@
 extends Node
 
 signal ai_dice_roll()
+signal ai_auction_start(space_num: int)
 
 func _ready() -> void:
 	GameController.turn_started.connect(check_if_ai_turn)
@@ -24,16 +25,19 @@ func ai_lands_on_space(space_num: int) -> void:
 		gname = scr.get_global_name()
 
 	match gname:
-		"PropertySpace", "InstrumentSpace", "PlanetSpace", "SpecialSpace", "CardSpace", "ExpenseSpace":
-			ai_turn_mid()
+		"PropertySpace", "InstrumentSpace", "PlanetSpace":
+			if (property._is_owned == true):
+				GameController.pay_rent.emit(property, GameState.current_player_index)
+			else:
+				ai_lands_on_unowned_property(space_num)
+		"SpecialSpace", "CardSpace", "ExpenseSpace":
+			pass
+	ai_turn_mid()
 	
 # AI should choose between purchasing and auctioning here
-func ai_lands_on_unowned_property() -> void:
-	pass
+func ai_lands_on_unowned_property(space_num: int) -> void:
+	ai_auction_start.emit(space_num)
 
-# Pay rent here
-func ai_lands_on_owned_property() -> void:
-	pass
 
 # AI should decide between property upgrading, trading, or ending the current turn
 func ai_turn_mid() -> void:
