@@ -10,12 +10,16 @@ signal ai_move(space_num: int)
 signal ai_auction_pass()
 signal ai_auction_bid()
 
+signal ai_trade_reject()
+
 #Signals called by other classes
 signal ai_auction_turn()
+signal ai_trade_turn()
 
 func _ready() -> void:
 	GameController.turn_started.connect(check_if_ai_turn)
 	ai_auction_turn.connect(ai_auction_decision)
+	ai_trade_turn.connect(ai_trade_decision)
 
 # Emits the ai turn start signal if the next player is AI 
 func check_if_ai_turn(player_index) -> void:
@@ -81,4 +85,4 @@ func ai_auction_decision() -> void:
 
 # AI should decide whether to accept or decline a trade here
 func ai_trade_decision() -> void:
-	pass
+	ai_trade_reject.emit()

@@ -56,6 +56,8 @@ func _ready() -> void:
 	offer_cash_spin.value_changed.connect(_on_offer_value_changed)
 	request_cash_spin.value_changed.connect(_on_offer_value_changed)
 
+	AiManager.ai_trade_reject.connect(_on_reject_pressed)
+
 	_configure_property_tree(offered_list)
 	_configure_property_tree(requested_list)
 
@@ -110,7 +112,6 @@ func _set_review_mode(summary: String) -> void:
 	review_box.visible = true
 	title_label.text = "Trade Review"
 	review_label.text = summary
-
 
 func _update_review_if_active() -> void:
 	if not _in_review_mode:
@@ -395,7 +396,8 @@ func _on_submit_pressed() -> void:
 	GameController.log_transaction("%s proposed a trade to %s." % [offering_name, target_name])
 
 	_set_review_mode(_summarize_trade_offer(trade_offer))
-
+	if (GameState.players[(int(trade_offer.get("target_player", -1)))].player_is_ai):
+		AiManager.ai_trade_decision()
 
 func _on_cancel_pressed() -> void:
 	hide_popup()
