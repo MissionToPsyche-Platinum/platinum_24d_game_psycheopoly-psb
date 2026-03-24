@@ -463,7 +463,7 @@ func _mortgage_property(property: Ownable, player: int) -> void:
 							property_name = candidate
 					break
 
-	transaction_logged.emit("%s mortgaged %s for $%d." % [player_name, property_name, value])
+	transaction_logged.emit("%s mortgaged %s and received $%d." % [player_name, property_name, value])
 
 
 func _unmortgage_property(property: Ownable, player: int) -> void:

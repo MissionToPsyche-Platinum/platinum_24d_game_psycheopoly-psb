@@ -15,50 +15,13 @@ extends Control
 const MAX_ENTRIES := 100
 
 # Panel layout values
-const PANEL_WIDTH := 370.0
+const PANEL_WIDTH := 455.0
 const PANEL_HEIGHT := 420.0
 const TOGGLE_TAB_WIDTH := 36.0
 const SLIDE_DURATION := 0.22
 
-const SPACE_LOG_COLORS := {
-	# Light Purple
-	"Metal": "#C8A2FF",
-	"Doris": "#C8A2FF",
-
-	# Dark Red
-	"Elektra": "#D9534F",
-	"Terra": "#D9534F",
-	"Nova": "#D9534F",
-
-	# Purple
-	"Europa": "#9B59B6",
-	"Titan": "#9B59B6",
-	"Callisto": "#9B59B6",
-
-	# Orange
-	"Egeria": "#F4A261",
-	"Rhea": "#F4A261",
-	"Io": "#F4A261",
-
-	# Pink
-	"Miranda": "#FF8CC8",
-	"Ariel": "#FF8CC8",
-	"Umbriel": "#FF8CC8",
-
-	# Dark Purple
-	"Triton": "#6A4C93",
-	"Oberon": "#6A4C93",
-	"Titania": "#6A4C93",
-
-	# Yellow
-	"Hyperion": "#F4D35E",
-	"Phoebe": "#F4D35E",
-	"Iapetus": "#F4D35E",
-
-	# Dark Orange
-	"Deimos": "#D97706",
-	"Phobos": "#D97706"
-}
+var property_name_to_color: Dictionary = {}
+var property_name_to_index: Dictionary = {}
 
 var log_entries: Array[String] = []
 var last_cleared_entries: Array[String] = []
@@ -74,7 +37,10 @@ var expanded_button_x: float = PANEL_WIDTH
 var collapsed_button_x: float = 0.0
 
 func _ready() -> void:
-	# Block clicks inside the turn log footprint so board tiles underneath
+	# Build dynamic property lookup tables from actual board data
+	_build_property_maps()
+
+	# Block clicks inside the turn log so board tiles underneath
 	# the panel area cannot still be hovered/clicked.
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -83,6 +49,9 @@ func _ready() -> void:
 	undo_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	scroll_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	log_list.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle_button.focus_mode = Control.FOCUS_NONE
+	clear_button.focus_mode = Control.FOCUS_NONE
+	undo_button.focus_mode = Control.FOCUS_NONE
 
 	# RichTextLabel setup 
 	log_list.bbcode_enabled = true
@@ -109,6 +78,32 @@ func _ready() -> void:
 	# Start collapsed
 	collapse_panel(true)
 
+func _build_property_maps() -> void:
+	property_name_to_color.clear()
+	property_name_to_index.clear()
+
+	for i in range(SpaceData.SPACE_INFO.size()):
+		var info: Dictionary = SpaceData.SPACE_INFO[i]
+
+		if not info.has("type") or not info.has("name"):
+			continue
+
+		# Only true purchasable property spaces get special formatting
+		if str(info["type"]) != "property":
+			continue
+
+		var space_name := str(info["name"]).strip_edges()
+		if space_name == "":
+			continue
+
+		# Use actual space color from board data
+		var color_hex := "#FFFFFF"
+		if info.has("color") and info["color"] is Color:
+			color_hex = _color_to_hex(info["color"])
+
+		property_name_to_color[space_name] = color_hex
+		property_name_to_index[space_name] = i
+
 func add_log_entry(text: String) -> void:
 	log_entries.append(text)
 
@@ -127,10 +122,10 @@ func add_turn_header(player_index: int, player_name: String, turn_number: int, i
 	var display_round: int = maxi(1, turn_number)
 	var player_color: String = _get_player_header_color_from_game_state(player_index)
 
-	# Neutral system color for round headers (not tied to any player color)
+
 	var round_color := "#D9A441"
 
-	# Add a blank line before a new round (but not at the very top)
+	
 	if is_new_round:
 		if not log_entries.is_empty():
 			add_log_entry("")
@@ -292,12 +287,106 @@ func _format_log_entry(text: String) -> String:
 
 	var formatted := text
 
+	formatted = _normalize_money_signs(formatted)
+
+	
 	formatted = _apply_player_name_colors(formatted)
 	formatted = _apply_space_name_colors(formatted)
 	formatted = _apply_money_colors(formatted)
 	formatted = _apply_action_highlights(formatted)
 
 	return formatted
+
+func _normalize_money_signs(text: String) -> String:
+	var result := text
+	var regex := RegEx.new()
+	regex.compile("\\$\\d+")
+
+	var matches := regex.search_all(result)
+
+	for i in range(matches.size() - 1, -1, -1):
+		var match = matches[i]
+		var amount_text := match.get_string()
+		var start_idx := match.get_start()
+
+		# If already prefixed with + or -, leave it alone
+		if start_idx > 0:
+			var prev_char := result.substr(start_idx - 1, 1)
+			if prev_char == "+" or prev_char == "-":
+				continue
+
+		var sign := _infer_money_sign(result, start_idx)
+		if sign != "":
+			var replacement := sign + amount_text
+			result = result.substr(0, start_idx) + replacement + result.substr(match.get_end())
+
+	return result
+
+func _infer_money_sign(full_text: String, amount_start_idx: int) -> String:
+	var context := full_text.to_lower()
+
+	var traded_idx := context.find(" traded ")
+	if traded_idx != -1:
+		var to_idx := context.find(" to ", traded_idx)
+		var for_idx := context.find(" for ", traded_idx)
+
+		if to_idx != -1 and for_idx != -1 and to_idx < for_idx:
+			# Money appears before " to " => gave money
+			if amount_start_idx > traded_idx and amount_start_idx < to_idx:
+				return "-"
+
+			# Money appears after " for " => received money
+			if amount_start_idx > for_idx:
+				return "+"
+
+	# Situations where money gained to trigger correct color UI
+	var positive_keywords := [
+		"collected",
+		"received",
+		"credited",
+		"gained",
+		"earned",
+		"reward",
+		"refund"
+	]
+
+	# Situations where money would be spent to trigger correct color UI
+	var negative_keywords := [
+		"paid",
+		"purchased",
+		"bought",
+		"spent",
+		"cost",
+		"for $",
+		"rent to",
+		"upgrade",
+		"upgraded",
+		"unmortgaged"
+	]
+
+	var nearest_positive := -1
+	var nearest_negative := -1
+
+	for keyword in positive_keywords:
+		var idx := context.rfind(keyword, amount_start_idx)
+		if idx > nearest_positive:
+			nearest_positive = idx
+
+	for keyword in negative_keywords:
+		var idx := context.rfind(keyword, amount_start_idx)
+		if idx > nearest_negative:
+			nearest_negative = idx
+
+	if nearest_positive == -1 and nearest_negative == -1:
+		return ""
+
+	if nearest_positive > nearest_negative:
+		return "+"
+
+	if nearest_negative > nearest_positive:
+		return "-"
+
+	return ""
 	
 func _apply_player_name_colors(text: String) -> String:
 	var result := text
@@ -328,29 +417,48 @@ func _apply_player_name_colors(text: String) -> String:
 func _apply_space_name_colors(text: String) -> String:
 	var result := text
 
-	for space_name in SPACE_LOG_COLORS.keys():
-		var color: String = str(SPACE_LOG_COLORS[space_name])
+	for space_name in property_name_to_color.keys():
+		var color: String = str(property_name_to_color[space_name])
 
-		result = result.replace(
-			space_name,
-			"[color=%s][b]%s[/b][/color]" % [color, space_name]
-		)
+		var replacement := ""
+
+		if SettingsManager.is_colorblind_enabled():
+			# In colorblind mode: plain bold name + more readable symbol only
+			replacement = "[b]%s[/b]" % space_name
+
+			var space_index := int(property_name_to_index.get(space_name, -1))
+			if space_index != -1:
+				var symbol_text := ColorblindHelpers.get_symbol_text_for_space(space_index)
+
+				if symbol_text != "":
+					replacement += " [b][color=#FFFFFF][ %s ][/color][/b]" % symbol_text
+		else:
+			# Normal mode: keep color-coded property names
+			replacement = "[color=%s][b]%s[/b][/color]" % [color, space_name]
+
+		result = result.replace(space_name, replacement)
 
 	return result
 	
 func _apply_money_colors(text: String) -> String:
 	var result := text
 	var regex := RegEx.new()
-	regex.compile("\\$\\d+")
+	regex.compile("[+-]?\\$\\d+")
 
 	var matches := regex.search_all(result)
 
-	
 	for i in range(matches.size() - 1, -1, -1):
 		var match = matches[i]
 		var amount_text := match.get_string()
 
-		var colored := "[color=#7CFC98][b]%s[/b][/color]" % amount_text
+		var amount_color := "#7CFC98" # default green
+
+		if amount_text.begins_with("-"):
+			amount_color = "#FF8A8A" # soft red for money spent
+		elif amount_text.begins_with("+"):
+			amount_color = "#7CFC98" # green for money gained
+
+		var colored := "[color=%s][b]%s[/b][/color]" % [amount_color, amount_text]
 
 		result = result.substr(0, match.get_start()) + colored + result.substr(match.get_end())
 
