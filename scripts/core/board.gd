@@ -129,6 +129,10 @@ const PauseMenuScene = preload("res://scenes/PauseMenu.tscn")
 var pause_menu: Control = null
 var pause_menu_layer: CanvasLayer = null
 
+const EndGamePopupScene = preload("res://scenes/EndGamePopup.tscn")
+var end_game_popup: EndGamePopup = null
+var end_game_popup_layer: CanvasLayer = null
+
 # Pending debt info while player is resolving bankruptcy
 var pending_debtor_index: int = -1
 var pending_creditor_index: int = -1
@@ -216,6 +220,8 @@ func _ready() -> void:
 	call_deferred("_setup_bankruptcy_popup_async")
 	_setup_jail_popup()
 	_setup_notification_popup()
+	
+	call_deferred("_setup_end_game_popup_async")
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -284,6 +290,39 @@ func _setup_notification_popup() -> void:
 	notification_popup = NotificationPopupScene.instantiate()
 	notification_popup_layer.add_child(notification_popup)
 	get_tree().root.call_deferred("add_child", notification_popup_layer)
+	
+func _setup_end_game_popup() -> void:
+	# Prevent duplicate creation
+	if end_game_popup and is_instance_valid(end_game_popup):
+		return
+
+	end_game_popup_layer = CanvasLayer.new()
+	end_game_popup_layer.name = "EndGamePopupLayer"
+	end_game_popup_layer.layer = 600  # Above pause/settings/notification
+
+	end_game_popup = EndGamePopupScene.instantiate() as EndGamePopup
+	end_game_popup.name = "EndGamePopup"
+
+	end_game_popup_layer.add_child(end_game_popup)
+	get_tree().root.add_child(end_game_popup_layer)
+
+	# Wait until popup is fully ready before connecting signals
+	if end_game_popup and not end_game_popup.is_node_ready():
+		await end_game_popup.ready
+
+	if not end_game_popup.replay_current_requested.is_connected(_on_end_game_replay_current_requested):
+		end_game_popup.replay_current_requested.connect(_on_end_game_replay_current_requested)
+
+	if not end_game_popup.stats_requested.is_connected(_on_end_game_stats_requested):
+		end_game_popup.stats_requested.connect(_on_end_game_stats_requested)
+
+	if not end_game_popup.reconfigure_requested.is_connected(_on_end_game_reconfigure_requested):
+		end_game_popup.reconfigure_requested.connect(_on_end_game_reconfigure_requested)
+
+	if not end_game_popup.exit_requested.is_connected(_on_end_game_exit_requested):
+		end_game_popup.exit_requested.connect(_on_end_game_exit_requested)
+
+	print("Board: EndGamePopup setup complete")
 
 func _setup_money_hud() -> void:	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
 	var canvas_layer = CanvasLayer.new()
@@ -1518,11 +1557,59 @@ func _check_for_winner_and_show_screen() -> void:
 func _show_win_screen(winner_index: int) -> void:
 	print("GAME OVER. Winner is player:", winner_index)
 
-	var winner_name := GameState.players[winner_index].player_name
+	if winner_index < 0 or winner_index >= GameState.players.size():
+		push_warning("Invalid winner index for end game screen.")
+		return
 
-	if notification_popup:
-		notification_popup.show_notification(winner_name + " Wins!", "Congratulations! The game is over.")
+	var winner_name := get_player_log_name(winner_index)
 
+	# Stop the game so no more turns/actions continue
+	GameState.game_active = false
+
+	# Hide/disable normal gameplay UI if they exist
+	if space_action_popup and is_instance_valid(space_action_popup):
+		if space_action_popup.has_method("hide_popup"):
+			space_action_popup.hide_popup()
+		else:
+			space_action_popup.visible = false
+
+	if bankruptcy_popup and is_instance_valid(bankruptcy_popup):
+		if bankruptcy_popup.has_method("hide_popup"):
+			bankruptcy_popup.hide_popup()
+		else:
+			bankruptcy_popup.visible = false
+
+	if assets_popup and is_instance_valid(assets_popup):
+		if assets_popup.has_method("hide_popup"):
+			assets_popup.hide_popup()
+		else:
+			assets_popup.visible = false
+
+	if auction_popup and is_instance_valid(auction_popup):
+		if auction_popup.has_method("hide_popup"):
+			auction_popup.hide_popup()
+		else:
+			auction_popup.visible = false
+
+	if trade_popup and is_instance_valid(trade_popup):
+		if trade_popup.has_method("hide_popup"):
+			trade_popup.hide_popup()
+		else:
+			trade_popup.visible = false
+
+	
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.show_end_game(
+			winner_name,
+			"Congratulations! %s is the last player remaining." % winner_name
+		)
+	else:
+		push_warning("EndGamePopup is null, falling back to notification popup.")
+		if notification_popup and is_instance_valid(notification_popup):
+			notification_popup.show_notification(
+				winner_name + " Wins!",
+				"Congratulations! The game is over."
+			)
 
 func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
 	if pending_debtor_index < 0 or pending_debtor_index >= GameState.players.size():
@@ -1677,6 +1764,13 @@ func _on_pause_quit_requested() -> void:
 
 func _go_to_start_menu() -> void:
 	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
+	
+func _reload_current_game_scene() -> void:
+	get_tree().change_scene_to_file("res://scenes/GameBoard.tscn")
+
+
+func _go_to_game_setup_screen() -> void:
+	get_tree().change_scene_to_file("res://scenes/GameSetupScreen.tscn")
 
 
 func _cleanup_root_ui() -> void:
@@ -1688,7 +1782,8 @@ func _cleanup_root_ui() -> void:
 		"PlayerPropertiesPreviewLayer",
 		"EndTurnButtonLayer",
 		"PauseMenuLayer",
-		"SettingsMenuLayer"
+		"SettingsMenuLayer",
+		"EndGamePopupLayer"
 	]
 
 	for child in get_tree().root.get_children():
@@ -1724,7 +1819,18 @@ func _cleanup_root_ui() -> void:
 		assets_popup.queue_free()
 		assets_popup = null
 
-	# Optional: if settings menu layer exists but wasn't found by name for some reason
+	if notification_popup and is_instance_valid(notification_popup):
+		notification_popup.queue_free()
+		notification_popup = null
+
+	if jail_popup and is_instance_valid(jail_popup):
+		jail_popup.queue_free()
+		jail_popup = null
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.queue_free()
+		end_game_popup = null
+
 	if pause_menu_layer and is_instance_valid(pause_menu_layer):
 		pause_menu_layer.queue_free()
 		pause_menu_layer = null
@@ -1913,3 +2019,51 @@ func _is_first_active_player_of_round(player_index: int) -> bool:
 				return i == player_index
 
 	return player_index == 0
+
+func _on_end_game_replay_current_requested() -> void:
+	print("EndGamePopup: Replay with current setup requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	# Reset persistent singleton state before reloading the board
+	if GameState and GameState.has_method("reset_for_replay"):
+		GameState.reset_for_replay()
+
+	_cleanup_root_ui()
+
+	call_deferred("_reload_current_game_scene")
+
+
+func _on_end_game_stats_requested() -> void:
+	print("EndGamePopup: View match stats requested")
+
+	# Just a placeholder for now, will add fleshed out later.
+	if notification_popup and is_instance_valid(notification_popup):
+		notification_popup.show_notification(
+			"Match Stats",
+			"Stats screen coming soon."
+		)
+
+
+func _on_end_game_reconfigure_requested() -> void:
+	print("EndGamePopup: Reconfigure for new game requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	_cleanup_root_ui()
+	call_deferred("_go_to_game_setup_screen")
+
+
+func _on_end_game_exit_requested() -> void:
+	print("EndGamePopup: Exit requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	_cleanup_root_ui()
+	call_deferred("_go_to_start_menu")
+
+func _setup_end_game_popup_async() -> void:
+	await _setup_end_game_popup()

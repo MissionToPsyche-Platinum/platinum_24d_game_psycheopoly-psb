@@ -69,6 +69,26 @@ func _ready() -> void:
 
 func _setup_board() -> void:
 	board = _spaces_list.board
+	
+
+func _reset_board_ownership_state() -> void:
+	for i in range(board.size()):
+		var space = board[i]
+
+		if space == null:
+			continue
+
+		# Reset all ownable spaces (properties, planets, instruments)
+		if space is Ownable:
+			var ownable := space as Ownable
+			ownable._is_owned = false
+			ownable._player_owner = -1
+			ownable._is_mortgaged = false
+
+		# Reset upgrades on standard properties
+		if space is PropertySpace:
+			var property := space as PropertySpace
+			property._current_upgrades = 0
 
 
 func _setup_players() -> void:
@@ -151,3 +171,22 @@ func get_player_display_name(player_index: int) -> String:
 			return setup_name
 
 	return "Player %d" % (player_index + 1)
+	
+func reset_for_replay() -> void:
+	# Stop active match
+	game_active = false
+
+	# Reset basic turn/game state
+	current_player_index = 0
+	last_roll = 0
+
+	# Keep board reference valid, then clear ownership/upgrades/mortgages
+	_setup_board()
+	_reset_board_ownership_state()
+
+	# Rebuild players using the same saved sumans/player count
+	# This restores starting cash, clears jail flags, resets stats on PlayerState, etc.
+	_setup_players()
+
+	# Keep player_count synced to actual created players
+	player_count = players.size()
