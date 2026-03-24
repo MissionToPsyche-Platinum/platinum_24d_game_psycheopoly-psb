@@ -21,6 +21,8 @@ signal player_money_updated(player)
 ## Emitted when a player's turn starts
 signal turn_started(player_index: int)
 
+signal turn_setup_complete(player_index: int)
+
 ## Emitted when a player's turn ends
 signal turn_ended(player_index: int)
 

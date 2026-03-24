@@ -9,6 +9,9 @@ class_name JailPopup
 var _player_index: int = -1
 
 func _ready() -> void:
+	AiManager.ai_jail_card.connect(_ai_card_pressed)
+	AiManager.ai_jail_pay.connect(_ai_pay_pressed)
+	AiManager.ai_jail_roll.connect(_ai_roll_pressed)
 	hide()
 
 func show_for_player(player_index: int) -> void:
@@ -32,6 +35,10 @@ func show_for_player(player_index: int) -> void:
 func hide_popup() -> void:
 	hide()
 
+func _ai_pay_pressed(player_index: int) -> void:
+	_player_index = player_index
+	_on_pay_btn_pressed()
+	
 func _on_pay_btn_pressed() -> void:
 	if _player_index < 0: return
 	# Debit $50 and release
@@ -43,6 +50,10 @@ func _on_pay_btn_pressed() -> void:
 	GameController.action_completed.emit() # Triggers UI updates
 	hide_popup()
 
+func _ai_card_pressed(player_index: int) -> void:
+	_player_index = player_index
+	_on_card_btn_pressed()
+	
 func _on_card_btn_pressed() -> void:
 	if _player_index < 0:
 		return
@@ -81,6 +92,10 @@ func _on_card_btn_pressed() -> void:
 		GameController.action_completed.emit()
 		hide_popup()
 
+func _ai_roll_pressed(player_index: int) -> void:
+	_player_index = player_index
+	_on_roll_btn_pressed()
+	
 func _on_roll_btn_pressed() -> void:
 	# Hide the popup and let them use the main dice roll button
 	# The board's _on_dice_rolled handles the jail roll resolution

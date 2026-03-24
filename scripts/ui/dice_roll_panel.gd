@@ -145,14 +145,14 @@ func roll_dice() -> void:
 	_play_result_sfx()
 	AudioManager.unduck_music(0.18)
 
+	is_rolling = false
+
 	# Notify listeners (like Board) that the roll is finished
 	dice_rolled.emit(final1, final2, total, is_doubles)
 
 	# NEW: notify Board that doubles happened so it can show a popup toast
 	if is_doubles:
 		doubles_rolled.emit()
-
-	is_rolling = false
 
 	if roll_button:
 		roll_button.text = _roll_text_idle

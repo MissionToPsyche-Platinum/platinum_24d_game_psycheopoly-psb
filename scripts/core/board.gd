@@ -508,8 +508,9 @@ func _on_turn_started(player_index: int) -> void:
 	var current_player := GameController.get_current_player()
 	if current_player and current_player.is_in_jail:
 		current_player.has_rolled = true # Disable regular rolling temporarily
-		if jail_popup and jail_popup.has_method("show_for_player"):
+		if jail_popup and jail_popup.has_method("show_for_player") and current_player.player_is_ai == false:
 			jail_popup.show_for_player(player_index)
+	GameController.turn_setup_complete.emit(player_index)
 
 
 func _on_turn_ended(player_index: int) -> void:
@@ -759,7 +760,7 @@ func _on_player_sent_to_jail(player_index: int) -> void:
 	var player_name := get_player_log_name(player_index)
 	log_event("%s was sent to the Launch Pad." % player_name)
 
-	if notification_popup:
+	if notification_popup && GameController.get_current_player().player_is_ai == false:
 		notification_popup.show_notification("Sent to the Launch Pad!", "You have been sent to the Launch Pad.")
 		await notification_popup.dismissed
 
@@ -1089,6 +1090,8 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
 				# _on_player_sent_to_jail handles the notification and action_completed
+				if (current_player.player_is_ai == true):
+					AiManager.handle_doubles_jail()
 				return
 		else:
 			current_player.doubles_count = 0

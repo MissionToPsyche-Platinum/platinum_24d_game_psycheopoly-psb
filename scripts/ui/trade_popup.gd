@@ -57,6 +57,7 @@ func _ready() -> void:
 	request_cash_spin.value_changed.connect(_on_offer_value_changed)
 
 	AiManager.ai_trade_reject.connect(_on_reject_pressed)
+	AiManager.ai_trade_accept.connect(_on_accept_pressed)
 
 	_configure_property_tree(offered_list)
 	_configure_property_tree(requested_list)
