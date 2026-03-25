@@ -380,7 +380,6 @@ func _setup_space_action_popup() -> void:
 	space_action_popup.move_pressed.connect(_on_move_pressed)
 	space_action_popup.close_pressed.connect(_on_close_pressed)
 
-
 func _setup_end_turn_button() -> void:
 	# Create a CanvasLayer to hold the end turn button (always on top)
 	var canvas_layer = CanvasLayer.new()
@@ -548,8 +547,9 @@ func _on_turn_started(player_index: int) -> void:
 	var current_player := GameController.get_current_player()
 	if current_player and current_player.is_in_jail:
 		current_player.has_rolled = true # Disable regular rolling temporarily
-		if jail_popup and jail_popup.has_method("show_for_player"):
+		if jail_popup and jail_popup.has_method("show_for_player") and current_player.player_is_ai == false:
 			jail_popup.show_for_player(player_index)
+	GameController.turn_setup_complete.emit(player_index)
 
 
 func _on_turn_ended(player_index: int) -> void:
@@ -625,7 +625,10 @@ func _on_piece_movement_finished(space_num: int) -> void:
 		if not space_action_popup.is_node_ready():
 			await space_action_popup.ready
 
-		space_action_popup.show_actions(space_num)
+		if (current_player.player_is_ai == false):
+			space_action_popup.show_actions(space_num)
+		else:
+			AiManager.ai_lands_on_space(space_num)
 
 		await get_tree().process_frame
 		if not space_action_popup.visible:
@@ -661,6 +664,9 @@ func _on_purchase_pressed(space_num: int) -> void:
 
 
 func _on_auction_pressed(space_num: int) -> void:
+	_start_auction(space_num)
+	
+func _start_auction(space_num: int) -> void:
 	print("Auction started for space: ", space_num)
 
 	# Hide the action popup so it doesn't sit on top
@@ -793,7 +799,7 @@ func _on_player_sent_to_jail(player_index: int) -> void:
 	var player_name := get_player_log_name(player_index)
 	log_event("%s was sent to the Launch Pad." % player_name)
 
-	if notification_popup:
+	if notification_popup && GameController.get_current_player().player_is_ai == false:
 		notification_popup.show_notification("Sent to the Launch Pad!", "You have been sent to the Launch Pad.")
 		await notification_popup.dismissed
 
@@ -1126,6 +1132,8 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
 				# _on_player_sent_to_jail handles the notification and action_completed
+				if (current_player.player_is_ai == true):
+					AiManager.handle_doubles_jail()
 				return
 		else:
 			current_player.doubles_count = 0
@@ -1655,7 +1663,7 @@ func _on_action_completed() -> void:
 		p.last_roll_was_doubles = false
 
 func _on_doubles_rolled() -> void:
-	if notification_popup:
+	if notification_popup && GameController.get_current_player().player_is_ai == false:
 		var current_player := GameController.get_current_player()
 		if current_player and current_player.is_in_jail:
 			notification_popup.show_notification("Doubles!", "Go for Launch! Move forward.")

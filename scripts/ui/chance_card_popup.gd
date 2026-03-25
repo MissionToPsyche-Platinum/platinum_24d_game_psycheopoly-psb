@@ -92,6 +92,9 @@ func show_card_details(space_num: int) -> void:
 	money_value = card_info.functionalValue
 	movement_value = card_info.movementValue
 	
+	# If the player is AI, should immediately close the menu and resolve the card
+	if(GameState.players[current_player].player_is_ai == true):
+		_on_close_pressed()
 	
 	
 func _on_close_pressed() -> void:

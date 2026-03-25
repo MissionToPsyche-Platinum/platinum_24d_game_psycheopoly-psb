@@ -113,10 +113,12 @@ func _setup_players() -> void:
 			var color_index: int = int(cfg.get("color_index", i))
 			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
 			player.player_color = PLAYER_COLORS[color_index]
+			player.player_is_ai = false
 		else:
 			# AI player
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
+			player.player_is_ai = true
 
 		players.append(player)
 		add_child(player)
