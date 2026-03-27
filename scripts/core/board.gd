@@ -15,6 +15,10 @@ const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 const PropertyDetailsPopupScene = preload("res://scenes/PropertyDetailsPopup.tscn")
 var property_details_popup: CanvasLayer = null
 
+const MATCH_STATS_POPUP_SCENE = preload("res://scenes/MatchStatsPopup.tscn")
+var match_stats_popup: MatchStatsPopup = null
+var match_stats_popup_layer: CanvasLayer = null
+
 # Reference to the piece (backward compatibility if needed, but we use pieces/current_piece)
 var piece: Node2D = null
 
@@ -222,6 +226,7 @@ func _ready() -> void:
 	_setup_notification_popup()
 	
 	call_deferred("_setup_end_game_popup_async")
+	_setup_match_stats_popup()
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -336,6 +341,31 @@ func _setup_money_hud() -> void:	# Create a CanvasLayer to hold the money HUD (e
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
+
+func _setup_match_stats_popup() -> void:
+	# Prevent duplicate creation
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		return
+
+	match_stats_popup_layer = CanvasLayer.new()
+	match_stats_popup_layer.name = "MatchStatsPopupLayer"
+	match_stats_popup_layer.layer = 601  
+
+	match_stats_popup = MATCH_STATS_POPUP_SCENE.instantiate() as MatchStatsPopup
+	match_stats_popup.name = "MatchStatsPopup"
+
+	match_stats_popup_layer.add_child(match_stats_popup)
+	get_tree().root.add_child(match_stats_popup_layer)
+
+	# Wait until popup is fully ready before connecting signals
+	if match_stats_popup and not match_stats_popup.is_node_ready():
+		await match_stats_popup.ready
+
+	if not match_stats_popup.back_requested.is_connected(_on_match_stats_back_requested):
+		match_stats_popup.back_requested.connect(_on_match_stats_back_requested)
+
+	print("Board: MatchStatsPopup setup complete")
+	
 
 func _setup_player_name_hud() -> void:
 	# Create a CanvasLayer to hold the player name HUD
@@ -1784,15 +1814,16 @@ func _go_to_game_setup_screen() -> void:
 func _cleanup_root_ui() -> void:
 	# Free CanvasLayers / root-level UI added by Board
 	var names_to_remove := [
-		"DiceRollLayer",
-		"MoneyHUDLayer",
-		"PlayerNameHUDLayer",
-		"PlayerPropertiesPreviewLayer",
-		"EndTurnButtonLayer",
-		"PauseMenuLayer",
-		"SettingsMenuLayer",
-		"EndGamePopupLayer"
-	]
+	"DiceRollLayer",
+	"MoneyHUDLayer",
+	"PlayerNameHUDLayer",
+	"PlayerPropertiesPreviewLayer",
+	"EndTurnButtonLayer",
+	"PauseMenuLayer",
+	"SettingsMenuLayer",
+	"EndGamePopupLayer",
+	"MatchStatsPopupLayer"
+]
 
 	for child in get_tree().root.get_children():
 		if child.name in names_to_remove:
@@ -1838,6 +1869,10 @@ func _cleanup_root_ui() -> void:
 	if end_game_popup and is_instance_valid(end_game_popup):
 		end_game_popup.queue_free()
 		end_game_popup = null
+	
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		match_stats_popup.queue_free()
+		match_stats_popup = null
 
 	if pause_menu_layer and is_instance_valid(pause_menu_layer):
 		pause_menu_layer.queue_free()
@@ -1846,6 +1881,10 @@ func _cleanup_root_ui() -> void:
 	if settings_menu_layer and is_instance_valid(settings_menu_layer):
 		settings_menu_layer.queue_free()
 		settings_menu_layer = null
+		
+	if match_stats_popup_layer and is_instance_valid(match_stats_popup_layer):
+		match_stats_popup_layer.queue_free()
+		match_stats_popup_layer = null
 		
 		
 		
@@ -2046,12 +2085,77 @@ func _on_end_game_replay_current_requested() -> void:
 func _on_end_game_stats_requested() -> void:
 	print("EndGamePopup: View match stats requested")
 
-	# Just a placeholder for now, will add fleshed out later.
-	if notification_popup and is_instance_valid(notification_popup):
-		notification_popup.show_notification(
-			"Match Stats",
-			"Stats screen coming soon."
-		)
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		var winner_index := -1
+		var best_net_worth := -1
+
+		for i in range(GameState.players.size()):
+			var p = GameState.players[i]
+			if p == null:
+				continue
+
+			var is_active := true
+			if i < GameState.player_active.size():
+				is_active = bool(GameState.player_active[i])
+
+			var net_worth := int(GameState.get_player_final_net_worth(i))
+
+			if is_active and net_worth > best_net_worth:
+				best_net_worth = net_worth
+				winner_index = i
+
+		if winner_index == -1:
+			for i in range(GameState.players.size()):
+				var p = GameState.players[i]
+				if p == null:
+					continue
+
+				var net_worth := int(GameState.get_player_final_net_worth(i))
+				if net_worth > best_net_worth:
+					best_net_worth = net_worth
+					winner_index = i
+
+		var winner_name := "Unknown"
+		if winner_index >= 0:
+			winner_name = GameState.get_player_display_name(winner_index)
+
+		var duration_text := GameState.format_match_duration()
+
+		var summary := "Winner: %s\nDuration: %s" % [winner_name, duration_text]
+
+		var detail_lines := []
+
+		for i in range(GameState.players.size()):
+			var p = GameState.players[i]
+			if p == null:
+				continue
+
+			var player_name := GameState.get_player_display_name(i)
+			var cash := int(p.balance)
+			var props := int(GameState.get_player_properties_acquired(i))
+			var earnings := int(GameState.get_player_earnings(i))
+			var net_worth := int(GameState.get_player_final_net_worth(i))
+
+			detail_lines.append("%s" % player_name)
+			detail_lines.append("Cash: $%d    Properties Bought: %d" % [cash, props])
+			detail_lines.append("Earnings: $%d    Net Worth: $%d" % [earnings, net_worth])
+
+			# Add a blank line between players (but not after the last one)	
+			var has_another_player := false
+			for j in range(i + 1, GameState.players.size()):
+				if GameState.players[j] != null:
+					has_another_player = true
+					break
+
+			if has_another_player:
+				detail_lines.append("")
+
+		var details := "\n".join(detail_lines)
+
+		match_stats_popup.show_stats(summary, details)
 
 
 func _on_end_game_reconfigure_requested() -> void:
@@ -2059,6 +2163,10 @@ func _on_end_game_reconfigure_requested() -> void:
 
 	if end_game_popup and is_instance_valid(end_game_popup):
 		end_game_popup.hide_popup()
+
+	# Reset persistent singleton state before leaving the board
+	if GameState and GameState.has_method("reset_for_new_game"):
+		GameState.reset_for_new_game()
 
 	_cleanup_root_ui()
 	call_deferred("_go_to_game_setup_screen")
@@ -2070,8 +2178,22 @@ func _on_end_game_exit_requested() -> void:
 	if end_game_popup and is_instance_valid(end_game_popup):
 		end_game_popup.hide_popup()
 
+	# Reset persistent singleton state before leaving the board
+	if GameState and GameState.has_method("reset_for_new_game"):
+		GameState.reset_for_new_game()
+
 	_cleanup_root_ui()
 	call_deferred("_go_to_start_menu")
 
 func _setup_end_game_popup_async() -> void:
 	await _setup_end_game_popup()
+	
+
+func _on_match_stats_back_requested() -> void:
+	print("MatchStatsPopup: Back requested")
+
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		match_stats_popup.hide_popup()
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.show()

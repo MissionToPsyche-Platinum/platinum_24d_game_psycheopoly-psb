@@ -98,13 +98,13 @@ theme_override_fonts/font = ExtResource("3_font_bold")
 theme_override_font_sizes/font_size = 14
 text = "Replay with Current Setup"
 
+[node name="ReconfigureBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Reconfig for New Match"
+
 [node name="StatsBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "View Match Stats"
-
-[node name="ReconfigureBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Reconfigure For New Game"
 
 [node name="ExitBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

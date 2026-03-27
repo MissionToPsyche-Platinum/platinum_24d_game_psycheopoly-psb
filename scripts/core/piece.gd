@@ -200,7 +200,8 @@ func _move_one_step() -> void:
 	board_space = (board_space + 1) % 40
 	if board_space == 0:
 		GameController.credit(GameState.current_player_index, 200, "Passing GO")
-		
+		GameState.add_player_earnings(GameState.current_player_index, 200)
+	
 		var player_name := GameController.get_player_log_name(GameState.current_player_index)
 		GameController.log_transaction("%s passed GO and collected $200." % player_name)
 	

@@ -1,21 +1,9 @@
 extends Node
 ##
 ## game_state.gd  (An autoload singleton)
-## ============================================================================
-##  PURPOSE (for now):
-##    - Provide the signals and the functions that MoneyHUD expects.
-##    - Provide a simple global difficulty setting for the Start Menu.
-##    - Allow the HUD and UI to run without errors.
-##
-##  NOTE:
-##    This is still a placeholder / bridge. We can refactor later as the
-##    real GameState design is implemented.
-## ============================================================================
 
-
-# ------------------------------------------------------------------------------
 # Global difficulty (used by StartMenu.gd)
-# ------------------------------------------------------------------------------
+
 ## Valid values (for now): "Easy", "Normal", "Hard"
 ## Default to "Normal" so Start Menu can initialize its OptionButton.
 var difficulty: String = "Normal"
@@ -61,6 +49,17 @@ var setup_human_count: int = 1
 
 # Tracks whether each player is still in the game
 var player_active: Array[bool] = []
+
+var match_start_unix: int = 0
+
+# Per-player stats keyed by player index:
+# {
+#   0: {
+#       "earnings": 0,
+#       "properties_acquired": 0
+#   }
+# }
+var match_stats: Dictionary = {}
 
 
 func _ready() -> void:
@@ -125,6 +124,8 @@ func _setup_players() -> void:
 
 		# Everyone starts active
 		player_active.append(true)
+		
+	start_match_stats()
 
 
 func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
@@ -141,9 +142,7 @@ func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
 	GameController.emit_signal("setup_changed")
 
 
-# ------------------------------------------------------------------------------
 # Money helpers (used by Board / UI flows)
-# ------------------------------------------------------------------------------
 
 func charge_player(player_idx: int, amount: int) -> void:
 	if player_idx < 0 or player_idx >= players.size():
@@ -157,9 +156,9 @@ func credit_player(player_idx: int, amount: int) -> void:
 	players[player_idx].balance += amount
 
 
-# ------------------------------------------------------------------------------
+
 # UI helpers
-# ------------------------------------------------------------------------------
+
 
 func get_player_display_name(player_index: int) -> String:
 	if player_index >= 0 and player_index < players.size():
@@ -192,3 +191,123 @@ func reset_for_replay() -> void:
 
 	# Keep player_count synced to actual created players
 	player_count = players.size()
+	
+func reset_for_new_game() -> void:
+	# Stop active match
+	game_active = false
+
+	# Reset basic turn/game state
+	current_player_index = 0
+	last_roll = 0
+
+	# Clear board ownership/upgrades/mortgages
+	_setup_board()
+	_reset_board_ownership_state()
+
+	# Free existing player nodes and clear runtime arrays
+	for p in players:
+		if is_instance_valid(p):
+			p.queue_free()
+	players.clear()
+
+	player_active.clear()
+	reset_match_stats()
+
+
+# Match Stats Helpers
+
+func reset_match_stats() -> void:
+	match_start_unix = 0
+	match_stats.clear()
+
+
+func start_match_stats() -> void:
+	match_start_unix = Time.get_unix_time_from_system()
+	match_stats.clear()
+
+	for i in range(players.size()):
+		_ensure_player_match_stats(i)
+
+
+func _ensure_player_match_stats(player_index: int) -> void:
+	if not match_stats.has(player_index):
+		match_stats[player_index] = {
+			"earnings": 0,
+			"properties_acquired": 0
+		}
+
+
+func add_player_earnings(player_index: int, amount: int) -> void:
+	if player_index < 0:
+		return
+
+	_ensure_player_match_stats(player_index)
+	match_stats[player_index]["earnings"] += amount
+
+
+func increment_properties_acquired(player_index: int, amount: int = 1) -> void:
+	if player_index < 0:
+		return
+
+	_ensure_player_match_stats(player_index)
+	match_stats[player_index]["properties_acquired"] += amount
+
+
+func get_player_earnings(player_index: int) -> int:
+	if not match_stats.has(player_index):
+		return 0
+	return int(match_stats[player_index].get("earnings", 0))
+
+
+func get_player_properties_acquired(player_index: int) -> int:
+	if not match_stats.has(player_index):
+		return 0
+	return int(match_stats[player_index].get("properties_acquired", 0))
+
+
+func get_match_duration_seconds() -> int:
+	if match_start_unix <= 0:
+		return 0
+
+	var now_time := Time.get_unix_time_from_system()
+	return max(0, now_time - match_start_unix)
+
+
+func format_match_duration() -> String:
+	var total_seconds := get_match_duration_seconds()
+	var minutes := total_seconds / 60
+	var seconds := total_seconds % 60
+	return "%02d:%02d" % [minutes, seconds]
+
+
+func get_player_final_net_worth(player_index: int) -> int:
+	if player_index < 0 or player_index >= players.size():
+		return 0
+
+	var player = players[player_index]
+	if player == null:
+		return 0
+
+	var total := int(player.balance)
+
+	for space in board:
+		if space == null:
+			continue
+
+		if not (space is Ownable):
+			continue
+
+		var ownable := space as Ownable
+		var owner_index := ownable.get_property_owner()
+
+		# Skip unowned or properties owned by other players
+		if owner_index == Ownable.NO_OWNER or owner_index != player_index:
+			continue
+
+		total += int(ownable._initial_price)
+
+		if space is PropertySpace:
+			var property := space as PropertySpace
+			total += int(property._current_upgrades * property._upgrade_cost)
+
+	return total
