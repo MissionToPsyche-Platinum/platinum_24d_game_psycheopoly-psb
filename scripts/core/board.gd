@@ -1408,6 +1408,12 @@ func _on_bankruptcy_declared() -> void:
 	elif amount > 0:
 		log_event("%s could not pay $%d." % [debtor_name, amount])
 
+
+	# Capture net worth beforethe assets/cash are transferred away
+	var debtor := GameState.players[eliminated_player]
+	if debtor != null and debtor.net_worth_before_bankruptcy < 0:
+		debtor.net_worth_before_bankruptcy = int(GameState.get_player_final_net_worth(eliminated_player))
+	
 	# Resolve transfer of assets/cash before elimination
 	_resolve_bankruptcy_transfer(eliminated_player, creditor)
 
@@ -2137,13 +2143,17 @@ func _on_end_game_stats_requested() -> void:
 			var cash := int(p.balance)
 			var props := int(GameState.get_player_properties_acquired(i))
 			var earnings := int(GameState.get_player_earnings(i))
-			var net_worth := int(GameState.get_player_final_net_worth(i))
+			var final_net_worth := int(GameState.get_player_final_net_worth(i))
+			var pre_bankruptcy_net_worth := int(p.net_worth_before_bankruptcy)
 
 			detail_lines.append("%s" % player_name)
-			detail_lines.append("Cash: $%d    Properties Bought: %d" % [cash, props])
-			detail_lines.append("Earnings: $%d    Net Worth: $%d" % [earnings, net_worth])
+			detail_lines.append("Cash: $%d    Properties Owned: %d" % [cash, props])
+			detail_lines.append("Earnings: $%d    Final Net Worth: $%d" % [earnings, final_net_worth])
 
-			# Add a blank line between players (but not after the last one)	
+			if pre_bankruptcy_net_worth >= 0:
+				detail_lines.append("Net Worth Before Bankruptcy: $%d" % pre_bankruptcy_net_worth)
+
+			# Add a blank line between players (but not after the last one)
 			var has_another_player := false
 			for j in range(i + 1, GameState.players.size()):
 				if GameState.players[j] != null:

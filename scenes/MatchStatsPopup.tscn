@@ -49,7 +49,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_c6f8l")
 
@@ -83,7 +83,7 @@ autowrap_mode = 3
 layout_mode = 2
 
 [node name="StatsLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(420, 450)
+custom_minimum_size = Vector2(440, 450)
 layout_mode = 2
 text = "Player 1
 Cash: $1500    Properties: 0
