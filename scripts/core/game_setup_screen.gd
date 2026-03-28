@@ -9,9 +9,6 @@ extends Control
 @onready var start_button: Button = %StartButton
 @onready var back_button: Button = %BackButton
 
-
-
-
 const MIN_PLAYERS := 2
 const MAX_PLAYERS := 6
 
@@ -20,22 +17,49 @@ const NAME_POOL := [
 	"Nova", "Atlas", "Orion", "Vega", "Luna", "Helios", "Titan", "Cosmo", "Phoenix", "Voyager", "Odyssey", "Pathfinder", "Artemis"
 ]
 
-#Colors for the player tokens
-const COLOR_POOL := [
-	{"label":"Red",    "color": Color(0.90, 0.25, 0.25)},
-	{"label":"Blue",   "color": Color(0.25, 0.45, 0.90)},
-	{"label":"Green",  "color": Color(0.25, 0.80, 0.35)},
-	{"label":"Yellow", "color": Color(0.95, 0.85, 0.25)},
-	{"label":"Orange", "color": Color(0.95, 0.55, 0.20)}, 
-	{"label":"Purple", "color": Color(0.70, 0.35, 0.90)}  
+# Token choices (keeps the SAME internal index order as your old color system)
+# 0 = Red    -> Satellite
+# 1 = Blue   -> Rocket
+# 2 = Green  -> UFO
+# 3 = Yellow -> Sun
+# 4 = Orange -> Asteroid
+# 5 = Purple -> Crescent Moon
+const TOKEN_POOL := [
+	{
+		"label": "Satellite",
+		"color": Color(1.00, 0.10, 0.10),
+		"texture": preload("res://assets/images/sprites/satelite_game_piece.png")
+	},
+	{
+		"label": "Rocket",
+		"color": Color(0.20, 0.72, 1.00),
+		"texture": preload("res://assets/images/sprites/rocket_game_piece.png")
+	},
+	{
+		"label": "UFO",
+		"color": Color(0.25, 0.80, 0.35),
+		"texture": preload("res://assets/images/sprites/ufo_game_piece.png")
+	},
+	{
+		"label": "Sun",
+		"color": Color(0.95, 0.85, 0.25),
+		"texture": preload("res://assets/images/sprites/sun_game_piece.png")
+	},
+	{
+		"label": "Asteroid",
+		"color": Color(1.00, 0.50, 0.00),
+		"texture": preload("res://assets/images/sprites/asteroid_game_piece.png")
+	},
+	{
+		"label": "Crescent Moon",
+		"color": Color(0.60, 0.35, 0.85),
+		"texture": preload("res://assets/images/sprites/cres_moon_game_piece.png")
+	}
 ]
-
-
-
 
 var total_players: int = 2
 var human_players: int = 1
-var human_configs: Array = [] 
+var human_configs: Array = []
 
 
 func _ready() -> void:
@@ -50,19 +74,17 @@ func _ready() -> void:
 	# Wire signals
 	total_option.item_selected.connect(_on_total_selected)
 	human_option.item_selected.connect(_on_human_selected)
-	
+
 	start_button.pressed.connect(_on_start_pressed)
 	back_button.pressed.connect(_on_back_pressed)
-
 
 	_update_summary()
 	_rebuild_human_rows()
 	_refresh_start_button()
 
 
-
 # ---------------------------
-# builkding the dropdown
+# building the dropdown
 # ---------------------------
 func _build_total_players_dropdown() -> void:
 	total_option.clear()
@@ -125,8 +147,6 @@ func _on_total_selected(index: int) -> void:
 	_rebuild_human_rows()
 	_apply_setup_to_gamestate()
 
-
-
 func _on_human_selected(index: int) -> void:
 	var value := human_option.get_item_id(index)
 	_set_human_players(value)
@@ -139,7 +159,8 @@ func _rebuild_human_rows() -> void:
 	while human_configs.size() < human_players:
 		human_configs.append({
 			"name": "",
-			"color_id": -1
+			"color_id": -1,
+			"token": ""
 		})
 
 	while human_configs.size() > human_players:
@@ -154,7 +175,7 @@ func _rebuild_human_rows() -> void:
 		var row := _create_human_row(i)
 		humans_list.add_child(row)
 
-	# After rows exist, enforce uniqueness (no duplicate names/colors)
+	# After rows exist, enforce uniqueness (no duplicate names/tokens)
 	_apply_uniqueness_rules()
 	_refresh_start_button()
 
@@ -168,61 +189,89 @@ func _create_human_row(player_index: int) -> HBoxContainer:
 	# Player label
 	var plabel := Label.new()
 	plabel.text = "Player %d" % (player_index + 1)
-	plabel.custom_minimum_size = Vector2(110, 0)
+	plabel.custom_minimum_size = Vector2(90, 0)
 	row.add_child(plabel)
 
 	# Name dropdown
 	var name_opt := OptionButton.new()
 	name_opt.name = "NameOption"
-	name_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_opt.custom_minimum_size = Vector2(150, 0)
+	name_opt.size_flags_horizontal = Control.SIZE_FILL
 	_fill_optionbutton(name_opt, NAME_POOL, "Select Name")
 	row.add_child(name_opt)
-	
-	var swatch := ColorRect.new()
-	swatch.name = "ColorSwatch"
-	swatch.custom_minimum_size = Vector2(18, 18)
-	swatch.color = Color(0.25, 0.25, 0.25) # default dark
-	row.add_child(swatch)
 
-	# Color dropdown
-	var color_opt := OptionButton.new()
-	color_opt.name = "ColorOption"
-	color_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_fill_optionbutton(color_opt, COLOR_POOL, "Select Color")
-	row.add_child(color_opt)
+	# Token preview frame
+	var preview_panel := PanelContainer.new()
+	preview_panel.name = "TokenPreviewPanel"
+	preview_panel.custom_minimum_size = Vector2(48, 48)
+	row.add_child(preview_panel)
+
+	var preview_texture := TextureRect.new()
+	preview_texture.name = "TokenPreview"
+	preview_texture.custom_minimum_size = Vector2(40, 40)
+	preview_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview_panel.add_child(preview_texture)
+
+	# Token dropdown
+	var token_opt := OptionButton.new()
+	token_opt.name = "TokenOption"
+	token_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fill_optionbutton(token_opt, TOKEN_POOL, "Select Token")
+	row.add_child(token_opt)
 
 	# Load existing selections (if any)
 	var cfg: Dictionary = human_configs[player_index]
 	_select_if_present(name_opt, cfg.get("name", ""))
 
 	var saved_color_id: int = int(cfg.get("color_id", -1))
-	if saved_color_id >= 0:
-		for i in range(color_opt.item_count):
-			if color_opt.get_item_id(i) == saved_color_id:
-				color_opt.select(i)
+	var saved_token: String = str(cfg.get("token", "")).strip_edges()
+
+	var selected_token_index := 0
+
+	if saved_token != "":
+		for i in range(1, token_opt.item_count):
+			if token_opt.get_item_text(i) == saved_token:
+				selected_token_index = i
 				break
-	else:
-		color_opt.select(0)
-	_update_swatch_from_dropdown(swatch, color_opt)
-	
+				
+	elif saved_color_id >= 0:
+		for i in range(1, token_opt.item_count):
+			if token_opt.get_item_id(i) == saved_color_id:
+				selected_token_index = i
+				break
+
+	token_opt.select(selected_token_index)
+
+	_update_token_preview_from_dropdown(preview_texture, token_opt)
+
 	# Wire changes to save back into human_configs
-
 	name_opt.item_selected.connect(func(idx: int) -> void:
-		human_configs[player_index]["name"] = name_opt.get_item_text(idx)
-		_apply_uniqueness_rules()
-		_apply_setup_to_gamestate()
-		_refresh_start_button()
-)
+		if idx <= 0:
+			human_configs[player_index]["name"] = ""
+		else:
+			human_configs[player_index]["name"] = name_opt.get_item_text(idx)
 
-	
-	
-	color_opt.item_selected.connect(func(idx: int) -> void:
-		human_configs[player_index]["color_id"] = color_opt.get_item_id(idx) # <-- THIS is the key
-		_update_swatch_from_dropdown(swatch, color_opt)
 		_apply_uniqueness_rules()
 		_apply_setup_to_gamestate()
 		_refresh_start_button()
-)
+	)
+
+	token_opt.item_selected.connect(func(idx: int) -> void:
+		var selected_id := token_opt.get_item_id(idx)
+
+		if idx <= 0 or selected_id < 0:
+			human_configs[player_index]["color_id"] = -1
+			human_configs[player_index]["token"] = ""
+		else:
+			human_configs[player_index]["color_id"] = selected_id
+			human_configs[player_index]["token"] = token_opt.get_item_text(idx).strip_edges()
+
+		_update_token_preview_from_dropdown(preview_texture, token_opt)
+		_apply_uniqueness_rules()
+		_apply_setup_to_gamestate()
+		_refresh_start_button()
+	)
 
 	return row
 
@@ -237,8 +286,6 @@ func _fill_optionbutton(opt: OptionButton, values: Array, placeholder: String) -
 			opt.add_item(str(v["label"]), i)
 		else:
 			opt.add_item(str(v), i)
-
-
 
 
 func _select_if_present(opt: OptionButton, value: String) -> void:
@@ -272,18 +319,17 @@ func _apply_uniqueness_rules() -> void:
 			continue
 
 		var name_opt: OptionButton = row.get_node("NameOption")
-		var color_opt: OptionButton = row.get_node("ColorOption")
+		var token_opt: OptionButton = row.get_node("TokenOption")
 
 		var current_name := ""
 		if name_opt.selected > 0:
 			current_name = name_opt.get_item_text(name_opt.selected).strip_edges()
 
 		var current_color_id := -1
-		if color_opt.selected > 0:
-			current_color_id = color_opt.get_item_id(color_opt.selected)
+		if token_opt.selected > 0:
+			current_color_id = token_opt.get_item_id(token_opt.selected)
 
-
-	
+		# Names
 		for i in range(name_opt.item_count):
 			if i == 0:
 				name_opt.set_item_disabled(i, false)
@@ -293,37 +339,37 @@ func _apply_uniqueness_rules() -> void:
 			var should_disable := used_names.has(text) and text != current_name
 			name_opt.set_item_disabled(i, should_disable)
 
-		# ----------------
-		# Colors 
-		# ----------------
-		for i in range(color_opt.item_count):
+		# Tokens (still uses internal color_id indexes, since Jay colored the tokens nicely)
+		for i in range(token_opt.item_count):
 			if i == 0:
-				color_opt.set_item_disabled(i, false)
+				token_opt.set_item_disabled(i, false)
 				continue
 
-			var id := color_opt.get_item_id(i)  # this is your COLOR_POOL index
+			var id := token_opt.get_item_id(i)
 			var should_disable := used_color_ids.has(id) and id != current_color_id
-			color_opt.set_item_disabled(i, should_disable)
+			token_opt.set_item_disabled(i, should_disable)
 
-			
-func _update_swatch_from_dropdown(swatch: ColorRect, opt: OptionButton) -> void:
+
+func _update_token_preview_from_dropdown(preview: TextureRect, opt: OptionButton) -> void:
 	var sel := opt.selected
 	if sel <= 0:
-		swatch.color = Color(0.25, 0.25, 0.25)
+		preview.texture = null
 		return
 
 	var id := opt.get_item_id(sel)
-	if id < 0 or id >= COLOR_POOL.size():
-		swatch.color = Color(0.25, 0.25, 0.25)
+	if id < 0 or id >= TOKEN_POOL.size():
+		preview.texture = null
 		return
 
-	swatch.color = COLOR_POOL[id]["color"]
-	
+	preview.texture = TOKEN_POOL[id]["texture"]
+
+
 func _color_label_to_index(label: String) -> int:
-	for i in range(COLOR_POOL.size()):
-		if COLOR_POOL[i]["label"] == label:
+	for i in range(TOKEN_POOL.size()):
+		if TOKEN_POOL[i]["label"] == label:
 			return i
-	return 0 # fallback (Red)
+	return 0 # fallback
+
 
 func _on_start_pressed() -> void:
 	if start_button.disabled:
@@ -336,7 +382,8 @@ func _on_start_pressed() -> void:
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
-	
+
+
 func _is_setup_valid() -> bool:
 	# Must have correct number of human configs
 	if human_configs.size() != human_players:
@@ -350,12 +397,11 @@ func _is_setup_valid() -> bool:
 		if n == "":
 			return false
 
-		# Color must be selected
+		# Token must be selected (still stored as color_id internally)
 		if color_id < 0:
 			return false
 
 	return true
-
 
 
 func _refresh_start_button() -> void:
@@ -363,14 +409,14 @@ func _refresh_start_button() -> void:
 	start_button.disabled = not ok
 
 
-
 func _apply_setup_to_gamestate() -> void:
 	var humans_for_game: Array[Dictionary] = []
 
 	for cfg in human_configs:
 		humans_for_game.append({
-			"name": cfg["name"],
-			"color_index": int(cfg.get("color_id", -1))
+			"name": str(cfg.get("name", "")).strip_edges(),
+			"color_index": int(cfg.get("color_id", -1)),
+			"token": str(cfg.get("token", "")).strip_edges()
 		})
 
 	GameState.apply_setup(total_players, humans_for_game)

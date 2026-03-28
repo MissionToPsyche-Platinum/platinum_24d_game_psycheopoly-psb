@@ -10,6 +10,15 @@ const MAX_PIECE_OFFSET_X: float = 6.0  # Max horizontal spacing (for 6 players)
 const MAX_PIECE_OFFSET_Y: float = 4.0  # Max vertical spacing (for 6 players)
 const MAX_PLAYER_COUNT: int = 6  # Maximum number of players for scaling
 
+const TOKEN_TEXTURES := {
+	"Asteroid": preload("res://assets/images/sprites/asteroid_game_piece.png"),
+	"Crescent Moon": preload("res://assets/images/sprites/cres_moon_game_piece.png"),
+	"Rocket": preload("res://assets/images/sprites/rocket_game_piece.png"),
+	"Satellite": preload("res://assets/images/sprites/satelite_game_piece.png"),
+	"Sun": preload("res://assets/images/sprites/sun_game_piece.png"),
+	"UFO": preload("res://assets/images/sprites/ufo_game_piece.png")
+}
+
 # Current board position (grid coordinates)
 var board_x: int = 0
 var board_y: int = 0
@@ -39,20 +48,25 @@ var _base_sprite_y: float = 0.0
 var _is_moving: bool = false
 var _remaining_steps: int = 0
 @export var step_duration: float = 0.2  # Duration of movement between spaces
-@export var jump_height: float = 12.0     # How high the piece jumps during movement
+@export var jump_height: float = 12.0   # How high the piece jumps during movement
 
 
 func _ready() -> void:
 	if sprite:
 		_base_sprite_y = sprite.position.y
-		
+
 	if tile_map:
 		update_position()
-	
-	_apply_player_color()
-	
+
+	# apply the selected token texture on startup
+	_apply_player_token()
+
+	_prepare_unique_material()
+
 	# Connect to game state to highlight if it is our turn
-	GameController.current_player_changed.connect(_on_player_changed)
+	if not GameController.current_player_changed.is_connected(_on_player_changed):
+		GameController.current_player_changed.connect(_on_player_changed)
+
 	# Check if it's already our turn (for initialization)
 	_on_player_changed(GameController.get_current_player())
 
@@ -68,24 +82,42 @@ func set_highlight(active: bool) -> void:
 		sprite.material.set_shader_parameter("use_outline", active)
 
 
-func _apply_player_color() -> void:
-	if not (sprite and sprite.material):
+# Make sure each piece has its own material instance for outline highlighting
+func _prepare_unique_material() -> void:
+	if sprite and sprite.material:
+		sprite.material = sprite.material.duplicate()
+
+
+# Apply the correct token texture based on selected token
+func _apply_player_token() -> void:
+	if not sprite:
 		return
 
-	# Pull the real chosen color from GameState's PlayerState
-	var chosen_color: Color = Color.WHITE
-	if GameState.players.size() > player_index and GameState.players[player_index]:
-		chosen_color = GameState.players[player_index].player_color
+	var token_name := "Rocket"
+
+	if GameState and GameState.has_method("get_player_token_name"):
+		token_name = str(GameState.get_player_token_name(player_index)).strip_edges()
 	else:
-		# Fallback only (should rarely happen)
-		var color_idx := player_index % GameState.PLAYER_COLORS.size()
-		chosen_color = GameState.PLAYER_COLORS[color_idx]
+		if GameState.players.size() > player_index and GameState.players[player_index]:
+			var p = GameState.players[player_index]
+			token_name = str(p.player_token_name).strip_edges()
 
-	# Create a unique material instance so each piece can have a different color
-	var unique_material = sprite.material.duplicate()
-	unique_material.set_shader_parameter("target_color", chosen_color)
-	sprite.material = unique_material
+	if token_name == "" or not TOKEN_TEXTURES.has(token_name):
+		token_name = "Rocket"
 
+	sprite.texture = TOKEN_TEXTURES[token_name]
+
+	# Keep unique token shape, but still tint it by player color
+	if GameState.players.size() > player_index and GameState.players[player_index]:
+		var p = GameState.players[player_index]
+		sprite.self_modulate = p.player_color
+	else:
+		sprite.modulate = Color.WHITE
+
+
+func refresh_visuals() -> void:
+	_apply_player_token()
+	_on_player_changed(GameController.get_current_player())
 
 
 # Move the piece to a board position
@@ -103,11 +135,11 @@ func teleport_to_space(space_num: int) -> void:
 	var new_coords := get_coords_from_space(board_space)
 	board_x = new_coords.x
 	board_y = new_coords.y
-	
+
 	# Reset to default centered layout until board.gd updates us
 	at_tile_count = 1
 	at_tile_index = 0
-	
+
 	update_position()
 	space_changed.emit(board_space)
 	# Also emit movement_finished so any landing logic can trigger again if needed
@@ -148,7 +180,7 @@ func get_space_from_coords(x: int, y: int) -> int:
 # 20 = (0,10) bottom-left corner, 30 = (0,0) top-left corner
 func get_coords_from_space(space: int) -> Vector2i:
 	space = space % 40  # Wrap around the board
-	
+
 	# Right edge: spaces 0-10 (x=10, y=0 to 10)
 	if space <= 10:
 		return Vector2i(10, space)
@@ -164,7 +196,7 @@ func get_coords_from_space(space: int) -> Vector2i:
 
 
 # Roll dice and move (for testing, generates random 2-12)
-# TODO: Replace with proper dice rolling mechanism later 
+# TODO: Replace with proper dice rolling mechanism later
 func roll_and_move() -> void:
 	var dice1 := randi() % 6 + 1
 	var dice2 := randi() % 6 + 1
@@ -178,14 +210,14 @@ func roll_and_move() -> void:
 func move_forward(spaces: int) -> void:
 	if _is_moving:
 		return  # Prevent overlapping movements
-	
+
 	_is_moving = true
 	_remaining_steps = spaces
-	
+
 	# Reset tile layout to centered while in transit
 	at_tile_count = 1
 	at_tile_index = 0
-	
+
 	_move_one_step()
 
 
@@ -195,33 +227,33 @@ func _move_one_step() -> void:
 		_is_moving = false
 		movement_finished.emit(board_space)
 		return
-	
+
 	# Move logic (advance one space)
 	board_space = (board_space + 1) % 40
 	if board_space == 0:
 		GameController.credit(GameState.current_player_index, 200, "Passing GO")
 		GameState.add_player_earnings(GameState.current_player_index, 200)
-	
+
 		var player_name := GameController.get_player_log_name(GameState.current_player_index)
 		GameController.log_transaction("%s passed GO and collected $200." % player_name)
-	
+
 	var new_coords := get_coords_from_space(board_space)
 	board_x = new_coords.x
 	board_y = new_coords.y
-	
+
 	# Ensure centered layout during transit
 	at_tile_count = 1
 	at_tile_index = 0
-	
+
 	var target_pos = get_target_world_position()
-	
+
 	# Create movement tween
 	var tween = create_tween()
 	# Smoothly move to target position
 	tween.tween_property(self, "position", target_pos, step_duration)\
 		.set_trans(Tween.TRANS_SINE)\
 		.set_ease(Tween.EASE_IN_OUT)
-	
+
 	# Parallel jump animation on the sprite (relative to its base Y)
 	var jump_tween = create_tween()
 	jump_tween.tween_property(sprite, "position:y", _base_sprite_y - jump_height, step_duration / 2.0)\
@@ -230,12 +262,12 @@ func _move_one_step() -> void:
 	jump_tween.tween_property(sprite, "position:y", _base_sprite_y, step_duration / 2.0)\
 		.set_trans(Tween.TRANS_QUAD)\
 		.set_ease(Tween.EASE_IN)
-	
+
 	# When movement finishes, prepare for next step
 	tween.finished.connect(func():
 		space_changed.emit(board_space)
 		_remaining_steps -= 1
-		
+
 		# Small pause between steps looks better
 		if _remaining_steps > 0:
 			get_tree().create_timer(0.05).timeout.connect(_move_one_step)
@@ -250,20 +282,20 @@ func _move_one_step() -> void:
 func get_target_world_position() -> Vector2:
 	if not tile_map:
 		return position
-		
+
 	var world_pos = tile_map.map_to_local(Vector2i(board_x, board_y))
-	
+
 	# Calculate offset based on dynamic tile layout
 	var offset := Vector2.ZERO
-	
+
 	# Use different layouts based on how many pieces are on THIS tile
 	var count = at_tile_count
 	var idx = at_tile_index
-	
+
 	if count <= 1:
 		# 1 piece: centered (offset 0,0)
 		return world_pos
-	
+
 	match count:
 		2:
 			# 2 pieces: side by side
@@ -292,7 +324,7 @@ func get_target_world_position() -> Vector2:
 				3: offset.x = MAX_PIECE_OFFSET_X; offset.y = 0.0
 				4: offset.x = -MAX_PIECE_OFFSET_X; offset.y = MAX_PIECE_OFFSET_Y
 				5: offset.x = MAX_PIECE_OFFSET_X; offset.y = MAX_PIECE_OFFSET_Y
-	
+
 	return world_pos + offset
 
 
@@ -300,11 +332,11 @@ func get_target_world_position() -> Vector2:
 func set_tile_layout(index: int, count: int, animate: bool = true) -> void:
 	at_tile_index = index
 	at_tile_count = count
-	
+
 	if not animate:
 		update_position()
 		return
-		
+
 	var target_pos = get_target_world_position()
 	if position.distance_to(target_pos) > 0.1:
 		var tween = create_tween()

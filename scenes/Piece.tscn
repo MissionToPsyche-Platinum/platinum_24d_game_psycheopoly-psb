@@ -6,8 +6,6 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_piece"]
 shader = ExtResource("2_shader")
-shader_parameter/target_color = Color(1, 1, 1, 1)
-shader_parameter/color_intensity = 1.0
 shader_parameter/use_outline = false
 shader_parameter/outline_color = Color(1, 1, 1, 1)
 shader_parameter/outline_width = 1.0
