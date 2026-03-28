@@ -33,6 +33,16 @@ const PLAYER_COLORS: Array[Color] = [
 	Color(0.8, 0.3, 0.8),   # Purple
 ]
 
+# Available board token names
+const AVAILABLE_TOKENS: Array[String] = [
+	"Asteroid",
+	"Crescent Moon",
+	"Rocket",
+	"Satellite",
+	"Sun",
+	"UFO"
+]
+
 # Current player's index (0-based)
 var current_player_index: int = 0
 
@@ -43,7 +53,7 @@ var game_active: bool = false
 var colorblind_mode: bool = false
 
 # Setup selections (filled by GameSetupScreen before starting board)
-# Each: { "name": String, "color_index": int }
+# Each: { "name": String, "color_index": int, "token": String }
 var setup_humans: Array[Dictionary] = []
 var setup_human_count: int = 1
 
@@ -52,13 +62,6 @@ var player_active: Array[bool] = []
 
 var match_start_unix: int = 0
 
-# Per-player stats keyed by player index:
-# {
-#   0: {
-#       "earnings": 0,
-#       "properties_acquired": 0
-#   }
-# }
 var match_stats: Dictionary = {}
 
 
@@ -98,6 +101,23 @@ func _setup_players() -> void:
 
 	player_active.clear()
 
+	# Track used tokens so AI can avoid duplicates when possible
+	var used_tokens: Array[String] = []
+
+	# First collect human-selected tokens from setup data
+	for i in range(setup_humans.size()):
+		var cfg: Dictionary = setup_humans[i]
+		var token_name := str(cfg.get("token", "Rocket")).strip_edges()
+
+		if token_name == "":
+			token_name = "Rocket"
+
+		if not AVAILABLE_TOKENS.has(token_name):
+			token_name = "Rocket"
+
+		if not used_tokens.has(token_name):
+			used_tokens.append(token_name)
+
 	for i in range(player_count):
 		var player = PlayerState.new()
 		player.player_id = i
@@ -112,12 +132,28 @@ func _setup_players() -> void:
 			var color_index: int = int(cfg.get("color_index", i))
 			color_index = clampi(color_index, 0, PLAYER_COLORS.size() - 1)
 			player.player_color = PLAYER_COLORS[color_index]
+
+			# store selected token from setup
+			var human_token := str(cfg.get("token", "Rocket")).strip_edges()
+			if human_token == "":
+				human_token = "Rocket"
+			if not AVAILABLE_TOKENS.has(human_token):
+				human_token = "Rocket"
+
+			player.player_token_name = human_token
 			player.player_is_ai = false
 		else:
 			# AI player
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
+
+			#  AI randomly chooses an unused token if possible
+			var ai_token := _get_random_available_token(used_tokens)
+			player.player_token_name = ai_token
 			player.player_is_ai = true
+
+			if not used_tokens.has(ai_token):
+				used_tokens.append(ai_token)
 
 		players.append(player)
 		add_child(player)
@@ -172,7 +208,39 @@ func get_player_display_name(player_index: int) -> String:
 			return setup_name
 
 	return "Player %d" % (player_index + 1)
+
+
+# Helper to get a player's selected token
+func get_player_token_name(player_index: int) -> String:
+	if player_index >= 0 and player_index < players.size():
+		var p = players[player_index]
+		if p != null:
+			var token_name := str(p.player_token_name).strip_edges()
+			if token_name != "" and AVAILABLE_TOKENS.has(token_name):
+				return token_name
+
+	if player_index >= 0 and player_index < setup_humans.size():
+		var setup_token := str(setup_humans[player_index].get("token", "Rocket")).strip_edges()
+		if setup_token != "" and AVAILABLE_TOKENS.has(setup_token):
+			return setup_token
+
+	return "Rocket"
+
+# pick a random unused token if possible, otherwise random from all
+func _get_random_available_token(used_tokens: Array[String]) -> String:
+	var remaining: Array[String] = []
+
+	for token_name in AVAILABLE_TOKENS:
+		if not used_tokens.has(token_name):
+			remaining.append(token_name)
+
+	if remaining.size() > 0:
+		return remaining[randi() % remaining.size()]
+
+	# Fallback: all tokens already used, allow duplicates
+	return AVAILABLE_TOKENS[randi() % AVAILABLE_TOKENS.size()]
 	
+
 func reset_for_replay() -> void:
 	# Stop active match
 	game_active = false
@@ -185,7 +253,7 @@ func reset_for_replay() -> void:
 	_setup_board()
 	_reset_board_ownership_state()
 
-	# Rebuild players using the same saved sumans/player count
+	# Rebuild players using the same saved humans/player count
 	# This restores starting cash, clears jail flags, resets stats on PlayerState, etc.
 	_setup_players()
 

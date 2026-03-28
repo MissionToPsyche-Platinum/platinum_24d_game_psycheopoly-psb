@@ -1300,10 +1300,12 @@ func _spawn_pieces_from_gamestate() -> void:
 
 		# Position piece at GO
 		piece_instance.move_to(10, 0)
-
-		if i < GameState.players.size():
-			var c: Color = GameState.players[i].player_color
-			call_deferred("_apply_color_to_piece", piece_instance, c)
+	
+	## Colors are muddy on token pieces looks like color is applied in piece script and here
+	## commenting this out to see if it helps
+		#if i < GameState.players.size():
+			#var c: Color = GameState.players[i].player_color
+			#call_deferred("_apply_color_to_piece", piece_instance, c)
 
 	# Layout at GO so pieces don't overlap
 	update_piece_layouts_at(0)
@@ -1313,27 +1315,29 @@ func _spawn_pieces_from_gamestate() -> void:
 		piece = current_piece
 
 
-func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
-	# 1) Best: Piece exposes an API
-	if piece_instance.has_method("set_player_color"):
-		piece_instance.call("set_player_color", c)
-		return
-
-	# 2) Try to color ANY Sprite2D under the piece (recursive)
-	var painted := false
-	for n in piece_instance.find_children("*", "Sprite2D", true, false):
-		(n as Sprite2D).modulate = c
-		painted = true
-
-	if not painted:
-		for n in piece_instance.find_children("*", "CanvasItem", true, false):
-			(n as CanvasItem).modulate = c
-			painted = true
-
-	if not painted and piece_instance is CanvasItem:
-		(piece_instance as CanvasItem).modulate = c
-
-	print("Applied color to piece", piece_instance.name, " painted=", painted, " color=", c)
+	##commenting out this whole function to see if it helps. Colors are applied twice, letting
+	## piece script handle coloring.
+#func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
+	## 1) Best: Piece exposes an API
+	#if piece_instance.has_method("set_player_color"):
+		#piece_instance.call("set_player_color", c)
+		#return
+#
+	## 2) Try to color ANY Sprite2D under the piece (recursive)
+	#var painted := false
+	#for n in piece_instance.find_children("*", "Sprite2D", true, false):
+		#(n as Sprite2D).modulate = c
+		#painted = true
+#
+	#if not painted:
+		#for n in piece_instance.find_children("*", "CanvasItem", true, false):
+			#(n as CanvasItem).modulate = c
+			#painted = true
+#
+	#if not painted and piece_instance is CanvasItem:
+		#(piece_instance as CanvasItem).modulate = c
+#
+	#print("Applied color to piece", piece_instance.name, " painted=", painted, " color=", c)
 
 
 func _on_setup_changed() -> void:
