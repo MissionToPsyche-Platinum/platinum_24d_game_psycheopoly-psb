@@ -707,15 +707,36 @@ func _start_auction(space_num: int) -> void:
 	if auction_popup and not auction_popup.is_node_ready():
 		await auction_popup.ready
 
+	# Build participant list (only active / non-bankrupt players)
+	var bidder_indexes: Array[int] = []
+	for i in range(GameState.players.size()):
+		var is_active := true
+		if not GameState.player_active.is_empty() and i < GameState.player_active.size():
+			is_active = bool(GameState.player_active[i])
+
+		if not is_active:
+			continue
+
+		var p = GameState.players[i]
+		if p == null:
+			continue
+
+		if "is_bankrupt" in p and p.is_bankrupt:
+			continue
+
+		bidder_indexes.append(i)
+
+	# No valid auction participants
+	if bidder_indexes.size() <= 1:
+		if auction_popup:
+			auction_popup.hide_popup()
+		GameController.action_completed.emit()
+		return
+
 	# Show the auction popup
 	if auction_popup:
 		auction_popup.visible = true
 		auction_popup.show_popup(space_num)
-
-	# Build participant list (all players for now)
-	var bidder_indexes: Array[int] = []
-	for i in range(GameState.players.size()):
-		bidder_indexes.append(i)
 
 	# Start auction system:
 	# - starting bid = $0
@@ -868,8 +889,9 @@ func _on_pay_pressed(space_num: int) -> void:
 	if t == "cost" or t == "expense":
 		var amount := int(space_info.get("amount", 0))
 		if amount > 0:
-			GameController.debit(current_player, amount, "space cost")
-			log_event("%s paid $%d on %s." % [player_name, amount, space_name])
+			var paid := GameController.request_payment(current_player, amount, "space cost")
+			if paid:
+				log_event("%s paid $%d on %s." % [player_name, amount, space_name])
 		else:
 			push_warning("PAY: cost/expense space but amount missing/0 at space " + str(space_num))
 
@@ -1211,14 +1233,11 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
 			log_event("%s failed to escape after 3 turns and must pay $50 for a Launch Permit." % player_name)
 
-			# Try to pay 50. If they can't, they go bankrupt, but we'll try our best.
-			if GameController.get_player_balance(GameState.current_player_index) < 50:
+			var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
+			if not paid:
 				log_event("%s cannot afford the $50 Launch Permit and may go bankrupt." % player_name)
-				GameController.emit_signal("bankruptcy_needed", GameState.current_player_index, -1, 50, "Launch Permit")
-				# They still get released and move assuming they resolve bankruptcy, but let's release them anyway
 			else:
 				log_event("%s pays $50 for a Launch Permit and leaves the Launch Pad." % player_name)
-				GameController.debit(GameState.current_player_index, 50, "Launch Permit")
 
 			GameController.release_player_from_jail(GameState.current_player_index)
 

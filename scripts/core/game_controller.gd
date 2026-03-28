@@ -102,6 +102,33 @@ func credit(player_index: int, amount: int, reason: String = "") -> void:
 func transfer(from_index: int, to_index: int, amount: int, reason: String = "") -> void:
 	debit(from_index, amount, reason)
 	credit(to_index, amount, reason)
+	
+
+func request_payment(player_index: int, amount: int, reason: String = "Payment", creditor_index: int = -1) -> bool:
+	if amount <= 0:
+		return true
+
+	if player_index < 0 or player_index >= GameState.players.size():
+		return false
+
+	var current_balance := get_player_balance(player_index)
+
+	# If player cannot afford the required payment, trigger bankruptcy flow instead.
+	if current_balance < amount:
+		bankruptcy_needed.emit(player_index, creditor_index, amount, reason)
+		return false
+
+	if creditor_index < 0:
+		debit(player_index, amount, reason)
+		return true
+
+	# Payment to another player
+	if creditor_index >= 0 and creditor_index < GameState.players.size():
+		transfer(player_index, creditor_index, amount, reason)
+		return true
+
+	debit(player_index, amount, reason)
+	return true
 
 
 func _is_valid_player_index(player_index: int) -> bool:

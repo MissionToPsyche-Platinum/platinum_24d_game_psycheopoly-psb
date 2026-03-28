@@ -29,12 +29,17 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 	elif card_num in range(10, 14): # cards with a flat loss
 		GameController.log_transaction("%s drew a card and paid $%d." % [player_name, money_value])
-		GameController.debit(current_player, money_value)
+		if not GameController.request_payment(current_player, money_value, "Chance card payment"):
+			card_resolved.emit(card_num)
+			return
 
 	elif card_num == 14: # pay each player 50
 		var pay_opponents = (player_count - 1) * 50
 		GameController.log_transaction("%s drew a card and paid each other player $50 (total $%d)." % [player_name, pay_opponents])
-		GameController.debit(current_player, pay_opponents)
+
+		if not GameController.request_payment(current_player, pay_opponents, "Chance card: pay each player"):
+			card_resolved.emit(card_num)
+			return
 
 		var paid_player = (current_player + 1) % player_count
 		while paid_player != current_player:
@@ -57,7 +62,9 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		var card_fee = (total_data_points * 45) + (total_discoveries * 120)
 
 		GameController.log_transaction("%s drew a card and paid $%d for asset maintenance." % [player_name, card_fee])
-		GameController.debit(current_player, card_fee)
+		if not GameController.request_payment(current_player, card_fee, "Chance card: asset maintenance"):
+			card_resolved.emit(card_num)
+			return
 
 	elif card_num == 17: # pay 25 per data point, pay 100 per discovery
 		var total_data_points = GameState.players[current_player].total_data_points
@@ -65,7 +72,9 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		var card_fee = (total_data_points * 25) + (total_discoveries * 100)
 
 		GameController.log_transaction("%s drew a card and paid $%d for asset maintenance." % [player_name, card_fee])
-		GameController.debit(current_player, card_fee)
+		if not GameController.request_payment(current_player, card_fee, "Chance card: asset maintenance"):
+			card_resolved.emit(card_num)
+			return
 
 	## Cases for silicate cards that are movement based
 	elif card_num in range(18, 28): # advance player to specific property
