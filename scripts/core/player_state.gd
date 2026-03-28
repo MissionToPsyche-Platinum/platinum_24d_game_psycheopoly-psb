@@ -30,3 +30,6 @@ var turns_in_jail: int = 0
 # Upgrade Counter
 var total_data_points: int = 0
 var total_discoveries: int = 0
+
+#tracking networth before bankruptcy
+var net_worth_before_bankruptcy: int = -1
