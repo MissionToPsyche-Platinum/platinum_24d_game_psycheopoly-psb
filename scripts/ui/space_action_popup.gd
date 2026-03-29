@@ -53,6 +53,8 @@ func _ready() -> void:
 	AiManager.ai_pay.connect(_ai_pay_pressed)
 	AiManager.ai_move.connect(_ai_move_pressed)
 	AiManager.ai_auction_start.connect(_ai_auction_pressed)
+	AiManager.ai_purchase.connect(_ai_purchase_pressed)
+
 
 	# Refresh immediately when colorblind mode changes while popup is open
 	if SettingsManager:
@@ -208,6 +210,9 @@ func _on_details_pressed() -> void:
 		
 	_details_popup.show_space_details(current_space_num, owner_str, owner_color)
 
+func _ai_purchase_pressed(space_num: int) -> void:
+	current_space_num = space_num
+	_on_purchase_pressed()
 
 func _on_purchase_pressed() -> void:
 	purchase_pressed.emit(current_space_num)
