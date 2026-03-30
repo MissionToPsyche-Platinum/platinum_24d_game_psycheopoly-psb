@@ -19,6 +19,8 @@ signal ai_jail_pay(current_player: int)
 signal ai_jail_card(current_player: int)
 signal ai_jail_roll(current_player: int)
 
+
+
 signal ai_declare_bankruptcy()
 
 #Signals called by other classes
@@ -29,6 +31,11 @@ signal ai_bankruptcy()
 
 var ai_is_mid_turn = false
 var rng
+
+var validUpgrades: Array[int] = [] # holds the space numbers of upgradable properties
+var validDowngrades: Array[int] = [] # holds the space numbers of downgradable properties
+var validMortgages: Array[int] = [] # holds the space numbers of mortgagable properties
+var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 
 func _ready() -> void:
 	rng = RandomNumberGenerator.new()
@@ -69,7 +76,7 @@ func ai_jail_decision():
 	ai_jail_roll.emit(GameState.current_player_index)
 	await GameController.player_rolled
 	if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
-		ai_turn_mid()	
+		ai_turn_mid()
 
 
 # Controls logic for AI players landing on spaces, then moves the AI to the middle of its turn
@@ -92,7 +99,7 @@ func ai_lands_on_space(space_num: int) -> void:
 					await(GameController.action_completed)
 			else:
 				await ai_lands_on_unowned_property(space_num)
-		"CardSpace": 
+		"CardSpace":
 			ai_draw_card.emit(space_num)
 			return
 		"ExpenseSpace":
@@ -104,16 +111,16 @@ func ai_lands_on_space(space_num: int) -> void:
 			if (space_num == 20): # "Free parking" space
 				var space_info = SpaceData.get_space_info(space_num)
 				GameController.credit(GameState.current_player_index, space_info.get("amount", 0))
-	ai_turn_mid() 
+	ai_turn_mid()
 	
 
 func ai_card_resolve(card_num: int) -> void:
 	if (GameController.get_current_player().player_is_ai == false):
 		return
 	elif (card_num not in range(18, 33)): # Don't move to ai turn mid if the card is a movement based one, since it will land on a space and trigger it anyways. This range will need to be changed if chance card data is updated
-		ai_turn_mid() 
+		ai_turn_mid()
 	elif (card_num in range(32, 33)): # The exception to this is the go to jail cards, which don't trigger space landing
-		ai_turn_mid() 
+		ai_turn_mid()
 
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:
@@ -128,13 +135,78 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 func ai_bankruptcy_resolve() -> void:
 	ai_declare_bankruptcy.emit()
 	
+# Updates valid upgrades, downgrades, mortgages, and unmortgages
+func update_valid_mid_turn_targets() -> void:
+	validUpgrades = [] # holds the space numbers of upgradable properties
+	validDowngrades = [] # holds the space numbers of downgradable properties
+	validMortgages = []
+	validUnmortgages = []
+	for i in range(GameState.board.size()):
+		if (GameState.board[i] is PropertySpace):
+			if GameController._check_if_upgrade_is_valid(GameState.board[i], GameState.current_player_index):
+				validUpgrades.append(i)
+			if GameController._check_if_downgrade_is_valid(GameState.board[i], GameState.current_player_index):
+				validDowngrades.append(i)
+		if (GameState.board[i] is Ownable):
+			if GameController._check_if_mortgage_is_valid(GameState.board[i], GameState.current_player_index):
+				validMortgages.append(i)
+			if GameController._check_if_unmortgage_is_valid(GameState.board[i], GameState.current_player_index):
+				validUnmortgages.append(i)
 
 # AI should decide between property upgrading, trading, or ending the current turn
 func ai_turn_mid() -> void:
 	print("AI manager: AI moves to middle of turn")
+
+	var decisionAttempts = 4
+	var randFloat = randf()
+	
+	while(randFloat < decisionAttempts / 4.0):
+		update_valid_mid_turn_targets()
+		randFloat = randf()
+		if (randFloat > 0.5):
+			if (validUpgrades.size() > 0):
+				var randInt = randi_range(0, validUpgrades.size() - 1)
+				ai_property_upgrade(validUpgrades[randInt])
+		elif (randFloat > 0.3):
+			if (validDowngrades.size() > 0):
+				var randInt = randi_range(0, validDowngrades.size() - 1)
+				ai_sells_upgrade(validDowngrades[randInt])
+		elif (randFloat > 0.15):
+			if (validMortgages.size() > 0):
+				var randInt = randi_range(0, validMortgages.size() - 1)
+				ai_property_mortgage(validMortgages[randInt])
+		else:
+			if (validUnmortgages.size() > 0):
+				var randInt = randi_range(0, validUnmortgages.size() - 1)
+				ai_property_unmortgage(validUnmortgages[randInt])
+		randFloat = randf()
+		decisionAttempts -= 1
+		print (validUpgrades)
+		print (validDowngrades)
+		print (validMortgages)
+		print (validUnmortgages)
+
 	ai_turn_end()
 
+func ai_create_trade_offer() -> void:
+	pass
+
+func ai_property_upgrade(space_num: int) -> void:
+	GameController.upgrade_property.emit(GameState.board[space_num], GameState.current_player_index)
 	
+func ai_sells_upgrade(space_num: int) -> void:
+	GameController.downgrade_property.emit(GameState.board[space_num], GameState.current_player_index)
+
+	
+func ai_property_mortgage(space_num: int) -> void:
+	GameController.mortgage_property.emit(GameState.board[space_num], GameState.current_player_index)
+
+	
+func ai_property_unmortgage(space_num: int) -> void:
+	GameController.unmortgage_property.emit(GameState.board[space_num], GameState.current_player_index)
+
+
+
 func ai_turn_end() -> void:
 	print("AI manager: AI moves to end of turn")
 	if GameController.get_current_player().last_roll_was_doubles: # These are normaly called from board.gd, but they wait for action completed, and may not trigger before the AI ends its turn
