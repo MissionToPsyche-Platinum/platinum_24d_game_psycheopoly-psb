@@ -57,7 +57,7 @@ func _ready() -> void:
 
 
 func _on_current_player_changed(player) -> void:
-	if player == null:
+	if player == null || player.player_is_ai:
 		visible = false
 		return
 

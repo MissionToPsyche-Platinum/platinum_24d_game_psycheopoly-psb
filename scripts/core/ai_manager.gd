@@ -14,11 +14,11 @@ signal ai_auction_bid(amount: int, highest_bid: int)
 signal ai_trade_reject()
 signal ai_trade_accept()
 
+signal ai_trade_create(offering_player: int, receiving_player: int, offering_cash: int, receiving_cash: int, offering_properties: Array[int], receiving_properties: Array[int])
 
 signal ai_jail_pay(current_player: int)
 signal ai_jail_card(current_player: int)
 signal ai_jail_roll(current_player: int)
-
 
 
 signal ai_declare_bankruptcy()
@@ -48,6 +48,8 @@ func _ready() -> void:
 	ChanceCardMgr.card_resolved.connect(ai_card_resolve)
 	ai_doubles_jail.connect(handle_doubles_jail)
 	ai_bankruptcy.connect(ai_bankruptcy_resolve)
+	
+	GameController.trade_finished.connect(check_trade_completion)
 
 # Emits the ai turn start signal if the next player is AI 
 func check_if_ai_turn(player_index) -> void:
@@ -153,10 +155,18 @@ func update_valid_mid_turn_targets() -> void:
 			if GameController._check_if_unmortgage_is_valid(GameState.board[i], GameState.current_player_index):
 				validUnmortgages.append(i)
 
-# AI should decide between property upgrading, trading, or ending the current turn
+# AI should whether to trade or not here
 func ai_turn_mid() -> void:
 	print("AI manager: AI moves to middle of turn")
+	ai_create_trade_offer()
 
+# Forces the AI to wait until its trade offer is complete before resuming
+func check_trade_completion() -> void:
+	if (GameController.get_current_player().player_is_ai):
+		ai_turn_post_trade()
+
+# AI should decide between property upgrading and mortgaging before ending the current turn
+func ai_turn_post_trade() -> void:
 	var decisionAttempts = 4
 	var randFloat = randf()
 	
@@ -181,15 +191,39 @@ func ai_turn_mid() -> void:
 				ai_property_unmortgage(validUnmortgages[randInt])
 		randFloat = randf()
 		decisionAttempts -= 1
-		print (validUpgrades)
-		print (validDowngrades)
-		print (validMortgages)
-		print (validUnmortgages)
 
 	ai_turn_end()
 
+# AI should decide what to trade here
 func ai_create_trade_offer() -> void:
-	pass
+	
+	var current_player = GameState.current_player_index;
+	# Generate a (currently) random target player to trade with
+	var target_player = randi_range(0, GameState.players.size() - 2)
+	if (target_player >= current_player):
+		target_player += 1
+	
+	
+	var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
+	var receivablePropeties: Array[int] = GameController.get_tradeable_space_indexes(target_player)
+
+	var offeringProperties: Array[int] = []
+	var receivingProperties: Array[int] = []
+	
+	offerablePropeties.shuffle()
+	for i in range(randi_range(0, offerablePropeties.size() - 1)):
+		offeringProperties.append(offerablePropeties[i])
+	
+	receivablePropeties.shuffle()
+	for i in range(randi_range(0, receivablePropeties.size() - 1)):
+		receivablePropeties.append(receivablePropeties[i])	
+	
+	var offeringCash = randi_range(0, GameController.get_current_player().balance)
+	var receivingCash = randi_range(0, GameState.players[target_player].balance)
+
+	
+	ai_trade_create.emit(current_player, target_player, offeringCash, receivingCash, offeringProperties, receivingProperties)
+
 
 func ai_property_upgrade(space_num: int) -> void:
 	GameController.upgrade_property.emit(GameState.board[space_num], GameState.current_player_index)

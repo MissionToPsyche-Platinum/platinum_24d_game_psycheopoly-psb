@@ -20,6 +20,11 @@ signal popup_closed
 @onready var reject_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/RejectButton
 @onready var accept_button: Button = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ReviewBox/ReviewButtons/AcceptButton
 
+@onready var target_row: HBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/TargetRow
+@onready var value_row: HBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ValueRow
+@onready var list_row: HBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ListRow
+
+
 const ColorblindHelpers = preload("res://scripts/ui/colorblind_helpers.gd")
 
 var _offering_player: int = -1
@@ -58,6 +63,7 @@ func _ready() -> void:
 
 	AiManager.ai_trade_reject.connect(_on_reject_pressed)
 	AiManager.ai_trade_accept.connect(_on_accept_pressed)
+	AiManager.ai_trade_create.connect(_on_ai_submit)
 
 	_configure_property_tree(offered_list)
 	_configure_property_tree(requested_list)
@@ -104,6 +110,14 @@ func _set_compose_mode() -> void:
 	_in_review_mode = false
 	compose_buttons.visible = true
 	review_box.visible = false
+	
+	target_row.visible = true
+	value_row.visible = true
+	list_row.visible = true
+	status_label.visible = true
+	
+	root_panel.custom_minimum_size = Vector2(760, 450)
+	
 	title_label.text = "Create Trade Offer"
 
 
@@ -111,6 +125,18 @@ func _set_review_mode(summary: String) -> void:
 	_in_review_mode = true
 	compose_buttons.visible = false
 	review_box.visible = true
+	
+	target_row.visible = false
+	value_row.visible = false
+	list_row.visible = false
+	status_label.visible = false
+	
+	root_panel.custom_minimum_size = Vector2(760, 310)
+	
+	back_button.visible = not (GameState.players[_offering_player].player_is_ai)
+
+
+	
 	title_label.text = "Trade Review"
 	review_label.text = summary
 
@@ -324,6 +350,15 @@ func _build_offer_from_ui() -> Dictionary:
 		"requested_spaces": _collect_selected_space_indices(requested_list),
 	}
 
+func _build_ai_offer(offering_player: int, receiving_player: int, offering_cash: int, receiving_cash: int, offering_properties: Array[int], receiving_properties: Array[int]) -> Dictionary:
+	return {
+		"offering_player": offering_player,
+		"target_player": receiving_player,
+		"offer_cash": offering_cash,
+		"request_cash": receiving_cash,
+		"offered_spaces": offering_properties,
+		"requested_spaces": receiving_properties,
+	}
 
 func _format_space_summary(space_indexes: Array) -> String:
 	if space_indexes.is_empty():
@@ -380,9 +415,17 @@ func _summarize_trade_offer(trade_offer: Dictionary) -> String:
 	lines.append("[/center]")
 	return "\n".join(lines)
 
+func _on_ai_submit(offering_player: int, receiving_player: int, offering_cash: int, receiving_cash: int, offering_properties: Array[int], receiving_properties: Array[int]) -> void:
+	show_for_current_player(offering_player)
+	var trade_offer := _build_ai_offer(offering_player, receiving_player, offering_cash, receiving_cash, offering_properties, receiving_properties)
+	_on_submit(trade_offer)
 
 func _on_submit_pressed() -> void:
 	var trade_offer := _build_offer_from_ui()
+	_on_submit(trade_offer)
+
+	
+func _on_submit(trade_offer: Dictionary) -> void:
 	var validation := GameController.validate_trade_offer(trade_offer)
 	if not bool(validation.get("ok", false)):
 		status_label.text = str(validation.get("reason", "Trade is invalid."))
@@ -413,6 +456,7 @@ func _on_reject_pressed() -> void:
 		var offering_name := GameState.get_player_display_name(int(_pending_offer.get("offering_player", -1)))
 		var target_name := GameState.get_player_display_name(int(_pending_offer.get("target_player", -1)))
 		GameController.log_transaction("%s declined the trade offer from %s." % [target_name, offering_name])
+		GameController.trade_finished.emit()
 
 	status_label.text = "Trade rejected."
 	hide_popup()

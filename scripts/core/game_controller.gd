@@ -51,6 +51,9 @@ signal trade_completed(trade_offer: Dictionary)
 ## Emitted when a trade execution attempt fails validation
 signal trade_failed(reason: String)
 
+## Emitted when a trade is done on either a success or failure
+signal trade_finished()
+
 ## Emitted when a game action resolves and should be written to the turn log
 signal transaction_logged(message: String)
 
@@ -178,6 +181,7 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 		var reason := str(validation.get("reason", "Invalid trade offer."))
 		trade_failed.emit(reason)
 		print("Trade failed: ", reason)
+		trade_finished.emit()
 		return false
 
 	var offering_player: int = int(trade_offer.get("offering_player", -1))
@@ -200,6 +204,7 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 
 	trade_completed.emit(trade_offer)
 	print("Trade completed between ", GameState.get_player_display_name(offering_player), " and ", GameState.get_player_display_name(target_player))
+	trade_finished.emit()
 	return true
 
 
