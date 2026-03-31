@@ -271,7 +271,7 @@ func _upgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
 
-	if (player == property._player_owner && property.is_owned()):
+	if (_check_if_upgrade_is_valid(property, player)):
 		var previous_level := property._current_upgrades
 		var upgrade_cost := property._upgrade_cost
 
@@ -327,7 +327,7 @@ func _downgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
 
-	if (player == property._player_owner && property.is_owned()):
+	if (_check_if_downgrade_is_valid(property, player)):
 		var previous_level := property._current_upgrades
 		var downgrade_refund := property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
 

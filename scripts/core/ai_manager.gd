@@ -151,15 +151,15 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 # AI should attempt to not go bankrupt through mortgaging properties and selling upgrades, make it do that here. 
 func ai_bankruptcy_resolve(amount: int) -> void:
 	update_valid_mid_turn_targets()
-	while (GameController.get_current_player().balance < amount && (validUpgrades.size() > 0 || validMortgages.size() > 0)):
+	while (GameController.get_current_player().balance < amount && (validDowngrades.size() > 0 || validMortgages.size() > 0)):
 		var decision = randf()
-		if (validUpgrades.size() == 0):
+		if (validDowngrades.size() == 0):
 			decision = 1
 		elif(validMortgages.size() == 0):
 			decision = 0
 			
 		if (decision <= 0.5):
-			ai_sells_upgrade(validUpgrades.pick_random())
+			ai_sells_upgrade(validDowngrades.pick_random())
 		else:
 			ai_property_mortgage(validMortgages.pick_random())
 		update_valid_mid_turn_targets()
