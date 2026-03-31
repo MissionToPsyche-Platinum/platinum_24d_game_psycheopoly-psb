@@ -15,6 +15,10 @@ const SpaceDataRef = preload("res://scripts/core/space_data.gd")
 const PropertyDetailsPopupScene = preload("res://scenes/PropertyDetailsPopup.tscn")
 var property_details_popup: CanvasLayer = null
 
+const MATCH_STATS_POPUP_SCENE = preload("res://scenes/MatchStatsPopup.tscn")
+var match_stats_popup: MatchStatsPopup = null
+var match_stats_popup_layer: CanvasLayer = null
+
 # Reference to the piece (backward compatibility if needed, but we use pieces/current_piece)
 var piece: Node2D = null
 
@@ -129,6 +133,10 @@ const PauseMenuScene = preload("res://scenes/PauseMenu.tscn")
 var pause_menu: Control = null
 var pause_menu_layer: CanvasLayer = null
 
+const EndGamePopupScene = preload("res://scenes/EndGamePopup.tscn")
+var end_game_popup: EndGamePopup = null
+var end_game_popup_layer: CanvasLayer = null
+
 # Pending debt info while player is resolving bankruptcy
 var pending_debtor_index: int = -1
 var pending_creditor_index: int = -1
@@ -216,6 +224,9 @@ func _ready() -> void:
 	call_deferred("_setup_bankruptcy_popup_async")
 	_setup_jail_popup()
 	_setup_notification_popup()
+	
+	call_deferred("_setup_end_game_popup_async")
+	_setup_match_stats_popup()
 
 	# Connect current piece's signals to update the UI
 	if current_piece:
@@ -284,6 +295,39 @@ func _setup_notification_popup() -> void:
 	notification_popup = NotificationPopupScene.instantiate()
 	notification_popup_layer.add_child(notification_popup)
 	get_tree().root.call_deferred("add_child", notification_popup_layer)
+	
+func _setup_end_game_popup() -> void:
+	# Prevent duplicate creation
+	if end_game_popup and is_instance_valid(end_game_popup):
+		return
+
+	end_game_popup_layer = CanvasLayer.new()
+	end_game_popup_layer.name = "EndGamePopupLayer"
+	end_game_popup_layer.layer = 600  # Above pause/settings/notification
+
+	end_game_popup = EndGamePopupScene.instantiate() as EndGamePopup
+	end_game_popup.name = "EndGamePopup"
+
+	end_game_popup_layer.add_child(end_game_popup)
+	get_tree().root.add_child(end_game_popup_layer)
+
+	# Wait until popup is fully ready before connecting signals
+	if end_game_popup and not end_game_popup.is_node_ready():
+		await end_game_popup.ready
+
+	if not end_game_popup.replay_current_requested.is_connected(_on_end_game_replay_current_requested):
+		end_game_popup.replay_current_requested.connect(_on_end_game_replay_current_requested)
+
+	if not end_game_popup.stats_requested.is_connected(_on_end_game_stats_requested):
+		end_game_popup.stats_requested.connect(_on_end_game_stats_requested)
+
+	if not end_game_popup.reconfigure_requested.is_connected(_on_end_game_reconfigure_requested):
+		end_game_popup.reconfigure_requested.connect(_on_end_game_reconfigure_requested)
+
+	if not end_game_popup.exit_requested.is_connected(_on_end_game_exit_requested):
+		end_game_popup.exit_requested.connect(_on_end_game_exit_requested)
+
+	print("Board: EndGamePopup setup complete")
 
 func _setup_money_hud() -> void:	# Create a CanvasLayer to hold the money HUD (ensures it's always on top)
 	var canvas_layer = CanvasLayer.new()
@@ -297,6 +341,31 @@ func _setup_money_hud() -> void:	# Create a CanvasLayer to hold the money HUD (e
 	# Add to scene tree
 	get_tree().root.call_deferred("add_child", canvas_layer)
 
+
+func _setup_match_stats_popup() -> void:
+	# Prevent duplicate creation
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		return
+
+	match_stats_popup_layer = CanvasLayer.new()
+	match_stats_popup_layer.name = "MatchStatsPopupLayer"
+	match_stats_popup_layer.layer = 601  
+
+	match_stats_popup = MATCH_STATS_POPUP_SCENE.instantiate() as MatchStatsPopup
+	match_stats_popup.name = "MatchStatsPopup"
+
+	match_stats_popup_layer.add_child(match_stats_popup)
+	get_tree().root.add_child(match_stats_popup_layer)
+
+	# Wait until popup is fully ready before connecting signals
+	if match_stats_popup and not match_stats_popup.is_node_ready():
+		await match_stats_popup.ready
+
+	if not match_stats_popup.back_requested.is_connected(_on_match_stats_back_requested):
+		match_stats_popup.back_requested.connect(_on_match_stats_back_requested)
+
+	print("Board: MatchStatsPopup setup complete")
+	
 
 func _setup_player_name_hud() -> void:
 	# Create a CanvasLayer to hold the player name HUD
@@ -641,15 +710,36 @@ func _start_auction(space_num: int) -> void:
 	if auction_popup and not auction_popup.is_node_ready():
 		await auction_popup.ready
 
+	# Build participant list (only active / non-bankrupt players)
+	var bidder_indexes: Array[int] = []
+	for i in range(GameState.players.size()):
+		var is_active := true
+		if not GameState.player_active.is_empty() and i < GameState.player_active.size():
+			is_active = bool(GameState.player_active[i])
+
+		if not is_active:
+			continue
+
+		var p = GameState.players[i]
+		if p == null:
+			continue
+
+		if "is_bankrupt" in p and p.is_bankrupt:
+			continue
+
+		bidder_indexes.append(i)
+
+	# No valid auction participants
+	if bidder_indexes.size() <= 1:
+		if auction_popup:
+			auction_popup.hide_popup()
+		GameController.action_completed.emit()
+		return
+
 	# Show the auction popup
 	if auction_popup:
 		auction_popup.visible = true
 		auction_popup.show_popup(space_num)
-
-	# Build participant list (all players for now)
-	var bidder_indexes: Array[int] = []
-	for i in range(GameState.players.size()):
-		bidder_indexes.append(i)
 
 	# Start auction system:
 	# - starting bid = $0
@@ -802,8 +892,9 @@ func _on_pay_pressed(space_num: int) -> void:
 	if t == "cost" or t == "expense":
 		var amount := int(space_info.get("amount", 0))
 		if amount > 0:
-			GameController.debit(current_player, amount, "space cost")
-			log_event("%s paid $%d on %s." % [player_name, amount, space_name])
+			var paid := GameController.request_payment(current_player, amount, "space cost")
+			if paid:
+				log_event("%s paid $%d on %s." % [player_name, amount, space_name])
 		else:
 			push_warning("PAY: cost/expense space but amount missing/0 at space " + str(space_num))
 
@@ -1145,14 +1236,11 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
 			log_event("%s failed to escape after 3 turns and must pay $50 for a Launch Permit." % player_name)
 
-			# Try to pay 50. If they can't, they go bankrupt, but we'll try our best.
-			if GameController.get_player_balance(GameState.current_player_index) < 50:
+			var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
+			if not paid:
 				log_event("%s cannot afford the $50 Launch Permit and may go bankrupt." % player_name)
-				GameController.emit_signal("bankruptcy_needed", GameState.current_player_index, -1, 50, "Launch Permit")
-				# They still get released and move assuming they resolve bankruptcy, but let's release them anyway
 			else:
 				log_event("%s pays $50 for a Launch Permit and leaves the Launch Pad." % player_name)
-				GameController.debit(GameState.current_player_index, 50, "Launch Permit")
 
 			GameController.release_player_from_jail(GameState.current_player_index)
 
@@ -1215,10 +1303,12 @@ func _spawn_pieces_from_gamestate() -> void:
 
 		# Position piece at GO
 		piece_instance.move_to(10, 0)
-
-		if i < GameState.players.size():
-			var c: Color = GameState.players[i].player_color
-			call_deferred("_apply_color_to_piece", piece_instance, c)
+	
+	## Colors are muddy on token pieces looks like color is applied in piece script and here
+	## commenting this out to see if it helps
+		#if i < GameState.players.size():
+			#var c: Color = GameState.players[i].player_color
+			#call_deferred("_apply_color_to_piece", piece_instance, c)
 
 	# Layout at GO so pieces don't overlap
 	update_piece_layouts_at(0)
@@ -1228,27 +1318,29 @@ func _spawn_pieces_from_gamestate() -> void:
 		piece = current_piece
 
 
-func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
-	# 1) Best: Piece exposes an API
-	if piece_instance.has_method("set_player_color"):
-		piece_instance.call("set_player_color", c)
-		return
-
-	# 2) Try to color ANY Sprite2D under the piece (recursive)
-	var painted := false
-	for n in piece_instance.find_children("*", "Sprite2D", true, false):
-		(n as Sprite2D).modulate = c
-		painted = true
-
-	if not painted:
-		for n in piece_instance.find_children("*", "CanvasItem", true, false):
-			(n as CanvasItem).modulate = c
-			painted = true
-
-	if not painted and piece_instance is CanvasItem:
-		(piece_instance as CanvasItem).modulate = c
-
-	print("Applied color to piece", piece_instance.name, " painted=", painted, " color=", c)
+	##commenting out this whole function to see if it helps. Colors are applied twice, letting
+	## piece script handle coloring.
+#func _apply_color_to_piece(piece_instance: Node2D, c: Color) -> void:
+	## 1) Best: Piece exposes an API
+	#if piece_instance.has_method("set_player_color"):
+		#piece_instance.call("set_player_color", c)
+		#return
+#
+	## 2) Try to color ANY Sprite2D under the piece (recursive)
+	#var painted := false
+	#for n in piece_instance.find_children("*", "Sprite2D", true, false):
+		#(n as Sprite2D).modulate = c
+		#painted = true
+#
+	#if not painted:
+		#for n in piece_instance.find_children("*", "CanvasItem", true, false):
+			#(n as CanvasItem).modulate = c
+			#painted = true
+#
+	#if not painted and piece_instance is CanvasItem:
+		#(piece_instance as CanvasItem).modulate = c
+#
+	#print("Applied color to piece", piece_instance.name, " painted=", painted, " color=", c)
 
 
 func _on_setup_changed() -> void:
@@ -1342,6 +1434,12 @@ func _on_bankruptcy_declared() -> void:
 	elif amount > 0:
 		log_event("%s could not pay $%d." % [debtor_name, amount])
 
+
+	# Capture net worth beforethe assets/cash are transferred away
+	var debtor := GameState.players[eliminated_player]
+	if debtor != null and debtor.net_worth_before_bankruptcy < 0:
+		debtor.net_worth_before_bankruptcy = int(GameState.get_player_final_net_worth(eliminated_player))
+	
 	# Resolve transfer of assets/cash before elimination
 	_resolve_bankruptcy_transfer(eliminated_player, creditor)
 
@@ -1531,11 +1629,59 @@ func _check_for_winner_and_show_screen() -> void:
 func _show_win_screen(winner_index: int) -> void:
 	print("GAME OVER. Winner is player:", winner_index)
 
-	var winner_name := GameState.players[winner_index].player_name
+	if winner_index < 0 or winner_index >= GameState.players.size():
+		push_warning("Invalid winner index for end game screen.")
+		return
 
-	if notification_popup:
-		notification_popup.show_notification(winner_name + " Wins!", "Congratulations! The game is over.")
+	var winner_name := get_player_log_name(winner_index)
 
+	# Stop the game so no more turns/actions continue
+	GameState.game_active = false
+
+	# Hide/disable normal gameplay UI if they exist
+	if space_action_popup and is_instance_valid(space_action_popup):
+		if space_action_popup.has_method("hide_popup"):
+			space_action_popup.hide_popup()
+		else:
+			space_action_popup.visible = false
+
+	if bankruptcy_popup and is_instance_valid(bankruptcy_popup):
+		if bankruptcy_popup.has_method("hide_popup"):
+			bankruptcy_popup.hide_popup()
+		else:
+			bankruptcy_popup.visible = false
+
+	if assets_popup and is_instance_valid(assets_popup):
+		if assets_popup.has_method("hide_popup"):
+			assets_popup.hide_popup()
+		else:
+			assets_popup.visible = false
+
+	if auction_popup and is_instance_valid(auction_popup):
+		if auction_popup.has_method("hide_popup"):
+			auction_popup.hide_popup()
+		else:
+			auction_popup.visible = false
+
+	if trade_popup and is_instance_valid(trade_popup):
+		if trade_popup.has_method("hide_popup"):
+			trade_popup.hide_popup()
+		else:
+			trade_popup.visible = false
+
+	
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.show_end_game(
+			winner_name,
+			"Congratulations! %s is the last player remaining." % winner_name
+		)
+	else:
+		push_warning("EndGamePopup is null, falling back to notification popup.")
+		if notification_popup and is_instance_valid(notification_popup):
+			notification_popup.show_notification(
+				winner_name + " Wins!",
+				"Congratulations! The game is over."
+			)
 
 func _on_bankruptcy_asset_trade_sell_requested(space_index: int) -> void:
 	if pending_debtor_index < 0 or pending_debtor_index >= GameState.players.size():
@@ -1690,19 +1836,28 @@ func _on_pause_quit_requested() -> void:
 
 func _go_to_start_menu() -> void:
 	get_tree().change_scene_to_file("res://scenes/StartMenu.tscn")
+	
+func _reload_current_game_scene() -> void:
+	get_tree().change_scene_to_file("res://scenes/GameBoard.tscn")
+
+
+func _go_to_game_setup_screen() -> void:
+	get_tree().change_scene_to_file("res://scenes/GameSetupScreen.tscn")
 
 
 func _cleanup_root_ui() -> void:
 	# Free CanvasLayers / root-level UI added by Board
 	var names_to_remove := [
-		"DiceRollLayer",
-		"MoneyHUDLayer",
-		"PlayerNameHUDLayer",
-		"PlayerPropertiesPreviewLayer",
-		"EndTurnButtonLayer",
-		"PauseMenuLayer",
-		"SettingsMenuLayer"
-	]
+	"DiceRollLayer",
+	"MoneyHUDLayer",
+	"PlayerNameHUDLayer",
+	"PlayerPropertiesPreviewLayer",
+	"EndTurnButtonLayer",
+	"PauseMenuLayer",
+	"SettingsMenuLayer",
+	"EndGamePopupLayer",
+	"MatchStatsPopupLayer"
+]
 
 	for child in get_tree().root.get_children():
 		if child.name in names_to_remove:
@@ -1737,7 +1892,22 @@ func _cleanup_root_ui() -> void:
 		assets_popup.queue_free()
 		assets_popup = null
 
-	# Optional: if settings menu layer exists but wasn't found by name for some reason
+	if notification_popup and is_instance_valid(notification_popup):
+		notification_popup.queue_free()
+		notification_popup = null
+
+	if jail_popup and is_instance_valid(jail_popup):
+		jail_popup.queue_free()
+		jail_popup = null
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.queue_free()
+		end_game_popup = null
+	
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		match_stats_popup.queue_free()
+		match_stats_popup = null
+
 	if pause_menu_layer and is_instance_valid(pause_menu_layer):
 		pause_menu_layer.queue_free()
 		pause_menu_layer = null
@@ -1745,6 +1915,10 @@ func _cleanup_root_ui() -> void:
 	if settings_menu_layer and is_instance_valid(settings_menu_layer):
 		settings_menu_layer.queue_free()
 		settings_menu_layer = null
+		
+	if match_stats_popup_layer and is_instance_valid(match_stats_popup_layer):
+		match_stats_popup_layer.queue_free()
+		match_stats_popup_layer = null
 		
 		
 		
@@ -1926,3 +2100,138 @@ func _is_first_active_player_of_round(player_index: int) -> bool:
 				return i == player_index
 
 	return player_index == 0
+
+func _on_end_game_replay_current_requested() -> void:
+	print("EndGamePopup: Replay with current setup requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	# Reset persistent singleton state before reloading the board
+	if GameState and GameState.has_method("reset_for_replay"):
+		GameState.reset_for_replay()
+
+	_cleanup_root_ui()
+
+	call_deferred("_reload_current_game_scene")
+
+
+func _on_end_game_stats_requested() -> void:
+	print("EndGamePopup: View match stats requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		var winner_index := -1
+		var best_net_worth := -1
+
+		for i in range(GameState.players.size()):
+			var p = GameState.players[i]
+			if p == null:
+				continue
+
+			var is_active := true
+			if i < GameState.player_active.size():
+				is_active = bool(GameState.player_active[i])
+
+			var net_worth := int(GameState.get_player_final_net_worth(i))
+
+			if is_active and net_worth > best_net_worth:
+				best_net_worth = net_worth
+				winner_index = i
+
+		if winner_index == -1:
+			for i in range(GameState.players.size()):
+				var p = GameState.players[i]
+				if p == null:
+					continue
+
+				var net_worth := int(GameState.get_player_final_net_worth(i))
+				if net_worth > best_net_worth:
+					best_net_worth = net_worth
+					winner_index = i
+
+		var winner_name := "Unknown"
+		if winner_index >= 0:
+			winner_name = GameState.get_player_display_name(winner_index)
+
+		var duration_text := GameState.format_match_duration()
+
+		var summary := "Winner: %s\nDuration: %s" % [winner_name, duration_text]
+
+		var detail_lines := []
+
+		for i in range(GameState.players.size()):
+			var p = GameState.players[i]
+			if p == null:
+				continue
+
+			var player_name := GameState.get_player_display_name(i)
+			var cash := int(p.balance)
+			var props := int(GameState.get_player_properties_acquired(i))
+			var earnings := int(GameState.get_player_earnings(i))
+			var final_net_worth := int(GameState.get_player_final_net_worth(i))
+			var pre_bankruptcy_net_worth := int(p.net_worth_before_bankruptcy)
+
+			detail_lines.append("%s" % player_name)
+			detail_lines.append("Cash: $%d    Properties Owned: %d" % [cash, props])
+			detail_lines.append("Earnings: $%d    Final Net Worth: $%d" % [earnings, final_net_worth])
+
+			if pre_bankruptcy_net_worth >= 0:
+				detail_lines.append("Net Worth Before Bankruptcy: $%d" % pre_bankruptcy_net_worth)
+
+			# Add a blank line between players (but not after the last one)
+			var has_another_player := false
+			for j in range(i + 1, GameState.players.size()):
+				if GameState.players[j] != null:
+					has_another_player = true
+					break
+
+			if has_another_player:
+				detail_lines.append("")
+
+		var details := "\n".join(detail_lines)
+
+		match_stats_popup.show_stats(summary, details)
+
+
+func _on_end_game_reconfigure_requested() -> void:
+	print("EndGamePopup: Reconfigure for new game requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	# Reset persistent singleton state before leaving the board
+	if GameState and GameState.has_method("reset_for_new_game"):
+		GameState.reset_for_new_game()
+
+	_cleanup_root_ui()
+	call_deferred("_go_to_game_setup_screen")
+
+
+func _on_end_game_exit_requested() -> void:
+	print("EndGamePopup: Exit requested")
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide_popup()
+
+	# Reset persistent singleton state before leaving the board
+	if GameState and GameState.has_method("reset_for_new_game"):
+		GameState.reset_for_new_game()
+
+	_cleanup_root_ui()
+	call_deferred("_go_to_start_menu")
+
+func _setup_end_game_popup_async() -> void:
+	await _setup_end_game_popup()
+	
+
+func _on_match_stats_back_requested() -> void:
+	print("MatchStatsPopup: Back requested")
+
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		match_stats_popup.hide_popup()
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.show()

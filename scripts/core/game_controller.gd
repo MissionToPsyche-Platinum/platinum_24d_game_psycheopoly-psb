@@ -105,6 +105,33 @@ func credit(player_index: int, amount: int, reason: String = "") -> void:
 func transfer(from_index: int, to_index: int, amount: int, reason: String = "") -> void:
 	debit(from_index, amount, reason)
 	credit(to_index, amount, reason)
+	
+
+func request_payment(player_index: int, amount: int, reason: String = "Payment", creditor_index: int = -1) -> bool:
+	if amount <= 0:
+		return true
+
+	if player_index < 0 or player_index >= GameState.players.size():
+		return false
+
+	var current_balance := get_player_balance(player_index)
+
+	# If player cannot afford the required payment, trigger bankruptcy flow instead.
+	if current_balance < amount:
+		bankruptcy_needed.emit(player_index, creditor_index, amount, reason)
+		return false
+
+	if creditor_index < 0:
+		debit(player_index, amount, reason)
+		return true
+
+	# Payment to another player
+	if creditor_index >= 0 and creditor_index < GameState.players.size():
+		transfer(player_index, creditor_index, amount, reason)
+		return true
+
+	debit(player_index, amount, reason)
+	return true
 
 
 func _is_valid_player_index(player_index: int) -> bool:
@@ -538,8 +565,10 @@ func _purchase_property(property: Ownable, player: int) -> void:
 func _purchase_unowned_property(property: Ownable, player: int, purchase_price: int) -> void:
 	debit(player, purchase_price, "purchase unowned")
 	_transfer_property(property, player)
+	GameState.increment_properties_acquired(player, 1)
 
 	var player_name := GameState.get_player_display_name(player)
+	
 	var property_name := "Property"
 
 	if property != null:
@@ -549,13 +578,11 @@ func _purchase_unowned_property(property: Ownable, player: int, purchase_price: 
 			if candidate != "":
 				property_name = candidate
 
-		# Fallback: explicit space_name field if present
 		if property_name == "Property" and "space_name" in property:
 			var candidate := str(property.space_name).strip_edges()
 			if candidate != "":
 				property_name = candidate
 
-		# Strong fallback: use board index + SpaceData
 		if property_name == "Property":
 			for i in range(GameState.board.size()):
 				if GameState.board[i] == property:

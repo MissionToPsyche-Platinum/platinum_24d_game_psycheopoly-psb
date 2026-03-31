@@ -8,6 +8,7 @@ var player_is_ai: bool = false
 
 # Visual identity (token/UI)
 var player_color: Color = Color.WHITE
+var player_token_name: String = "Rocket"  
 
 # Board position (0-39)
 var board_space: int = 0
@@ -30,3 +31,6 @@ var turns_in_jail: int = 0
 # Upgrade Counter
 var total_data_points: int = 0
 var total_discoveries: int = 0
+
+# tracking net worth before bankruptcy
+var net_worth_before_bankruptcy: int = -1

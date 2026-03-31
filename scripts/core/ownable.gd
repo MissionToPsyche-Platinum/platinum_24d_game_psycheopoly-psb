@@ -2,8 +2,10 @@ extends GameSpace
 
 class_name Ownable
 
+const NO_OWNER: int = -1
+
 var _is_owned: bool = false
-var _player_owner: int = 0
+var _player_owner: int = NO_OWNER
 var _is_mortgaged: bool = false
 
 
@@ -25,5 +27,6 @@ func set_property_owner(player_id: int) -> void:
 
 
 func clear_property_owner() -> void:
-	_player_owner = 0
+	_player_owner = NO_OWNER
 	_is_owned = false
+	_is_mortgaged = false

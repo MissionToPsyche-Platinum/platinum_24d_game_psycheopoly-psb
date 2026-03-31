@@ -1,10 +1,40 @@
-[gd_scene load_steps=2 format=3 uid="uid://c0m10vn2nqih7"]
+[gd_scene load_steps=6 format=3 uid="uid://c0m10vn2nqih7"]
 
 [ext_resource type="Script" uid="uid://k52ntvar7gt5" path="res://scripts/core/bankruptcy_popup.gd" id="1_epc42"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_epc42"]
+bg_color = Color(0.101960786, 0.101960786, 0.14901961, 0.98039216)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.3019608, 0.6, 0.9019608, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b1u25"]
+bg_color = Color(0.11538612, 0.3310438, 0.51352894, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9647059, 0.72156864, 0.8, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o5t40"]
+bg_color = Color(0.11372549, 0.32941177, 0.5137255, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.96504635, 0.7224436, 0.79896283, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_77k47"]
+bg_color = Color(0.5542083, 0.045411207, 0.17549747, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+
 [node name="BankruptcyPopup" type="CanvasLayer"]
 layer = 100
-visible = false
 script = ExtResource("1_epc42")
 
 [node name="Overlay" type="ColorRect" parent="."]
@@ -16,7 +46,7 @@ offset_right = 848.0
 offset_bottom = 514.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.23529412)
+color = Color(0, 0, 0, 0.4)
 
 [node name="Center" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -34,6 +64,7 @@ size_flags_vertical = 3
 [node name="Panel" type="PanelContainer" parent="Center"]
 custom_minimum_size = Vector2(720, 360)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_epc42")
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
@@ -86,24 +117,30 @@ layout_mode = 2
 
 [node name="ButtonsRow1" type="HBoxContainer" parent="Center/Panel/Margin/VBoxContainer/InfoBox"]
 layout_mode = 2
-theme_override_constants/separation = 122
+theme_override_constants/separation = 100
 alignment = 1
 
 [node name="OpenAssetsButton" type="Button" parent="Center/Panel/Margin/VBoxContainer/InfoBox/ButtonsRow1"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_b1u25")
 text = "Available Assets"
 
 [node name="AttemptToPayButton" type="Button" parent="Center/Panel/Margin/VBoxContainer/InfoBox/ButtonsRow1"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_o5t40")
 text = "Pay"
+
+[node name="Spacer" type="Control" parent="Center/Panel/Margin/VBoxContainer/InfoBox"]
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
 
 [node name="ButtonsRow2" type="HBoxContainer" parent="Center/Panel/Margin/VBoxContainer/InfoBox"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 20
 alignment = 1
 
 [node name="TradeSellButton" type="Button" parent="Center/Panel/Margin/VBoxContainer/InfoBox/ButtonsRow2"]
@@ -117,9 +154,15 @@ text = "Tade/Sell"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/line_spacing = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_77k47")
 text = "Declare Bankruptcy"
+
+[node name="Spacer2" type="Control" parent="Center/Panel/Margin/VBoxContainer/InfoBox"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
 
 [node name="HintLabel" type="Label" parent="Center/Panel/Margin/VBoxContainer/InfoBox"]
 layout_mode = 2
-text = "You must raise enough money to pay the full amount. Sell / Trade properties using the Asset Menu. If you can't pay, you will be baknkrupt and all assets you own will go to player ( placeholder )"
+text = "Review your assets first. If you raise enough cash, click  \"Pay\". If you still cannot cover the debt, declare bankruptcy."
 autowrap_mode = 3
