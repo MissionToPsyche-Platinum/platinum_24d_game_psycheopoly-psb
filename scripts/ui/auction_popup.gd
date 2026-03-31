@@ -64,6 +64,7 @@ func _ready() -> void:
 	bid_btn.pressed.connect(_on_bid_pressed)
 
 	AiManager.ai_auction_pass.connect(_on_pass_pressed)
+	AiManager.ai_auction_bid.connect(_ai_bid_pressed)
 
 	# Bid increment buttons (only if row exists)
 	if bid_1:
@@ -97,6 +98,9 @@ func _on_bid_pressed() -> void:
 	_play_click()
 	if bid_controls:
 		bid_controls.visible = !bid_controls.visible
+
+func _ai_bid_pressed(amount: int) -> void:
+	emit_signal("bid_increment_requested", amount)
 
 func _emit_bid_increment(amount: int, from_button: Control) -> void:
 	# SFX: bid accepted

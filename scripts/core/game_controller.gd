@@ -51,6 +51,9 @@ signal trade_completed(trade_offer: Dictionary)
 ## Emitted when a trade execution attempt fails validation
 signal trade_failed(reason: String)
 
+## Emitted when a trade is done on either a success or failure
+signal trade_finished()
+
 ## Emitted when a game action resolves and should be written to the turn log
 signal transaction_logged(message: String)
 
@@ -205,6 +208,7 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 		var reason := str(validation.get("reason", "Invalid trade offer."))
 		trade_failed.emit(reason)
 		print("Trade failed: ", reason)
+		trade_finished.emit()
 		return false
 
 	var offering_player: int = int(trade_offer.get("offering_player", -1))
@@ -227,6 +231,7 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 
 	trade_completed.emit(trade_offer)
 	print("Trade completed between ", GameState.get_player_display_name(offering_player), " and ", GameState.get_player_display_name(target_player))
+	trade_finished.emit()
 	return true
 
 
@@ -293,7 +298,7 @@ func _upgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
 
-	if (player == property._player_owner && property.is_owned()):
+	if (_check_if_upgrade_is_valid(property, player)):
 		var previous_level := property._current_upgrades
 		var upgrade_cost := property._upgrade_cost
 
@@ -349,7 +354,7 @@ func _downgrade_property(property: PropertySpace, player: int) -> void:
 	var total_data_points = GameState.players[player].total_data_points
 	var total_discoveries = GameState.players[player].total_discoveries
 
-	if (player == property._player_owner && property.is_owned()):
+	if (_check_if_downgrade_is_valid(property, player)):
 		var previous_level := property._current_upgrades
 		var downgrade_refund := property._upgrade_cost / 2 # upgrades are refunded for 1/2 the original price paid
 
