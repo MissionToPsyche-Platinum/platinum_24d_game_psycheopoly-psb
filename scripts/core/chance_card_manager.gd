@@ -47,13 +47,13 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 			paid_player = (paid_player + 1) % player_count
 
 	elif card_num == 15: # earn 10 from each player
-		var earn_from_opponents = (player_count - 1) * 10
-		GameController.log_transaction("%s drew a card and collected $10 from each other player (total $%d)." % [player_name, earn_from_opponents])
-		GameController.credit(current_player, earn_from_opponents)
+		GameController.log_transaction("%s drew a card and is collecting $10 from each other player." % player_name)
 
 		var losing_player = (current_player + 1) % player_count
 		while losing_player != current_player:
-			GameController.debit(losing_player, 10)
+			if not GameController.request_payment(losing_player, 10, "Chance card: pay another player", current_player):
+				card_resolved.emit(card_num)
+				return
 			losing_player = (losing_player + 1) % player_count
 
 	elif card_num == 16: # pay 45 per data point, pay 120 per discovery
