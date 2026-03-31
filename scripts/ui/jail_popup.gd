@@ -48,6 +48,8 @@ func _on_pay_btn_pressed() -> void:
 	var player = GameState.players[_player_index]
 	player.has_rolled = false
 	GameController.action_completed.emit() # Triggers UI updates
+	if (player.player_is_ai):
+		AiManager.ai_leaves_jail.emit()
 	hide_popup()
 
 func _ai_card_pressed(player_index: int) -> void:
@@ -90,6 +92,8 @@ func _on_card_btn_pressed() -> void:
 		GameController.release_player_from_jail(_player_index)
 		player.has_rolled = false
 		GameController.action_completed.emit()
+		if (player.player_is_ai):
+			AiManager.ai_leaves_jail.emit()
 		hide_popup()
 
 func _ai_roll_pressed(player_index: int) -> void:

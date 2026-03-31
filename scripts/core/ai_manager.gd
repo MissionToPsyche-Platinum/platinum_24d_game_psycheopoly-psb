@@ -28,6 +28,7 @@ signal ai_auction_turn(player_index: int)
 signal ai_trade_turn()
 signal ai_doubles_jail()
 signal ai_bankruptcy()
+signal ai_leaves_jail()
 
 var ai_is_mid_turn = false
 var rng
@@ -50,6 +51,7 @@ func _ready() -> void:
 	ai_bankruptcy.connect(ai_bankruptcy_resolve)
 	
 	GameController.trade_finished.connect(check_trade_completion)
+	ai_leaves_jail.connect(ai_turn_start)
 
 # Emits the ai turn start signal if the next player is AI 
 func check_if_ai_turn(player_index) -> void:
@@ -68,6 +70,8 @@ func ai_turn_start() -> void:
 
 # Specifically handles the case where the AI rolls doubles 3 times in a row, since this path leads to ai never landing on a space
 func handle_doubles_jail():
+	GameController.get_current_player().last_roll_was_doubles = false
+	GameController.get_current_player().has_rolled = true
 	ai_turn_mid()
 
 
@@ -75,10 +79,17 @@ func handle_doubles_jail():
 func ai_jail_decision():
 	print("AI Manager: AI makes jail decision")
 	var current_player = GameController.get_current_player()
-	ai_jail_roll.emit(GameState.current_player_index)
-	await GameController.player_rolled
-	if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
-		ai_turn_mid()
+	
+	if (false):
+		ai_jail_roll.emit(GameState.current_player_index)
+		await GameController.player_rolled
+		if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
+			ai_turn_mid()
+	elif (GameController.get_current_player().go_for_launch_cards > 0):
+		ai_jail_card.emit(GameState.current_player_index)
+	else:
+		ai_jail_pay.emit(GameState.current_player_index)
+
 
 
 # Controls logic for AI players landing on spaces, then moves the AI to the middle of its turn
@@ -90,8 +101,10 @@ func ai_lands_on_space(space_num: int) -> void:
 	var gname: String = ""
 	if scr != null:
 		gname = scr.get_global_name()
-
+		
+	var current_player = GameState.current_player_index
 	match gname:
+		
 		"PropertySpace", "InstrumentSpace", "PlanetSpace":
 			if (property._is_owned == true):
 				if (GameController.get_current_player().balance > GameController.calculate_rent(GameState.board[space_num])):
@@ -113,7 +126,8 @@ func ai_lands_on_space(space_num: int) -> void:
 			if (space_num == 20): # "Free parking" space
 				var space_info = SpaceData.get_space_info(space_num)
 				GameController.credit(GameState.current_player_index, space_info.get("amount", 0))
-	ai_turn_mid()
+	if (GameState.current_player_index == current_player): # Halt the AI turn if the AI goes bankrupt
+		ai_turn_mid()
 	
 
 func ai_card_resolve(card_num: int) -> void:
@@ -216,7 +230,7 @@ func ai_create_trade_offer() -> void:
 	
 	receivablePropeties.shuffle()
 	for i in range(randi_range(0, receivablePropeties.size() - 1)):
-		receivablePropeties.append(receivablePropeties[i])	
+		receivingProperties.append(receivablePropeties[i])	
 	
 	var offeringCash = randi_range(0, GameController.get_current_player().balance)
 	var receivingCash = randi_range(0, GameState.players[target_player].balance)
@@ -247,7 +261,7 @@ func ai_turn_end() -> void:
 		GameController.get_current_player().has_rolled = false
 		GameController.get_current_player().last_roll_was_doubles = false
 
-	if (GameController.get_current_player().has_rolled == true):
+	if (GameController.get_current_player().has_rolled == true || GameController.get_current_player().is_in_jail):
 		GameController.end_turn()
 	else:
 		ai_turn_start()
