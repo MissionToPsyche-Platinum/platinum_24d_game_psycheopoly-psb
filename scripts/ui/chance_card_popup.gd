@@ -18,6 +18,7 @@ var money_value: int = 0
 var movement_value: int = -1
 var card_info
 
+
 #space that the player landed on
 var space_number: int = -1
 
@@ -32,20 +33,15 @@ func _ready() -> void:
 	# Start hidden
 	visible = false
 	
+
+
 ## Show the popup with information about a randomly selected Chance card.
 ## `space_num` is the board/space number that triggered this popup and is used
 ## to decide which range of Chance cards to draw from.
 func show_card_details(space_num: int) -> void:
 	space_number = space_num
 	var current_player = GameState.current_player_index
-	if space_number in [7, 22, 36]:
-		current_card = randi_range(0, 17)
-	else:
-		current_card = randi_range(18, 35)
-		while current_card == 35 and not ChanceCardMgr.go_for_launch2_available:
-			current_card = randi_range(18, 35)
-		while current_card == 34 and not ChanceCardMgr.go_for_launch1_available:
-			current_card = randi_range(18, 35)
+	current_card = ChanceCardMgr.draw_card(space_number)
 		
 	
 	card_info = ChanceCardData.get_card_info(current_card)
@@ -100,7 +96,10 @@ func show_card_details(space_num: int) -> void:
 func _on_close_pressed() -> void:
 	var is_jail_card := current_card in [32, 33]
 	ChanceCardMgr.resolve_card(current_card, money_value, movement_value, space_number)
+	if current_card in range(0,17):
+		ChanceCardMgr.discard_metal_card(current_card)
+	elif current_card in range(18,35):
+		ChanceCardMgr.discard_silicate_card(current_card)
 	visible = false
-	# For jail cards, board.gd shows the notification then emits action_completed
-	if not is_jail_card:
-		GameController.action_completed.emit()
+	GameController.action_completed.emit()
+		

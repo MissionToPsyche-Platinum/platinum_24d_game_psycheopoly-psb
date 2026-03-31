@@ -1254,6 +1254,7 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	GameController.emit_signal("player_rolled", player)
 
 
+
 func _card_forward_movement(move_spaces: int) -> void:
 	# Move the current player's piece forward to the correct space
 	if current_piece:
@@ -1261,6 +1262,8 @@ func _card_forward_movement(move_spaces: int) -> void:
 		current_piece.move_forward(move_spaces)
 		# Update the space we just left so remaining pieces re-center
 		update_piece_layouts_at(old_space)
+	
+	##movement_completed.emit()
 
 
 func _card_teleport_movement(space_location: int) -> void:
@@ -1270,6 +1273,8 @@ func _card_teleport_movement(space_location: int) -> void:
 		# Update both spaces
 		update_piece_layouts_at(old_space)
 		update_piece_layouts_at(space_location)
+	
+	##movement_completed.emit()
 
 
 func _clear_pieces() -> void:

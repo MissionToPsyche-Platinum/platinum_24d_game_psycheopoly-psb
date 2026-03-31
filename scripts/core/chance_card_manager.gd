@@ -16,6 +16,97 @@ var go_for_launch1_owner : int = -1
 var go_for_launch2_available : bool = true
 var go_for_launch2_owner : int = -1
 
+# Deck Handling
+var metal_deck: Array[int] = [0,17]
+var silicate_deck: Array[int] = [18,35]
+var metal_discard_pile: Array[int] = []
+var silicate_discard_pile: Array[int] = []
+
+# Deck Initializing 
+func initialize_deck() -> void:
+	metal_deck.clear()
+	silicate_deck.clear()
+	metal_discard_pile.clear()
+	silicate_discard_pile.clear()
+
+
+	# Add all cards (0–35)
+	for i in range(18):
+		metal_deck.append(i)
+		
+	for i in range(18, 35):
+		silicate_deck.append(i)
+		
+	shuffle_metal_deck()
+	shuffle_silicate_deck()
+
+func shuffle_metal_deck() -> void:
+	metal_deck.shuffle()
+
+func shuffle_silicate_deck() -> void:
+	silicate_deck.shuffle()
+
+func draw_card(space_number):
+	if space_number in [7,22,36]:
+		return draw_from_metal()
+	else:
+		return draw_from_silicate()
+
+func draw_from_metal() -> int:
+	if metal_deck.is_empty():
+		reshuffle_discard_into_metal()
+
+	var card = metal_deck.pop_front()
+	
+	return card
+
+func draw_from_silicate() -> int:
+	if silicate_deck.is_empty():
+		reshuffle_discard_into_silicate()
+
+	var card = silicate_deck.pop_front()
+	
+	# Handle "Get Out of Jail Free" cards (remove from cycle)
+	if card == 34:
+		if not go_for_launch1_available:
+			return draw_from_silicate() # draw another
+		go_for_launch1_available = false
+
+	elif card == 35:
+		if not go_for_launch2_available:
+			return draw_from_silicate()
+		go_for_launch2_available = false
+
+	return card
+
+func discard_metal_card(card: int) -> void:
+	
+	metal_discard_pile.append(card)
+
+func discard_silicate_card(card: int) -> void:
+	# Do NOT discard "Get Out of Jail Free" while owned
+	if card in [34, 35]:
+		return
+	
+	silicate_discard_pile.append(card)
+
+func reshuffle_discard_into_metal() -> void:
+	metal_deck = metal_discard_pile.duplicate()
+	metal_discard_pile.clear()
+	shuffle_metal_deck()
+
+func reshuffle_discard_into_silicate() -> void:
+	silicate_deck = silicate_discard_pile.duplicate()
+	silicate_discard_pile.clear()
+	shuffle_silicate_deck()
+
+func return_jail_card(card: int) -> void:
+	if card == 34:
+		go_for_launch1_available = true
+	elif card == 35:
+		go_for_launch2_available = true
+	
+	silicate_discard_pile.append(card)
 
 func resolve_card(card_num: int, money_value: int, movement_value: int, space_number: int) -> void:
 	current_player = GameState.current_player_index
@@ -94,6 +185,9 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 		GameController.log_transaction("%s drew a card and advanced to %s." % [player_name, destination_name])
 		emit_signal("request_move_forward", forward_movement)
+		
+		#await GameController.movement_completed
+		#card_resolved.emit(card_num)
 
 	elif card_num in [28, 29]: # advance to nearest scientific instrument
 		var instrument_spaces = [5, 15, 25, 35]
@@ -106,9 +200,12 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 				dist = (40 - space_number) + target
 			if dist < min_dist:
 				min_dist = dist
-
+		
 		GameController.log_transaction("%s drew a card and advanced to the nearest Scientific Instrument." % player_name)
 		emit_signal("request_move_forward", min_dist)
+		
+		#await GameController.movement_completed
+		#card_resolved.emit(card_num)
 
 	elif card_num == 30: # advance to nearest planet
 		var mars_dist: int = (12 - space_number) if 12 > space_number else (40 - space_number) + 12
@@ -116,6 +213,9 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 		GameController.log_transaction("%s drew a card and advanced to the nearest Planet." % player_name)
 		emit_signal("request_move_forward", min(mars_dist, jupiter_dist))
+		
+		#await GameController.movement_completed
+		#card_resolved.emit(card_num)
 
 	elif card_num == 31: # move back 3 spaces
 		var backward_movement = -1
@@ -127,6 +227,9 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 		GameController.log_transaction("%s drew a card and moved back 3 spaces." % player_name)
 		emit_signal("request_teleport_movement", backward_movement)
+		
+		#await GameController.movement_completed
+		#card_resolved.emit(card_num)
 
 	elif card_num in [32, 33]: # move directly to jail
 		GameController.log_transaction("%s drew a card and was sent to the Launch Pad." % player_name)
@@ -153,3 +256,4 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		pass
 
 	card_resolved.emit(card_num)
+	#GameController.action_completed.emit()

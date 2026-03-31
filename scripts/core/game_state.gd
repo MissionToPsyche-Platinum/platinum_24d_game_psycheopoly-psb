@@ -67,6 +67,7 @@ var match_stats: Dictionary = {}
 
 func _ready() -> void:
 	_setup_board()
+	ChanceCardMgr.initialize_deck()
 
 
 func _setup_board() -> void:
