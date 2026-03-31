@@ -22,12 +22,13 @@ signal ai_jail_roll(current_player: int)
 
 
 signal ai_declare_bankruptcy()
+signal ai_pay_bankruptcy()
 
 #Signals called by other classes
 signal ai_auction_turn(player_index: int)
 signal ai_trade_turn()
 signal ai_doubles_jail()
-signal ai_bankruptcy()
+signal ai_bankruptcy(amount: int)
 signal ai_leaves_jail()
 
 var ai_is_mid_turn = false
@@ -148,8 +149,24 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 		await GameController.action_completed
 
 # AI should attempt to not go bankrupt through mortgaging properties and selling upgrades, make it do that here. 
-func ai_bankruptcy_resolve() -> void:
-	ai_declare_bankruptcy.emit()
+func ai_bankruptcy_resolve(amount: int) -> void:
+	update_valid_mid_turn_targets()
+	while (GameController.get_current_player().balance < amount && (validUpgrades.size() > 0 || validMortgages.size() > 0)):
+		var decision = randf()
+		if (validUpgrades.size() == 0):
+			decision = 1
+		elif(validMortgages.size() == 0):
+			decision = 0
+			
+		if (decision <= 0.5):
+			ai_sells_upgrade(validUpgrades.pick_random())
+		else:
+			ai_property_mortgage(validMortgages.pick_random())
+		update_valid_mid_turn_targets()
+	if (GameController.get_current_player().balance >= amount):
+		ai_pay_bankruptcy.emit()
+	else:
+		ai_declare_bankruptcy.emit()
 	
 # Updates valid upgrades, downgrades, mortgages, and unmortgages
 func update_valid_mid_turn_targets() -> void:

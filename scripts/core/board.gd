@@ -433,6 +433,7 @@ func _setup_bankruptcy_popup() -> void:
 		bankruptcy_popup.bankruptcy_declared.connect(_on_bankruptcy_declared)
 
 	AiManager.ai_declare_bankruptcy.connect(_on_bankruptcy_declared)
+	AiManager.ai_pay_bankruptcy.connect(_on_bankruptcy_attempt_pay_requested)
 
 	# Now wait for node readiness before UI calls
 	if bankruptcy_popup and not bankruptcy_popup.is_node_ready():
@@ -1409,7 +1410,7 @@ func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: S
 			GameController.get_player_balance(debtor_idx)
 		)
 	else:
-		AiManager.ai_bankruptcy.emit()
+		AiManager.ai_bankruptcy.emit(amount)
 
 func _clear_pending_bankruptcy() -> void:
 	pending_debtor_index = -1
