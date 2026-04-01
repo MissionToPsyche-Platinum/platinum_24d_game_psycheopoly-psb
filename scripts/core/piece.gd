@@ -19,6 +19,15 @@ const TOKEN_TEXTURES := {
 	"UFO": preload("res://assets/images/sprites/ufo_game_piece.png")
 }
 
+const TOKEN_COLORS := {
+	"Satellite": Color(1.00, 0.10, 0.10),
+	"Rocket": Color(0.20, 0.72, 1.00),
+	"UFO": Color(0.25, 0.80, 0.35),
+	"Sun": Color(0.95, 0.85, 0.25),
+	"Asteroid": Color(0.88, 0.72, 0.50), 
+	"Crescent Moon": Color(0.60, 0.35, 0.85)
+}
+
 # Current board position (grid coordinates)
 var board_x: int = 0
 var board_y: int = 0
@@ -107,12 +116,14 @@ func _apply_player_token() -> void:
 
 	sprite.texture = TOKEN_TEXTURES[token_name]
 
-	# Keep unique token shape, but still tint it by player color
-	if GameState.players.size() > player_index and GameState.players[player_index]:
-		var p = GameState.players[player_index]
-		sprite.self_modulate = p.player_color
+	# Reset any inherited modulation
+	sprite.modulate = Color.WHITE
+	sprite.self_modulate = Color.WHITE
+
+	if TOKEN_COLORS.has(token_name):
+		sprite.self_modulate = TOKEN_COLORS[token_name]
 	else:
-		sprite.modulate = Color.WHITE
+		sprite.self_modulate = Color.WHITE
 
 
 func refresh_visuals() -> void:
