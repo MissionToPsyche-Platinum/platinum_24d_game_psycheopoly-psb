@@ -119,12 +119,12 @@ func _setup_players() -> void:
 			used_tokens.append(token_name)
 
 	for i in range(player_count):
-		var player = PlayerState.new()
-		player.player_id = i
-		player.balance = 1500
-
+		var player
 		# Apply human config if provided
 		if i < setup_humans.size():
+			player = PlayerState.new()
+			player.player_id = i
+			player.balance = 1500
 			var cfg: Dictionary = setup_humans[i]
 
 			player.player_name = str(cfg.get("name", "Player " + str(i + 1)))
@@ -144,6 +144,10 @@ func _setup_players() -> void:
 			player.player_is_ai = false
 		else:
 			# AI player
+			player = AiPlayerState.new()
+			player.player_id = i
+			player.balance = 1500
+			player.difficulty = GameState.difficulty # set the difficulty of the AI on AI creation
 			player.player_name = "AI " + str(i + 1)
 			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
 
