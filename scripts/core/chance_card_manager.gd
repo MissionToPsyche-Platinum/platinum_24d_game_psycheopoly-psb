@@ -16,9 +16,26 @@ var go_for_launch1_owner : int = -1
 var go_for_launch2_available : bool = true
 var go_for_launch2_owner : int = -1
 
+# Stores the player/space that actually triggered the current card.
+# This prevents delayed card resolution from using the wrong current player and issues with turn log panel
+var pending_card_player: int = -1
+var pending_card_space: int = -1
+
+
+func set_pending_card_context(player_index: int, space_number: int) -> void:
+	pending_card_player = player_index
+	pending_card_space = space_number
+
 
 func resolve_card(card_num: int, money_value: int, movement_value: int, space_number: int) -> void:
-	current_player = GameState.current_player_index
+	if pending_card_player >= 0:
+		current_player = pending_card_player
+	else:
+		current_player = GameState.current_player_index
+
+	if pending_card_space >= 0:
+		space_number = pending_card_space
+
 	player_count = GameState.player_count
 
 	var player_name := GameController.get_player_log_name(current_player)
@@ -30,6 +47,8 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 	elif card_num in range(10, 14): # cards with a flat loss
 		GameController.log_transaction("%s drew a card and paid $%d." % [player_name, money_value])
 		if not GameController.request_payment(current_player, money_value, "Chance card payment"):
+			pending_card_player = -1
+			pending_card_space = -1
 			card_resolved.emit(card_num)
 			return
 
@@ -38,6 +57,8 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		GameController.log_transaction("%s drew a card and paid each other player $50 (total $%d)." % [player_name, pay_opponents])
 
 		if not GameController.request_payment(current_player, pay_opponents, "Chance card: pay each player"):
+			pending_card_player = -1
+			pending_card_space = -1
 			card_resolved.emit(card_num)
 			return
 
@@ -52,6 +73,8 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 		var losing_player = (current_player + 1) % player_count
 		while losing_player != current_player:
 			if not GameController.request_payment(losing_player, 10, "Chance card: pay another player", current_player):
+				pending_card_player = -1
+				pending_card_space = -1
 				card_resolved.emit(card_num)
 				return
 			losing_player = (losing_player + 1) % player_count
@@ -63,6 +86,8 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 		GameController.log_transaction("%s drew a card and paid $%d for asset maintenance." % [player_name, card_fee])
 		if not GameController.request_payment(current_player, card_fee, "Chance card: asset maintenance"):
+			pending_card_player = -1
+			pending_card_space = -1
 			card_resolved.emit(card_num)
 			return
 
@@ -73,6 +98,8 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 		GameController.log_transaction("%s drew a card and paid $%d for asset maintenance." % [player_name, card_fee])
 		if not GameController.request_payment(current_player, card_fee, "Chance card: asset maintenance"):
+			pending_card_player = -1
+			pending_card_space = -1
 			card_resolved.emit(card_num)
 			return
 
@@ -152,4 +179,6 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 	else: # in place of an error
 		pass
 
+	pending_card_player = -1
+	pending_card_space = -1
 	card_resolved.emit(card_num)

@@ -2,14 +2,14 @@ extends CanvasLayer
 
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
 
-#Reference for Card Information
+# Reference for Card Information
 @onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
 @onready var card_type: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar/CardType
 @onready var card_description: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardDescription
 @onready var card_effect: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer/Effect
 @onready var card_effect_value: Label = $Control/PanelContainer/MarginContainer/VBoxContainer/CardEffectContainer/EffectValue
 
-#close button
+# close button
 @onready var close_button: Button = $Control/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer/CloseButton
 
 # Current card being displayed
@@ -18,8 +18,12 @@ var money_value: int = 0
 var movement_value: int = -1
 var card_info
 
-#space that the player landed on
+# space that the player landed on
 var space_number: int = -1
+
+# lock the player who actually drew this card
+var acting_player_index: int = -1
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -31,13 +35,16 @@ func _ready() -> void:
 	
 	# Start hidden
 	visible = false
-	
+
+
 ## Show the popup with information about a randomly selected Chance card.
 ## `space_num` is the board/space number that triggered this popup and is used
 ## to decide which range of Chance cards to draw from.
 func show_card_details(space_num: int) -> void:
 	space_number = space_num
-	var current_player = GameState.current_player_index
+	acting_player_index = GameState.current_player_index
+	var current_player = acting_player_index
+
 	if space_number in [7, 22, 36]:
 		current_card = randi_range(0, 17)
 	else:
@@ -47,7 +54,6 @@ func show_card_details(space_num: int) -> void:
 		while current_card == 34 and not ChanceCardMgr.go_for_launch1_available:
 			current_card = randi_range(18, 35)
 		
-	
 	card_info = ChanceCardData.get_card_info(current_card)
 	
 	if card_info.is_empty():
@@ -77,12 +83,12 @@ func show_card_details(space_num: int) -> void:
 				card_effect_value.text = str(upgrades_fee)
 			else:
 				card_effect_value.text = str(card_info.value)
+
 		"Silicate":
 			card_type.text = "SILICATE CARD"
 			color_bar.color = Color.ORANGE
-			card_effect_value.text = card_info.value
+			card_effect_value.text = str(card_info.value)
 
-	
 	card_description.text = card_info.description
 	card_effect.text = card_info.effect
 	
@@ -92,15 +98,24 @@ func show_card_details(space_num: int) -> void:
 	money_value = card_info.functionalValue
 	movement_value = card_info.movementValue
 	
-	# If the player is AI, should immediately close the menu and resolve the card
-	if(GameState.players[current_player].player_is_ai == true):
+	# If the player is AI, immediately resolve the card using the stored player context
+	if GameState.players[current_player].player_is_ai == true:
 		_on_close_pressed()
-	
-	
+
+
 func _on_close_pressed() -> void:
 	var is_jail_card := current_card in [32, 33]
+
+	# Lock card resolution to the player/space that actually triggered the popup
+	ChanceCardMgr.set_pending_card_context(acting_player_index, space_number)
 	ChanceCardMgr.resolve_card(current_card, money_value, movement_value, space_number)
+
 	visible = false
+
+	# Clear local context after resolution
+	acting_player_index = -1
+	space_number = -1
+
 	# For jail cards, board.gd shows the notification then emits action_completed
 	if not is_jail_card:
 		GameController.action_completed.emit()
