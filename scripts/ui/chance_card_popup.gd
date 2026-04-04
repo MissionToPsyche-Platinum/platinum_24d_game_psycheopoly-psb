@@ -44,15 +44,7 @@ func show_card_details(space_num: int) -> void:
 	space_number = space_num
 	acting_player_index = GameState.current_player_index
 	var current_player = acting_player_index
-
-	if space_number in [7, 22, 36]:
-		current_card = randi_range(0, 17)
-	else:
-		current_card = randi_range(18, 35)
-		while current_card == 35 and not ChanceCardMgr.go_for_launch2_available:
-			current_card = randi_range(18, 35)
-		while current_card == 34 and not ChanceCardMgr.go_for_launch1_available:
-			current_card = randi_range(18, 35)
+	current_card = ChanceCardMgr.draw_card(space_number)
 		
 	card_info = ChanceCardData.get_card_info(current_card)
 	
@@ -109,6 +101,11 @@ func _on_close_pressed() -> void:
 	# Lock card resolution to the player/space that actually triggered the popup
 	ChanceCardMgr.set_pending_card_context(acting_player_index, space_number)
 	ChanceCardMgr.resolve_card(current_card, money_value, movement_value, space_number)
+
+	if current_card in range(0, 18):
+		ChanceCardMgr.discard_metal_card(current_card)
+	elif current_card in range(18, 36):
+		ChanceCardMgr.discard_silicate_card(current_card)
 
 	visible = false
 

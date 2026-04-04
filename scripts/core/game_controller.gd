@@ -71,7 +71,7 @@ signal unmortgage_property(property, player)
 signal difficulty_changed(new_value: String)
 signal colorblind_mode_changed(enabled: bool)
 signal setup_changed()
-
+##signal movement_completed
 
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
