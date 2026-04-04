@@ -28,6 +28,8 @@ var highlight_layer: TileMapLayer = null
 
 var pending_card_player_index: int = -1
 var pending_card_space_num: int = -1
+var pending_card_followup_movement: bool = false
+
 
 @onready var board_tilemap: Node = $TileMap # reference to tilemap so we can implement the colorblind mode.
 @onready var turn_log_panel: Control = $TurnLogLayer/TurnLogPanel
@@ -625,6 +627,12 @@ func update_piece_layouts_at(space_index: int) -> void:
 func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
 	update_piece_layouts_at(space_num)
+
+	# If this movement came from a card, the follow-up movement has now completed.
+	# Clear the flag here so doubles logic is not released too early, but future
+	# action_completed calls can behave normally again after this landing resolves.
+	if pending_card_followup_movement:
+		pending_card_followup_movement = false
 
 	var player_name := get_player_log_name(GameState.current_player_index)
 	var default_space_name := "Space %d" % space_num
@@ -1294,25 +1302,25 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 
 
 func _card_forward_movement(move_spaces: int) -> void:
+	pending_card_followup_movement = true
+
 	# Move the current player's piece forward to the correct space
 	if current_piece:
 		var old_space: int = int(current_piece.board_space)
 		current_piece.move_forward(move_spaces)
 		# Update the space we just left so remaining pieces re-center
 		update_piece_layouts_at(old_space)
-	
-	##movement_completed.emit()
 
 
 func _card_teleport_movement(space_location: int) -> void:
+	pending_card_followup_movement = true
+
 	if current_piece:
 		var old_space: int = int(current_piece.board_space)
 		current_piece.teleport_to_space(space_location)
 		# Update both spaces
 		update_piece_layouts_at(old_space)
 		update_piece_layouts_at(space_location)
-	
-	##movement_completed.emit()
 
 
 func _clear_pieces() -> void:
@@ -1760,6 +1768,13 @@ func _on_action_completed() -> void:
 	var p := GameController.get_current_player()
 	if not p:
 		return
+
+	# If a chance/community-style card is still causing follow-up movement,
+	# do not clear doubles/rolled state yet. The destination landing still
+	# needs to resolve as part of the same turn.
+	if pending_card_followup_movement:
+		return
+
 	# If they rolled doubles, allow another roll by clearing has_rolled
 	# (DiceRollPanel should re-enable the Roll button automatically)
 	if p.last_roll_was_doubles:

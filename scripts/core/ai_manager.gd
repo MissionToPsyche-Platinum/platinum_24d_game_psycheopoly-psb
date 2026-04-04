@@ -41,6 +41,33 @@ var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable p
 
 var active_ai_player_index: int = -1
 
+#Right now visibly the AI is just going light speed on board
+#and hard to know what is happening without looking at turn log
+#This should help a little - some delays between actions.
+const AI_PACING := {
+	"pre_roll": 0.35,
+	"post_roll": 0.75,
+	"after_landing": 0.60,
+	"card_draw": 0.90,
+	"before_purchase": 0.65,
+	"before_trade": 0.85,
+	"after_trade": 0.75,
+	"end_turn": 0.35
+}
+
+var ai_pacing_enabled: bool = true
+var ai_pacing_scale: float = 1.0
+
+func _ai_pause(key: String) -> void:
+	if not ai_pacing_enabled:
+		return
+	
+	var duration := float(AI_PACING.get(key, 0.0)) * ai_pacing_scale
+	if duration <= 0.0:
+		return
+	
+	await get_tree().create_timer(duration, true).timeout
+
 func _ready() -> void:
 	rng = RandomNumberGenerator.new()
 	rng.randomize()
@@ -75,6 +102,9 @@ func ai_turn_start() -> void:
 		return
 
 	if not GameController.get_current_player().has_rolled:
+		await _ai_pause("pre_roll")
+		if not _is_same_ai_turn(acting_ai):
+			return
 		ai_dice_roll.emit()
 	else:
 		ai_turn_mid()
@@ -113,12 +143,15 @@ func ai_lands_on_space(space_num: int) -> void:
 	if current_player == null:
 		return
 
-
 	# A real landing should only be resolved after has_rolled is true.
 	if not current_player.has_rolled and not current_player.is_in_jail:
 		return
 
 	print("AI Manager: AI lands on space")
+
+	await _ai_pause("after_landing")
+	if not _is_same_ai_turn(acting_ai):
+		return
 
 	var property = GameState.board[space_num]
 	var scr: Script = property.get_script() as Script
@@ -138,6 +171,9 @@ func ai_lands_on_space(space_num: int) -> void:
 				await ai_lands_on_unowned_property(space_num)
 
 		"CardSpace":
+			await _ai_pause("card_draw")
+			if not _is_same_ai_turn(acting_ai):
+				return
 			ai_draw_card.emit(space_num)
 			return
 
@@ -183,9 +219,17 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
+	await _ai_pause("before_purchase")
+	if not _is_same_ai_turn(acting_ai):
+		return
+
 	if GameController.get_current_player().balance >= GameState.board[space_num]._initial_price:
 		ai_purchase.emit(space_num)
 	else:
+		await _ai_pause("before_trade")
+		if not _is_same_ai_turn(acting_ai):
+			return
+
 		ai_auction_start.emit(space_num)
 		await AuctionMgr.auction_ended
 		await GameController.action_completed
@@ -252,11 +296,19 @@ func ai_turn_mid() -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
+	await _ai_pause("before_trade")
+	if not _is_same_ai_turn(acting_ai):
+		return
+
 	ai_create_trade_offer()
 
 # Forces the AI to wait until its trade offer is complete before resuming
 func check_trade_completion() -> void:
 	var acting_ai := active_ai_player_index
+	if not _is_same_ai_turn(acting_ai):
+		return
+
+	await _ai_pause("after_trade")
 	if not _is_same_ai_turn(acting_ai):
 		return
 
@@ -374,6 +426,10 @@ func ai_turn_end() -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
+	await _ai_pause("end_turn")
+	if not _is_same_ai_turn(acting_ai):
+		return
+
 	if GameController.get_current_player().last_roll_was_doubles:
 		GameController.get_current_player().has_rolled = false
 		GameController.get_current_player().last_roll_was_doubles = false
@@ -386,6 +442,14 @@ func ai_turn_end() -> void:
 
 # AI should decide how much to bid on an auction here
 func ai_auction_decision(player_index: int, highest_bid: int) -> void:
+	await _ai_pause("before_trade")
+	if player_index < 0 or player_index >= GameState.players.size():
+		return
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	if not GameState.players[player_index].player_is_ai:
+		return
+
 	var decision
 	if (GameState.players[player_index].balance - highest_bid >= 50):
 		decision = randf()
@@ -404,7 +468,6 @@ func ai_auction_decision(player_index: int, highest_bid: int) -> void:
 		ai_auction_bid.emit(1)
 	else:
 		ai_auction_pass.emit()
-
 # AI should decide whether to accept or decline a trade here
 func ai_trade_decision() -> void:
 	#ai_trade_reject.emit()
