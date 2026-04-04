@@ -200,14 +200,29 @@ func _refresh_space_lists() -> void:
 
 
 func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> void:
-	var info := SpaceData.get_space_info(space_index)
-	var item_icon := _get_or_create_color_icon(info, space_index)
 	var tree_item := list_node.create_item(root_item)
 	tree_item.set_cell_mode(CHECKBOX_COLUMN, TreeItem.CELL_MODE_CHECK)
 	tree_item.set_editable(CHECKBOX_COLUMN, true)
 	tree_item.set_checked(CHECKBOX_COLUMN, false)
 	tree_item.set_selectable(CHECKBOX_COLUMN, false)
 	tree_item.set_custom_bg_color(CHECKBOX_COLUMN, CHECKBOX_BG_COLOR)
+
+	# Special non-board asset: Go For Launch card
+	if space_index == GameController.GO_FOR_LAUNCH_TRADE_ID:
+		var item_icon := _create_go_for_launch_icon()
+		tree_item.set_icon(PROPERTY_COLUMN, item_icon)
+		tree_item.set_text(PROPERTY_COLUMN, "Go For Launch Card")
+		tree_item.set_selectable(PROPERTY_COLUMN, true)
+		tree_item.set_metadata(PROPERTY_COLUMN, space_index)
+		tree_item.set_text(DETAILS_COLUMN, "")
+		tree_item.set_selectable(DETAILS_COLUMN, false)
+		tree_item.set_text_alignment(DETAILS_COLUMN, HORIZONTAL_ALIGNMENT_CENTER)
+		tree_item.set_custom_bg_color(DETAILS_COLUMN, DETAILS_BG_COLOR, false)
+		tree_item.set_custom_color(DETAILS_COLUMN, DETAILS_TEXT_COLOR)
+		return
+
+	var info := SpaceData.get_space_info(space_index)
+	var item_icon := _get_or_create_color_icon(info, space_index)
 
 	var is_mortgaged := space_index < GameState.board.size() \
 		and GameState.board[space_index] is Ownable \
@@ -282,12 +297,13 @@ func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
 			return
 
 		var clicked_column := tree.get_column_at_position(click_event.position)
-		
-		# If clicking details, show popup
+
+		var asset_id := int(clicked_item.get_metadata(PROPERTY_COLUMN))
+
+		# If clicking details, show popup only for real board properties
 		if clicked_column == DETAILS_COLUMN:
-			var space_index_variant = clicked_item.get_metadata(PROPERTY_COLUMN)
-			if typeof(space_index_variant) == TYPE_INT:
-				_show_property_details_popup(int(space_index_variant))
+			if asset_id != GameController.GO_FOR_LAUNCH_TRADE_ID:
+				_show_property_details_popup(asset_id)
 			return
 
 		# Otherwise, toggle checkbox (manual toggle to mimic "whole row" selection)
@@ -300,7 +316,6 @@ func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
 		if clicked_column != CHECKBOX_COLUMN:
 			clicked_item.set_checked(CHECKBOX_COLUMN, not clicked_item.is_checked(CHECKBOX_COLUMN))
 		_update_review_if_active()
-
 
 
 func _show_property_details_popup(space_index: int) -> void:
@@ -368,6 +383,11 @@ func _format_space_summary(space_indexes: Array) -> String:
 
 	for space_index_variant in space_indexes:
 		var space_index := int(space_index_variant)
+
+		if space_index == GameController.GO_FOR_LAUNCH_TRADE_ID:
+			entries.append("[color=#59d9ff]Go For Launch Card[/color]")
+			continue
+
 		var info := SpaceData.get_space_info(space_index)
 		var space_name := str(info.get("name", "Space " + str(space_index)))
 		var is_mortgaged := space_index < GameState.board.size() \
@@ -519,6 +539,11 @@ func _get_space_names(space_indexes: Array) -> Array[String]:
 
 	for space_index_variant in space_indexes:
 		var space_index := int(space_index_variant)
+
+		if space_index == GameController.GO_FOR_LAUNCH_TRADE_ID:
+			names.append("Go For Launch Card")
+			continue
+
 		var info := SpaceData.get_space_info(space_index)
 		var space_name := str(info.get("name", "Space " + str(space_index)))
 		names.append(space_name)
@@ -577,3 +602,37 @@ func _build_trade_log_summary(trade_offer: Dictionary) -> String:
 		target_name,
 		target_gives
 	]
+
+
+func _create_go_for_launch_icon() -> Texture2D:
+	var cache_key := "go_for_launch_card_icon"
+
+	if _color_icon_cache.has(cache_key):
+		return _color_icon_cache[cache_key]
+
+	var image := Image.create(14, 14, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0.35, 0.85, 1.0, 1.0))
+
+	var border_color := Color(0.2, 0.2, 0.2, 1.0)
+	for x in range(14):
+		image.set_pixel(x, 0, border_color)
+		image.set_pixel(x, 13, border_color)
+	for y in range(14):
+		image.set_pixel(0, y, border_color)
+		image.set_pixel(13, y, border_color)
+
+	# Simple pixel "G" in white
+	var points := [
+		Vector2i(4, 3), Vector2i(5, 3), Vector2i(6, 3), Vector2i(7, 3), Vector2i(8, 3),
+		Vector2i(3, 4), Vector2i(3, 5), Vector2i(3, 6), Vector2i(3, 7), Vector2i(3, 8),
+		Vector2i(4, 9), Vector2i(5, 9), Vector2i(6, 9), Vector2i(7, 9), Vector2i(8, 9),
+		Vector2i(8, 7), Vector2i(7, 7), Vector2i(6, 7),
+		Vector2i(8, 8)
+	]
+
+	for p in points:
+		image.set_pixel(p.x, p.y, Color.WHITE)
+
+	var texture := ImageTexture.create_from_image(image)
+	_color_icon_cache[cache_key] = texture
+	return texture
