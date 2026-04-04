@@ -79,7 +79,6 @@ func _show_player_by_index(player_index: int) -> void:
 		title_label.text = "%s's Properties" % display_name
 
 	# In bankruptcy mode we generally DON'T want paging to other players' assets.
-	# (Prevents debtor from browsing everyone else's properties.)
 	if prev_button:
 		prev_button.visible = not _bankruptcy_mode
 	if next_button:
@@ -89,7 +88,7 @@ func _show_player_by_index(player_index: int) -> void:
 	for child in properties_list.get_children():
 		child.queue_free()
 
-	# Collect owned properties
+	# Collect owned assets
 	var owned_properties: Array[Dictionary] = []
 	var total_value: int = 0
 
@@ -114,6 +113,7 @@ func _show_player_by_index(player_index: int) -> void:
 							5: current_rent = int(space_info.get("rentDiscovery", 0))
 
 					owned_properties.append({
+						"asset_kind": "property",
 						"space_index": i,
 						"name": space_info.get("name", "Unknown"),
 						"color": space_info.get("color", Color.WHITE),
@@ -122,6 +122,20 @@ func _show_player_by_index(player_index: int) -> void:
 						"rent": current_rent,
 						"space": space
 					})
+
+	# Add Go For Launch cards as assets
+	if player.go_for_launch_cards > 0:
+		for n in range(player.go_for_launch_cards):
+			owned_properties.append({
+				"asset_kind": "go_for_launch_card",
+				"space_index": -1,
+				"name": "Go For Launch Card",
+				"color": Color(0.35, 0.85, 1.0, 1.0),
+				"type": "card",
+				"price": 0,
+				"rent": 0,
+				"space": null
+			})
 
 	owned_properties.sort_custom(_sort_properties)
 
@@ -171,7 +185,8 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
 
-	var space_index := int(prop.space_index)
+	var asset_kind := str(prop.get("asset_kind", "property"))
+	var space_index := int(prop.get("space_index", -1))
 
 	# Color indicator OR colorblind symbol
 	var border_panel := PanelContainer.new()
@@ -185,43 +200,64 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	border_panel.add_theme_stylebox_override("panel", stylebox)
 	border_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_index)
+	if asset_kind == "go_for_launch_card":
+		var card_holder := CenterContainer.new()
+		card_holder.custom_minimum_size = Vector2(20, 20)
+		card_holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	if SettingsManager.is_colorblind_enabled() and symbol_texture != null:
-		# Create a small container for shadow + symbol
-		var icon_holder := Control.new()
-		icon_holder.custom_minimum_size = Vector2(20, 20)
-		icon_holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var background := ColorRect.new()
+		background.custom_minimum_size = Vector2(20, 20)
+		background.color = prop.get("color", Color(0.35, 0.85, 1.0, 1.0))
+		card_holder.add_child(background)
 
-		# Shadow (black outline layer)
-		var symbol_shadow := TextureRect.new()
-		symbol_shadow.texture = symbol_texture
-		symbol_shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		symbol_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		symbol_shadow.custom_minimum_size = Vector2(10, 10)
-		symbol_shadow.position = Vector2(5, 5)
-		symbol_shadow.scale = Vector2(1.0, 1.0)
-		symbol_shadow.modulate = Color.BLACK
-		icon_holder.add_child(symbol_shadow)
+		var letter := Label.new()
+		letter.text = "G"
+		letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		letter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		letter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		letter.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+		letter.add_theme_font_size_override("font_size", 12)
+		letter.add_theme_color_override("font_color", Color.WHITE)
+		card_holder.add_child(letter)
 
-		# Main symbol
-		var symbol := TextureRect.new()
-		symbol.texture = symbol_texture
-		symbol.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		symbol.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		symbol.custom_minimum_size = Vector2(10, 10)
-		symbol.position = Vector2(4, 4)
-		symbol.scale = Vector2(1.0, 1.0)
-		icon_holder.add_child(symbol)
-
-		border_panel.add_child(icon_holder)
+		border_panel.add_child(card_holder)
 	else:
-		# Default normal color square
-		var color_indicator := ColorRect.new()
-		color_indicator.custom_minimum_size = Vector2(20, 20)
-		color_indicator.color = prop.color
-		color_indicator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		border_panel.add_child(color_indicator)
+		var symbol_texture: Texture2D = null
+		if space_index >= 0:
+			symbol_texture = ColorblindHelpers.get_symbol_texture_for_space(space_index)
+
+		if SettingsManager.is_colorblind_enabled() and symbol_texture != null:
+			var icon_holder := Control.new()
+			icon_holder.custom_minimum_size = Vector2(20, 20)
+			icon_holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+			var symbol_shadow := TextureRect.new()
+			symbol_shadow.texture = symbol_texture
+			symbol_shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			symbol_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			symbol_shadow.custom_minimum_size = Vector2(10, 10)
+			symbol_shadow.position = Vector2(5, 5)
+			symbol_shadow.scale = Vector2(1.0, 1.0)
+			symbol_shadow.modulate = Color.BLACK
+			icon_holder.add_child(symbol_shadow)
+
+			var symbol := TextureRect.new()
+			symbol.texture = symbol_texture
+			symbol.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			symbol.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			symbol.custom_minimum_size = Vector2(10, 10)
+			symbol.position = Vector2(4, 4)
+			symbol.scale = Vector2(1.0, 1.0)
+			icon_holder.add_child(symbol)
+
+			border_panel.add_child(icon_holder)
+		else:
+			var color_indicator := ColorRect.new()
+			color_indicator.custom_minimum_size = Vector2(20, 20)
+			color_indicator.color = prop.color
+			color_indicator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			border_panel.add_child(color_indicator)
 
 	hbox.add_child(border_panel)
 
@@ -230,7 +266,9 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", 2)
 
-	var is_mortgaged := (prop.space is Ownable) and (prop.space as Ownable)._is_mortgaged
+	var is_mortgaged := false
+	if prop.get("space", null) is Ownable:
+		is_mortgaged = (prop.space as Ownable)._is_mortgaged
 
 	var name_label := Label.new()
 	name_label.text = str(prop.name)
@@ -248,8 +286,11 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 		vbox.add_child(mortgaged_label)
 
 	var details_label := Label.new()
-	var type_name := _get_type_display_name(str(prop.type))
-	details_label.text = "%s • Price: $%d" % [type_name, int(prop.price)]
+	if asset_kind == "go_for_launch_card":
+		details_label.text = "Special Card"
+	else:
+		var type_name := _get_type_display_name(str(prop.type))
+		details_label.text = "%s • Price: $%d" % [type_name, int(prop.price)]
 	details_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8.ttf"))
 	details_label.add_theme_font_size_override("font_size", 11)
 	details_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
@@ -257,8 +298,8 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 
 	hbox.add_child(vbox)
 
-	# Rent label for properties (hidden when mortgaged — no rent is collected)
-	if str(prop.type) == "property" and prop.has("rent") and not is_mortgaged:
+	# Rent label for true properties only
+	if asset_kind == "property" and str(prop.type) == "property" and prop.has("rent") and not is_mortgaged:
 		var rent_label := Label.new()
 		rent_label.text = "Rent: $%d" % int(prop.rent)
 		rent_label.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8.ttf"))
@@ -267,7 +308,7 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 		hbox.add_child(rent_label)
 
 	# Bankruptcy mode: Trade/Sell button next to each asset
-	if show_trade_sell:
+	if show_trade_sell and asset_kind == "property":
 		var trade_btn := Button.new()
 		trade_btn.text = "Trade/Sell"
 		trade_btn.custom_minimum_size = Vector2(84, 24)
@@ -280,9 +321,9 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 		trade_btn.pressed.connect(_on_trade_sell_pressed.bind(space_index))
 		hbox.add_child(trade_btn)
 
-	# Mortgage/unmortgage button — shown when it's the current player's turn in normal mode
+	# Mortgage/unmortgage button — only for ownable board properties
 	var is_player_turn := not _bankruptcy_mode and _current_player_index == GameState.current_player_index
-	if is_player_turn and prop.space is Ownable:
+	if is_player_turn and asset_kind == "property" and prop.get("space", null) is Ownable:
 		var ownable := prop.space as Ownable
 		if ownable._is_mortgaged:
 			var unmortgage_btn := Button.new()
@@ -313,18 +354,19 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 			mortgage_btn.pressed.connect(_on_mortgage_pressed.bind(space_index))
 			hbox.add_child(mortgage_btn)
 
-	# Details button
-	var details_btn := Button.new()
-	details_btn.text = "..."
-	details_btn.custom_minimum_size = Vector2(30, 24)
-	details_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
-	details_btn.add_theme_font_size_override("font_size", 10)
-	details_btn.flat = false
-	details_btn.focus_mode = Control.FOCUS_NONE
-	details_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	details_btn.pressed.connect(_show_property_details_popup.bind(space_index))
-	hbox.add_child(details_btn)
+	# Details button only for real board spaces
+	if asset_kind == "property":
+		var details_btn := Button.new()
+		details_btn.text = "..."
+		details_btn.custom_minimum_size = Vector2(30, 24)
+		details_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+		details_btn.add_theme_font_size_override("font_size", 10)
+		details_btn.flat = false
+		details_btn.focus_mode = Control.FOCUS_NONE
+		details_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		details_btn.pressed.connect(_show_property_details_popup.bind(space_index))
+		hbox.add_child(details_btn)
 
 	return hbox
 

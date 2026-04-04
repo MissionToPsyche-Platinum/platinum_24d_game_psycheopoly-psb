@@ -73,6 +73,10 @@ signal colorblind_mode_changed(enabled: bool)
 signal setup_changed()
 ##signal movement_completed
 
+# ID so trade / sell and other UI can recognize the card without adding major refactoiring of current system.
+const GO_FOR_LAUNCH_TRADE_ID := -1001 
+
+
 func _ready() -> void:
 	pay_rent.connect(_pay_rent)
 	purchase_property.connect(_purchase_property)
@@ -181,11 +185,17 @@ func get_tradeable_space_indexes(player_index: int) -> Array[int]:
 	var tradeable: Array[int] = []
 	if not _is_valid_player_index(player_index):
 		return tradeable
+
 	for i in range(GameState.board.size()):
 		if _is_space_tradeable_by_owner(i, player_index):
 			tradeable.append(i)
-	return tradeable
 
+	# Add one tradeable entry per Go For Launch card owned
+	var player := GameState.players[player_index]
+	for n in range(int(player.go_for_launch_cards)):
+		tradeable.append(GO_FOR_LAUNCH_TRADE_ID)
+
+	return tradeable
 
 func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 	var result := {"ok": false, "reason": "Invalid trade offer."}
@@ -195,6 +205,33 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 
 	if not _is_valid_player_index(offering_player) or not _is_valid_player_index(target_player):
 		result.reason = "Trade players are invalid."
+		return result
+
+	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
+	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
+
+	var offered_card_count := 0
+	for entry in offered_spaces:
+		if int(entry) == GO_FOR_LAUNCH_TRADE_ID:
+			offered_card_count += 1
+		elif not _is_space_tradeable_by_owner(int(entry), offering_player):
+			result.reason = "You can only offer assets you own."
+			return result
+
+	var requested_card_count := 0
+	for entry in requested_spaces:
+		if int(entry) == GO_FOR_LAUNCH_TRADE_ID:
+			requested_card_count += 1
+		elif not _is_space_tradeable_by_owner(int(entry), target_player):
+			result.reason = "Requested asset is not owned by the selected player."
+			return result
+
+	if offered_card_count > int(GameState.players[offering_player].go_for_launch_cards):
+		result.reason = "You do not own that many Go For Launch cards."
+		return result
+
+	if requested_card_count > int(GameState.players[target_player].go_for_launch_cards):
+		result.reason = "The other player does not own that many Go For Launch cards."
 		return result
 
 	result.ok = true
@@ -224,10 +261,24 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 		transfer(target_player, offering_player, request_cash, "trade cash")
 
 	for offered_space in offered_spaces:
-		_transfer_property(GameState.board[int(offered_space)] as Ownable, target_player)
+		var asset_id := int(offered_space)
+		if asset_id == GO_FOR_LAUNCH_TRADE_ID:
+			GameState.players[offering_player].go_for_launch_cards -= 1
+			GameState.players[target_player].go_for_launch_cards += 1
+		else:
+			_transfer_property(GameState.board[asset_id] as Ownable, target_player)
 
 	for requested_space in requested_spaces:
-		_transfer_property(GameState.board[int(requested_space)] as Ownable, offering_player)
+		var asset_id := int(requested_space)
+		if asset_id == GO_FOR_LAUNCH_TRADE_ID:
+			GameState.players[target_player].go_for_launch_cards -= 1
+			GameState.players[offering_player].go_for_launch_cards += 1
+		else:
+			_transfer_property(GameState.board[asset_id] as Ownable, offering_player)
+
+	# Refresh UI that depends on player-held assets
+	player_money_updated.emit(GameState.players[offering_player])
+	player_money_updated.emit(GameState.players[target_player])
 
 	trade_completed.emit(trade_offer)
 	print("Trade completed between ", GameState.get_player_display_name(offering_player), " and ", GameState.get_player_display_name(target_player))
