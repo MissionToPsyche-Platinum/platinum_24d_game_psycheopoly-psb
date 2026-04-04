@@ -118,12 +118,12 @@ func update_space_display(space_num: int) -> void:
 	var has_details: bool = space_info.type in ["property", "instrument", "planet"]
 	details_button.visible = has_details
 	
-	# Show upgrade/downgrade buttons only for properties that are owned by the current player
+	# Show upgrade/downgrade buttons only for properties that are owned by the current player (assumming they aren't AI)
 	var show_upgrade: bool = space_info.type in ["property"]
 	var can_upgrade = show_upgrade
 	var can_downgrade = show_upgrade
 	if show_upgrade:
-		show_upgrade = (GameState.board[current_space]._is_owned && GameState.board[current_space]._player_owner == GameState.current_player_index)
+		show_upgrade = (GameState.board[current_space]._is_owned && GameState.board[current_space]._player_owner == GameState.current_player_index && !GameController.get_current_player().player_is_ai)
 		can_upgrade = GameController._check_if_upgrade_is_valid(GameState.board[current_space], GameState.current_player_index)
 		can_downgrade = GameController._check_if_downgrade_is_valid(GameState.board[current_space], GameState.current_player_index)
 	upgrade_button.visible = show_upgrade

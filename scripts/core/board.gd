@@ -26,6 +26,9 @@ var piece: Node2D = null
 var tile_map_layer: TileMapLayer = null
 var highlight_layer: TileMapLayer = null
 
+var pending_card_player_index: int = -1
+var pending_card_space_num: int = -1
+
 @onready var board_tilemap: Node = $TileMap # reference to tilemap so we can implement the colorblind mode.
 @onready var turn_log_panel: Control = $TurnLogLayer/TurnLogPanel
 
@@ -501,6 +504,9 @@ func _setup_bankruptcy_popup() -> void:
 	if not bankruptcy_popup.bankruptcy_declared.is_connected(_on_bankruptcy_declared):
 		bankruptcy_popup.bankruptcy_declared.connect(_on_bankruptcy_declared)
 
+	AiManager.ai_declare_bankruptcy.connect(_on_bankruptcy_declared)
+	AiManager.ai_pay_bankruptcy.connect(_on_bankruptcy_attempt_pay_requested)
+
 	# Now wait for node readiness before UI calls
 	if bankruptcy_popup and not bankruptcy_popup.is_node_ready():
 		await bankruptcy_popup.ready
@@ -623,9 +629,10 @@ func _on_piece_movement_finished(space_num: int) -> void:
 	var player_name := get_player_log_name(GameState.current_player_index)
 	var default_space_name := "Space %d" % space_num
 	var space_name := default_space_name
+	var landed_space = null
 
 	if space_num >= 0 and space_num < GameState.board.size():
-		var landed_space = GameState.board[space_num]
+		landed_space = GameState.board[space_num]
 
 		if landed_space != null and landed_space.has_method("get_name"):
 			var candidate = str(landed_space.get_name()).strip_edges()
@@ -645,6 +652,23 @@ func _on_piece_movement_finished(space_num: int) -> void:
 
 	log_event("%s landed on %s." % [player_name, space_name])
 
+	# Capture card context NOW so delayed card logging doesn't use the next player
+	if landed_space != null:
+		var scr: Script = landed_space.get_script() as Script
+		var gname := ""
+		if scr != null:
+			gname = scr.get_global_name()
+
+		if gname == "CardSpace":
+			pending_card_player_index = GameState.current_player_index
+			pending_card_space_num = space_num
+		else:
+			pending_card_player_index = -1
+			pending_card_space_num = -1
+	else:
+		pending_card_player_index = -1
+		pending_card_space_num = -1
+
 	# Skip space action popup if the player was just sent to jail — the
 	# notification popup and jail popup handle everything from here.
 	var current_player := GameController.get_current_player()
@@ -655,14 +679,16 @@ func _on_piece_movement_finished(space_num: int) -> void:
 		if not space_action_popup.is_node_ready():
 			await space_action_popup.ready
 
-		if (current_player.player_is_ai == false):
+		if current_player.player_is_ai == false:
 			space_action_popup.show_actions(space_num)
-		else:
-			AiManager.ai_lands_on_space(space_num)
 
-		await get_tree().process_frame
-		if not space_action_popup.visible:
-			GameController.action_completed.emit()
+			# Only humans use this fallback auto-complete behavior
+			await get_tree().process_frame
+			if not space_action_popup.visible:
+				GameController.action_completed.emit()
+		else:
+			# AI may trigger async card / popup flows, so try not to auto-complete here
+			AiManager.ai_lands_on_space(space_num)
 
 
 func _on_purchase_pressed(space_num: int) -> void:
@@ -831,16 +857,28 @@ func _on_move_pressed(space_num: int) -> void:
 
 
 func _on_draw_card_pressed(space_num: int) -> void:
-	var player_name := get_player_log_name(GameState.current_player_index)
+	var acting_player_index := pending_card_player_index
+	if acting_player_index < 0:
+		acting_player_index = GameState.current_player_index
+
+	var player_name := get_player_log_name(acting_player_index)
 	var space_name := "a card space"
 
-	var space_info = SpaceDataRef.get_space_info(space_num)
+	var effective_space_num := space_num
+	if effective_space_num < 0 and pending_card_space_num >= 0:
+		effective_space_num = pending_card_space_num
+
+	var space_info = SpaceDataRef.get_space_info(effective_space_num)
 	if space_info.has("name"):
 		var candidate := str(space_info["name"]).strip_edges()
 		if candidate != "":
 			space_name = candidate
 
 	log_event("%s drew a card from %s." % [player_name, space_name])
+
+	# Clear pending card context after logging
+	pending_card_player_index = -1
+	pending_card_space_num = -1
 
 	# action_completed is emitted by chance_card_popup once the card is closed
 	pass
@@ -1501,14 +1539,16 @@ func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: S
 	if creditor_idx >= 0 and creditor_idx < GameState.players.size():
 		creditor_name = GameState.players[creditor_idx].player_name
 
-	bankruptcy_popup.show_popup(
-		debtor_idx,
-		creditor_name,
-		reason,
-		amount,
-		GameController.get_player_balance(debtor_idx)
-	)
-
+	if (GameState.players[debtor_idx].player_is_ai == false):
+		bankruptcy_popup.show_popup(
+			debtor_idx,
+			creditor_name,
+			reason,
+			amount,
+			GameController.get_player_balance(debtor_idx)
+		)
+	else:
+		AiManager.ai_bankruptcy.emit(amount)
 
 func _clear_pending_bankruptcy() -> void:
 	pending_debtor_index = -1

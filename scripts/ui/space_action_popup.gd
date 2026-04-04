@@ -14,6 +14,8 @@ const PropertyDetailsPopup = preload("res://scenes/PropertyDetailsPopup.tscn")
 const ChanceCardData = preload("res://scripts/core/chance_card_data.gd")
 const ChanceCardPopup = preload("res://scenes/ChanceCardPopup.tscn")
 
+const ColorblindHelpers = preload("res://scripts/ui/colorblind_helpers.gd")
+
 # References to UI elements
 @onready var panel_container: Panel = $Control/PanelContainer
 @onready var color_bar: ColorRect = $Control/PanelContainer/MarginContainer/VBoxContainer/ColorBar
@@ -35,6 +37,7 @@ var current_space_num: int = -1
 var _details_popup: CanvasLayer = null
 var _chance_card_popup: CanvasLayer = null
 
+var current_action_player_index: int = -1
 
 func _ready() -> void:
 	# Initially hidden
@@ -53,6 +56,8 @@ func _ready() -> void:
 	AiManager.ai_pay.connect(_ai_pay_pressed)
 	AiManager.ai_move.connect(_ai_move_pressed)
 	AiManager.ai_auction_start.connect(_ai_auction_pressed)
+	AiManager.ai_purchase.connect(_ai_purchase_pressed)
+
 
 	# Refresh immediately when colorblind mode changes while popup is open
 	if SettingsManager:
@@ -63,6 +68,8 @@ func _ready() -> void:
 
 func show_actions(space_num: int) -> void:
 	current_space_num = space_num
+	current_action_player_index = GameState.current_player_index
+
 	var space_info = SpaceData.get_space_info(space_num)
 	
 	space_name_label.text = space_info.name
@@ -96,7 +103,7 @@ func show_actions(space_num: int) -> void:
 				can_auction = true
 				if space_info.has("price"):
 					var price = space_info.price
-					var player_idx = GameState.current_player_index
+					var player_idx = current_action_player_index
 					if GameState.players[player_idx].balance >= price:
 						can_purchase = true
 						description = "You landed on %s. Would you like to purchase it for $%d or put it up for auction?" % [space_info.name, price]
@@ -106,7 +113,7 @@ func show_actions(space_num: int) -> void:
 				else:
 					description = "You landed on %s." % space_info.name
 			elif property is Ownable and property._is_owned:
-				if property._player_owner == GameState.current_player_index:
+				if property._player_owner == current_action_player_index:
 					description = "You landed on %s. You own this space." % [space_info.name]
 				else:
 					var owner_name := GameState.get_player_display_name(int(property._player_owner))
@@ -134,7 +141,7 @@ func show_actions(space_num: int) -> void:
 				can_move = true
 		"reward":
 			description = "You have earned $%d." % space_info.get("amount", 0)
-			GameController.credit(GameState.current_player_index, space_info.get("amount", 0))
+			GameController.credit(current_action_player_index, space_info.get("amount", 0))
 			
 	action_description.text = description
 	pay_button.text = "Pay $%d" % pay_amount if can_pay else "Pay"
@@ -144,9 +151,8 @@ func show_actions(space_num: int) -> void:
 	move_button.visible = can_move
 	auction_button.visible = can_auction
 	details_button.visible = has_details
-	close_button.visible = not can_auction and not can_pay and not can_draw and not can_move # Show Close only if no other mandatory action
+	close_button.visible = not can_auction and not can_pay and not can_draw and not can_move
 	
-	# Show the UI
 	self.visible = true
 
 
@@ -209,19 +215,29 @@ func _on_details_pressed() -> void:
 	_details_popup.show_space_details(current_space_num, owner_str, owner_color)
 
 
+func _ai_purchase_pressed(space_num: int) -> void:
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	if not GameState.players[GameState.current_player_index].player_is_ai:
+		return
+
+	current_space_num = space_num
+	current_action_player_index = GameState.current_player_index
+	_on_purchase_pressed()
+
 func _on_purchase_pressed() -> void:
 	purchase_pressed.emit(current_space_num)
-
-	# Previously this was hard-coded to 0, which caused Player 1 to be charged
-	# even when Player 2/3/etc made the purchase.
-	# now using the current active player index from GameState.
-	GameController.purchase_property.emit(GameState.board[current_space_num], GameState.current_player_index)
-
 	hide_popup()
 
 
 func _ai_pay_pressed(space_num: int) -> void:
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	if not GameState.players[GameState.current_player_index].player_is_ai:
+		return
+
 	current_space_num = space_num
+	current_action_player_index = GameState.current_player_index
 	_on_pay_pressed()
 
 func _on_pay_pressed() -> void:
@@ -233,25 +249,36 @@ func _on_pay_pressed() -> void:
 	hide_popup()
 
 func _ai_draw_pressed(space_num: int) -> void:
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	if not GameState.players[GameState.current_player_index].player_is_ai:
+		return
+
 	current_space_num = space_num
+	current_action_player_index = GameState.current_player_index
 	_on_draw_pressed()
 
 
 func _on_draw_pressed() -> void:
-	# Create popup if it doesn't exist
+	# Log the draw immediately before the popup resolves the card
+	draw_card_pressed.emit(current_space_num)
+
 	if _chance_card_popup == null:
 		_chance_card_popup = ChanceCardPopup.instantiate()
 		get_tree().root.add_child(_chance_card_popup)
 	
 	_chance_card_popup.show_card_details(current_space_num)
-	
-	draw_card_pressed.emit(current_space_num)
-	
 	hide_popup()
 	
 
 func _ai_move_pressed(space_num: int) -> void:
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	if not GameState.players[GameState.current_player_index].player_is_ai:
+		return
+
 	current_space_num = space_num
+	current_action_player_index = GameState.current_player_index
 	_on_move_pressed()
 
 func _on_move_pressed() -> void:
@@ -259,7 +286,13 @@ func _on_move_pressed() -> void:
 	hide_popup()
 
 func _ai_auction_pressed(space_num: int) -> void:
+	if GameState.current_player_index < 0 or GameState.current_player_index >= GameState.players.size():
+		return
+	if not GameState.players[GameState.current_player_index].player_is_ai:
+		return
+
 	current_space_num = space_num
+	current_action_player_index = GameState.current_player_index
 	_on_auction_pressed()
 
 func _on_auction_pressed() -> void:

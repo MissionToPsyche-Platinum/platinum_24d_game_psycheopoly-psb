@@ -29,18 +29,26 @@ const PLAYER_COLORS: Array[Color] = [
 	Color(0.2, 0.5, 0.9),   # Blue
 	Color(0.2, 0.8, 0.2),   # Green
 	Color(0.9, 0.8, 0.1),   # Yellow
-	Color(0.9, 0.5, 0.1),   # Orange
+	Color(0.88, 0.72, 0.50),  # Brownish Orange
 	Color(0.8, 0.3, 0.8),   # Purple
 ]
 
 # Available board token names
+# IMPORTANT:
+# Keep this in the SAME internal order as GameSetupScreen.TOKEN_POOL / legacy color order:
+# 0 = Red    -> Satellite
+# 1 = Blue   -> Rocket
+# 2 = Green  -> UFO
+# 3 = Yellow -> Sun
+# 4 = Orange -> Asteroid
+# 5 = Purple -> Crescent Moon
 const AVAILABLE_TOKENS: Array[String] = [
-	"Asteroid",
-	"Crescent Moon",
-	"Rocket",
 	"Satellite",
+	"Rocket",
+	"UFO",
 	"Sun",
-	"UFO"
+	"Asteroid",
+	"Crescent Moon"
 ]
 
 # Current player's index (0-based)
@@ -146,11 +154,15 @@ func _setup_players() -> void:
 		else:
 			# AI player
 			player.player_name = "AI " + str(i + 1)
-			player.player_color = PLAYER_COLORS[i % PLAYER_COLORS.size()]
 
-			#  AI randomly chooses an unused token if possible
+			# AI randomly chooses an unused token if possible
 			var ai_token := _get_random_available_token(used_tokens)
 			player.player_token_name = ai_token
+
+			# Keep AI color aligned with the chosen token's legacy color slot
+			var ai_color_index := _token_name_to_color_index(ai_token)
+			player.player_color = PLAYER_COLORS[ai_color_index]
+
 			player.player_is_ai = true
 
 			if not used_tokens.has(ai_token):
@@ -226,6 +238,26 @@ func get_player_token_name(player_index: int) -> String:
 			return setup_token
 
 	return "Rocket"
+
+
+# Maps token name to the legacy/internal color slot used by PLAYER_COLORS
+func _token_name_to_color_index(token_name: String) -> int:
+	match token_name:
+		"Satellite":
+			return 0 # Red
+		"Rocket":
+			return 1 # Blue
+		"UFO":
+			return 2 # Green
+		"Sun":
+			return 3 # Yellow
+		"Asteroid":
+			return 4 # Orange
+		"Crescent Moon":
+			return 5 # Purple
+		_:
+			return 1 # fallback to Rocket/Blue
+
 
 # pick a random unused token if possible, otherwise random from all
 func _get_random_available_token(used_tokens: Array[String]) -> String:
