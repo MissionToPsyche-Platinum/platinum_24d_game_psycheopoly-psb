@@ -39,6 +39,19 @@ var validDowngrades: Array[int] = [] # holds the space numbers of downgradable p
 var validMortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 
+func _initialize_property_values(player: AiPlayerState) -> void:
+	for i in range(GameState.board.size()):
+		if GameState.board[i] is Ownable:
+			player.property_values.append(1.5 * GameState.board[i]._initial_price)
+		else:
+			player.property_values.append(0)
+
+func _update_property_values(player: AiPlayerState) -> void:
+	pass
+	
+	
+	
+	
 func _ready() -> void:
 	rng = RandomNumberGenerator.new()
 	rng.randomize()
@@ -62,6 +75,9 @@ func check_if_ai_turn(player_index) -> void:
 # Actions that should occur at the start of the AI player's turn
 func ai_turn_start() -> void:
 	print("AI Manager: AI turn start")
+	if (GameController.get_current_player().property_values.is_empty()):
+		_initialize_property_values(GameController.get_current_player())
+	
 	if GameController.get_current_player().is_in_jail:
 		ai_jail_decision()
 	if not (GameController.get_current_player().has_rolled):
