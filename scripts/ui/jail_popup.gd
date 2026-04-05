@@ -18,6 +18,9 @@ func show_for_player(player_index: int) -> void:
 	_player_index = player_index
 	var player = GameState.players[_player_index]
 	
+	var player_name := GameController.get_player_log_name(_player_index)
+	GameController.log_transaction("%s is on the Launch Pad (turn %d/3)." % [player_name, player.turns_in_jail + 1])
+	
 	desc_label.text = "Turn %d/3 on Launch Pad" % (player.turns_in_jail + 1)
 	
 	# Determine if they can afford $50
@@ -43,6 +46,10 @@ func _on_pay_btn_pressed() -> void:
 	if _player_index < 0: return
 	# Debit $50 and release
 	GameController.debit(_player_index, 50, "Launch Permit")
+	
+	var player_name := GameController.get_player_log_name(_player_index)
+	
+	GameController.log_transaction("%s paid $50 to leave the Launch Pad." % player_name)
 	GameController.release_player_from_jail(_player_index)
 	# Player has NOT rolled yet, so they can use the normal roll UI
 	var player = GameState.players[_player_index]
@@ -105,5 +112,8 @@ func _on_roll_btn_pressed() -> void:
 	# The board's _on_dice_rolled handles the jail roll resolution
 	var player = GameState.players[_player_index]
 	player.has_rolled = false # Ensure they can roll
+	var player_name := GameController.get_player_log_name(_player_index)
+	GameController.log_transaction("%s chose to roll for doubles to leave the Launch Pad." % player_name)
+	
 	GameController.action_completed.emit()
 	hide_popup()
