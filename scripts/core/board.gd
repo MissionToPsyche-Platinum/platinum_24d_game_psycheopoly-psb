@@ -1254,19 +1254,11 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	player.doubles_count = 0
 
 	var player_name := get_player_log_name(GameState.current_player_index)
-	var die_1 := 0
-	var die_2 := 0
-
-	# We only know total + doubles here, not the original d1/d2 values.
-	# So we log the total cleanly for jail resolution.
-	if is_doubles:
-		log_event("%s rolled doubles (%d) in the Launch Pad." % [player_name, total])
-	else:
-		log_event("%s rolled %d in the Launch Pad and did not get doubles." % [player_name, total])
 
 	if is_doubles:
+		log_event("%s rolled doubles in the Launch Pad and left it." % player_name)
+
 		print("Rolled doubles! Escaped jail.")
-		log_event("%s escaped the Launch Pad and moves %d spaces." % [player_name, total])
 
 		GameController.release_player_from_jail(GameState.current_player_index)
 
@@ -1277,13 +1269,13 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	else:
 		if player.turns_in_jail == 3:
 			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
-			log_event("%s failed to escape after 3 turns and must pay $50 for a Launch Permit." % player_name)
+			log_event("%s did not roll doubles on their final Launch Pad turn and must pay $50 to leave." % player_name)
 
 			var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
 			if not paid:
-				log_event("%s cannot afford the $50 Launch Permit and may go bankrupt." % player_name)
+				log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
 			else:
-				log_event("%s pays $50 for a Launch Permit and leaves the Launch Pad." % player_name)
+				log_event("%s paid $50 to leave the Launch Pad after failing to roll doubles." % player_name)
 
 			GameController.release_player_from_jail(GameState.current_player_index)
 
@@ -1292,7 +1284,7 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 			update_piece_layouts_at(old_space)
 		else:
 			print("Did not roll doubles. Stay in jail.")
-			log_event("%s remains in the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
+			log_event("%s did not roll doubles and remains on the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
 
 			# Don't move, turn effectively over. Need to simulate action completed so End Turn button enables.
 			GameController.action_completed.emit()
