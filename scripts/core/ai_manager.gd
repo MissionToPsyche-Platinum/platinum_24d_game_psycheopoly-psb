@@ -26,7 +26,7 @@ signal ai_pay_bankruptcy()
 
 #Signals called by other classes
 signal ai_auction_turn(player_index: int)
-signal ai_trade_turn()
+signal ai_trade_turn(trade_offer: Dictionary)
 signal ai_doubles_jail()
 signal ai_bankruptcy(amount: int)
 signal ai_leaves_jail()
@@ -42,12 +42,17 @@ var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable p
 func _initialize_property_values(player: AiPlayerState) -> void:
 	for i in range(GameState.board.size()):
 		if GameState.board[i] is Ownable:
-			player.property_values.append(1.5 * GameState.board[i]._initial_price)
+			player.base_property_value_multipliers.append(1.5) # TODO: set this based on difficulty, with a bit of variance between different properties/sets
 		else:
-			player.property_values.append(0)
+			player.base_property_value_multipliers.append(0)
+		player.current_property_value_multipliers.append(player.base_property_value_multipliers[i])
 
 func _update_property_values(player: AiPlayerState) -> void:
-	pass
+	for i in range(GameState.board.size()):
+		if GameState.board[i] is Ownable:
+			player.current_property_value_multipliers[i] = player.base_property_value_multipliers[i] # TODO: change this to incorportate everything that might change a properties value
+		else:
+			player.current_property_value_multipliers[i] = 0
 	
 	
 	
@@ -75,9 +80,11 @@ func check_if_ai_turn(player_index) -> void:
 # Actions that should occur at the start of the AI player's turn
 func ai_turn_start() -> void:
 	print("AI Manager: AI turn start")
-	if (GameController.get_current_player().property_values.is_empty()):
+	if (GameController.get_current_player().base_property_value_multipliers.is_empty()):
 		_initialize_property_values(GameController.get_current_player())
-	
+	else:
+		_update_property_values(GameController.get_current_player())
+		
 	if GameController.get_current_player().is_in_jail:
 		ai_jail_decision()
 	if not (GameController.get_current_player().has_rolled):
@@ -321,6 +328,21 @@ func ai_auction_decision(player_index: int, highest_bid: int) -> void:
 		ai_auction_pass.emit()
 
 # AI should decide whether to accept or decline a trade here
-func ai_trade_decision() -> void:
-	#ai_trade_reject.emit()
-	ai_trade_accept.emit()
+func ai_trade_decision(trade_offer: Dictionary) -> void:
+	var player = trade_offer.get("target_player", -1)
+
+
+	var value_offered = trade_offer.get("offer_cash", 0)
+	var offered_spaces = trade_offer.get("offered_spaces", [])
+	for i in range(offered_spaces.size()):
+		value_offered += GameState.board[offered_spaces[i]]._initial_price * GameState.players[player].current_property_value_multipliers[offered_spaces[i]]
+		
+	var value_requested = trade_offer.get("request_cash", 0)
+	var requested_spaces = trade_offer.get("requested_spaces", [])
+	for i in range(requested_spaces.size()):
+		value_requested += GameState.board[requested_spaces[i]]._initial_price * GameState.players[player].current_property_value_multipliers[requested_spaces[i]]
+		
+	if (value_offered > value_requested):
+		ai_trade_accept.emit()
+	else:
+		ai_trade_reject.emit()
