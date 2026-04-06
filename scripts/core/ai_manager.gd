@@ -39,22 +39,73 @@ var validDowngrades: Array[int] = [] # holds the space numbers of downgradable p
 var validMortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 
-func _initialize_property_values(player: AiPlayerState) -> void:
+func _initialize_property_multipliers(player: AiPlayerState) -> void:
 	for i in range(GameState.board.size()):
 		if GameState.board[i] is Ownable:
-			player.base_property_value_multipliers.append(1.5) # TODO: set this based on difficulty, with a bit of variance between different properties/sets
+			player.base_property_value_multipliers.append(1.3 + 0.4 * randf()) # TODO: set this based on difficulty, with a bit of variance between different properties/sets
 		else:
 			player.base_property_value_multipliers.append(0)
 		player.current_property_value_multipliers.append(player.base_property_value_multipliers[i])
+		player.master_property_value_multiplier = 1
 
-func _update_property_values(player: AiPlayerState) -> void:
+	_update_property_multipliers(player)
+
+func _update_property_multipliers(player: AiPlayerState) -> void:
+	var totalOwnedSpaces = 0 # total number of spaces owned by players across the board
+	var AIOwnedSpaces = 0 # total number of spaces owned by the AI
+
 	for i in range(GameState.board.size()):
-		if GameState.board[i] is Ownable:
-			player.current_property_value_multipliers[i] = player.base_property_value_multipliers[i] # TODO: change this to incorportate everything that might change a properties value
-		else:
-			player.current_property_value_multipliers[i] = 0
+		var multiplier = 0
+		var space = GameState.board[i]
+		if space is Ownable:
+			if (space._is_owned):
+				totalOwnedSpaces += 1
+				if (space._player_owner == player.player_id):
+					AIOwnedSpaces += 1
+			multiplier = player.base_property_value_multipliers[i] 
+			if space is PropertySpace:
+				var propertySet = GameController._get_property_set(space)
+				var ownedPropertiesInSet = 0; # amount of properties owned by the AI
+				var otherPlayerOwnedProperties = 0 # properties in set owned by players other than the AI
+				for j in range(propertySet.size()):
+					if (propertySet[j].is_owned):
+						if(propertySet[j]._player_owner == player.player_id):
+							ownedPropertiesInSet += 1
+						else:
+							if (propertySet[j] != space): # Don't count the current space being owned against it
+								otherPlayerOwnedProperties += 1 
+				if (propertySet.size() == ownedPropertiesInSet):
+					multiplier *= 3
+				elif (propertySet.size() - ownedPropertiesInSet == 1):
+					multiplier *= 1.7
+				elif (propertySet.size() - ownedPropertiesInSet == 2 && propertySet.size() == 3):
+					multiplier *= 1.3
+				if (otherPlayerOwnedProperties == 1):
+					multiplier *= 0.9
+				elif (otherPlayerOwnedProperties == 2):
+					multiplier *= 0.8
+		player.current_property_value_multipliers[i] = multiplier
 	
+	var master_multiplier = 0.8
+	# update master multiplier
+	if (player.balance >= 500): # Ai is more likely to buy properties when it has a lot of money
+		master_multiplier += (player.balance - 500) / 2500.0
+
+	if (AIOwnedSpaces < totalOwnedSpaces / float(GameState.players.size())):
+		var difference = totalOwnedSpaces / float(GameState.players.size()) - AIOwnedSpaces
+		master_multiplier += difference / 10
 	
+	player.master_property_value_multiplier = master_multiplier
+	
+	for i in range(GameState.board.size()):
+		print(GameState.board[i]._space_name, ": ", _calculate_AI_property_value(player, i))
+	
+
+func _calculate_AI_property_value(player: AiPlayerState, space_num: int) -> float:
+	if (GameState.board[space_num] is Ownable):
+		return player.current_property_value_multipliers[space_num] * player.master_property_value_multiplier * GameState.board[space_num]._initial_price
+	else:
+		return 0
 	
 	
 func _ready() -> void:
@@ -81,9 +132,9 @@ func check_if_ai_turn(player_index) -> void:
 func ai_turn_start() -> void:
 	print("AI Manager: AI turn start")
 	if (GameController.get_current_player().base_property_value_multipliers.is_empty()):
-		_initialize_property_values(GameController.get_current_player())
+		_initialize_property_multipliers(GameController.get_current_player())
 	else:
-		_update_property_values(GameController.get_current_player())
+		_update_property_multipliers(GameController.get_current_player())
 		
 	if GameController.get_current_player().is_in_jail:
 		ai_jail_decision()
@@ -164,7 +215,8 @@ func ai_card_resolve(card_num: int) -> void:
 
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:
-	if (GameController.get_current_player().balance >= GameState.board[space_num]._initial_price):
+	var player = GameController.get_current_player()
+	if (player.balance >= GameState.board[space_num]._initial_price && _calculate_AI_property_value(player, space_num) >= GameState.board[space_num]._initial_price):
 		ai_purchase.emit(space_num)
 	else:
 		ai_auction_start.emit(space_num)
@@ -335,12 +387,12 @@ func ai_trade_decision(trade_offer: Dictionary) -> void:
 	var value_offered = trade_offer.get("offer_cash", 0)
 	var offered_spaces = trade_offer.get("offered_spaces", [])
 	for i in range(offered_spaces.size()):
-		value_offered += GameState.board[offered_spaces[i]]._initial_price * GameState.players[player].current_property_value_multipliers[offered_spaces[i]]
+		value_offered += _calculate_AI_property_value(GameState.players[player], offered_spaces[i])
 		
 	var value_requested = trade_offer.get("request_cash", 0)
 	var requested_spaces = trade_offer.get("requested_spaces", [])
 	for i in range(requested_spaces.size()):
-		value_requested += GameState.board[requested_spaces[i]]._initial_price * GameState.players[player].current_property_value_multipliers[requested_spaces[i]]
+		value_requested += _calculate_AI_property_value(GameState.players[player], requested_spaces[i])
 		
 	if (value_offered > value_requested):
 		ai_trade_accept.emit()

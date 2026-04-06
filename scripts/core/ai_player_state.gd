@@ -10,3 +10,6 @@ var current_property_value_multipliers: Array[float] # How much the AI "thinks" 
 
 var base_property_value_multipliers: Array[float] # Holds the base values for the property multipliers, 
 # Allos the AI to favor certian properties over the coarse of a game 
+
+
+var master_property_value_multiplier: float # holds a master value that affects how the AI sees every property at once

@@ -156,7 +156,7 @@ func _setup_players() -> void:
 			player.player_token_name = ai_token
 			player.player_is_ai = true
 			
-			AiManager._initialize_property_values(player)
+			AiManager._initialize_property_multipliers(player)
 
 			if not used_tokens.has(ai_token):
 				used_tokens.append(ai_token)
