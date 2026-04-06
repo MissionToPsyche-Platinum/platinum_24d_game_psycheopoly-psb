@@ -142,6 +142,12 @@ const EndGamePopupScene = preload("res://scenes/EndGamePopup.tscn")
 var end_game_popup: EndGamePopup = null
 var end_game_popup_layer: CanvasLayer = null
 
+#Game Rules popup
+const GameRulesPopupScene = preload("res://scenes/GameRulesPopup.tscn")
+
+var game_rules_popup: CanvasLayer = null
+var game_rules_popup_layer: CanvasLayer = null
+
 # Pending debt info while player is resolving bankruptcy
 var pending_debtor_index: int = -1
 var pending_creditor_index: int = -1
@@ -213,6 +219,9 @@ func _ready() -> void:
 	
 	#instantiae pause menu
 	_setup_pause_menu()
+	
+	#Instantiate game rules
+	_setup_game_rules_popup()
 	
 	#instantite settings menu
 	_setup_settings_menu()
@@ -1835,6 +1844,9 @@ func _setup_pause_menu() -> void:
 
 	if pause_menu.has_signal("quit_requested"):
 		pause_menu.quit_requested.connect(_on_pause_quit_requested)
+
+	if pause_menu.has_signal("how_to_play_requested"):
+		pause_menu.how_to_play_requested.connect(_on_pause_how_to_play_requested)
 		
 		
 func _on_pause_settings_requested() -> void:
@@ -1872,6 +1884,33 @@ func _on_settings_closed() -> void:
 	
 	if pause_menu and pause_menu.has_method("show_menu_only"):
 		pause_menu.show_menu_only()
+		
+func _setup_game_rules_popup() -> void:
+	game_rules_popup_layer = CanvasLayer.new()
+	game_rules_popup_layer.name = "GameRulesPopupLayer"
+	game_rules_popup_layer.layer = 550
+
+	game_rules_popup = GameRulesPopupScene.instantiate()
+	game_rules_popup.name = "GameRulesPopup"
+
+	game_rules_popup_layer.add_child(game_rules_popup)
+	get_tree().root.call_deferred("add_child", game_rules_popup_layer)
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.hide()
+
+	if game_rules_popup.has_signal("closed"):
+		game_rules_popup.closed.connect(_on_game_rules_closed)
+
+	print("Board: GameRulesPopup setup complete")
+	
+func _on_game_rules_closed() -> void:
+	print("Board: Game Rules closed")
+
+	_show_board_ui_after_rules()
+
+	if pause_menu and is_instance_valid(pause_menu):
+		pause_menu.show_menu_only()
 
 func _on_pause_quit_requested() -> void:
 	if pause_menu:
@@ -1879,6 +1918,17 @@ func _on_pause_quit_requested() -> void:
 
 	_cleanup_root_ui()
 	call_deferred("_go_to_start_menu")
+	
+func _on_pause_how_to_play_requested() -> void:
+	print("Board: How to Play requested")
+
+	_hide_board_ui_for_rules()
+
+	if pause_menu and is_instance_valid(pause_menu):
+		pause_menu.hide_menu_only()
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.show_popup()
 
 
 func _go_to_start_menu() -> void:
@@ -2282,3 +2332,49 @@ func _on_match_stats_back_requested() -> void:
 
 	if end_game_popup and is_instance_valid(end_game_popup):
 		end_game_popup.show()
+
+
+func _hide_board_ui_for_rules() -> void:
+	if space_info_panel and is_instance_valid(space_info_panel):
+		space_info_panel.hide()
+
+	if dice_roll_ui and is_instance_valid(dice_roll_ui):
+		dice_roll_ui.hide()
+
+	if money_hud and is_instance_valid(money_hud):
+		money_hud.hide()
+
+	if player_name_hud and is_instance_valid(player_name_hud):
+		player_name_hud.hide()
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.hide()
+
+	if end_turn_button and is_instance_valid(end_turn_button):
+		end_turn_button.hide()
+
+	if turn_log_panel and is_instance_valid(turn_log_panel):
+		turn_log_panel.hide()
+		
+
+func _show_board_ui_after_rules() -> void:
+	if space_info_panel and is_instance_valid(space_info_panel):
+		space_info_panel.show()
+
+	if dice_roll_ui and is_instance_valid(dice_roll_ui):
+		dice_roll_ui.show()
+
+	if money_hud and is_instance_valid(money_hud):
+		money_hud.show()
+
+	if player_name_hud and is_instance_valid(player_name_hud):
+		player_name_hud.show()
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.show()
+
+	if end_turn_button and is_instance_valid(end_turn_button):
+		end_turn_button.show()
+
+	if turn_log_panel and is_instance_valid(turn_log_panel):
+		turn_log_panel.show()

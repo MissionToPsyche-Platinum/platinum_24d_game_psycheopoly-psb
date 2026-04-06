@@ -82,6 +82,10 @@ text = "Resume Game"
 layout_mode = 2
 text = "Settings"
 
+[node name="HowToPlayBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "How To Play"
+
 [node name="QuitBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Quit"
