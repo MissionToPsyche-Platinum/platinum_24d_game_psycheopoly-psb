@@ -1,10 +1,12 @@
 extends Control
 
 signal quit_requested
+signal how_to_play_requested
 
-@onready var resume_btn: Button = $CenterBox/Menu/ResumeBtn
-@onready var settings_btn: Button = $CenterBox/Menu/SettingsBtn
-@onready var quit_btn: Button = $CenterBox/Menu/QuitBtn
+@onready var resume_btn: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ResumeBtn
+@onready var settings_btn: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SettingsBtn
+@onready var quit_btn: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/QuitBtn
+@onready var how_to_play_btn: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HowToPlayBtn
 
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 
@@ -15,6 +17,7 @@ var _is_paused: bool = false:
 
 
 func _ready() -> void:
+	print("PauseMenu READY V2")
 	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	hide()
@@ -25,11 +28,18 @@ func _ready() -> void:
 
 
 func _connect_signals() -> void:
+	print("PauseMenu: how_to_play_btn =", how_to_play_btn)
+
 	if resume_btn and not resume_btn.pressed.is_connected(_on_resume_btn_pressed):
 		resume_btn.pressed.connect(_on_resume_btn_pressed)
 
 	if settings_btn and not settings_btn.pressed.is_connected(_on_settings_btn_pressed):
 		settings_btn.pressed.connect(_on_settings_btn_pressed)
+
+	if how_to_play_btn:
+		print("PauseMenu: connecting How to Play button")
+		if not how_to_play_btn.pressed.is_connected(_on_how_to_play_btn_pressed):
+			how_to_play_btn.pressed.connect(_on_how_to_play_btn_pressed)
 
 	if quit_btn and not quit_btn.pressed.is_connected(_on_quit_btn_pressed):
 		quit_btn.pressed.connect(_on_quit_btn_pressed)
@@ -162,3 +172,7 @@ func _exit_tree() -> void:
 		settings_menu.queue_free()
 
 	settings_menu = null
+
+func _on_how_to_play_btn_pressed() -> void:
+	print("PauseMenu: How to Play pressed")
+	how_to_play_requested.emit()

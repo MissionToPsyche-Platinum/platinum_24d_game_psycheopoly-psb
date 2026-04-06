@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dvk64dvwn4wos" path="res://scripts/ui/credits_menu.gd" id="1_04pys"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_04pys"]
-bg_color = Color(0.09411765, 0.07450981, 0.12156863, 1)
+bg_color = Color(0.101960786, 0.101960786, 0.14901961, 0.98039216)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_18siu"]
 bg_color = Color(0.82808334, 0.34980312, 0.40466648, 1)
@@ -84,7 +84,7 @@ Development Team :
 
 - John Fugate : Developer , Backend Logic and AI
 
-- Giovanni Zarillo : Developer, Game logic and Mechanics
+- Giovanni Zarrillo : Developer, Game logic and Mechanics
 
 
 Project Inspiration & Sponsorship
