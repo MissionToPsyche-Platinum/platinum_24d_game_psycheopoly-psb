@@ -1,14 +1,19 @@
 extends Label
 
 @export var rise_pixels: float = 18.0
-@export var duration: float = 0.35
+@export var duration: float = 2.0
 @export var start_scale: float = 1.0
 @export var end_scale: float = 1.10
-@export var color_ok: Color = Color("#39e26f") 
+@export var color_ok: Color = Color("#39e26f")
+@export var color_negative: Color = Color("#ff5555")
 
 func play(value: int) -> void:
-	text = str(value)
-	modulate = color_ok
+	text = ("+" + str(value)) if value > 0 else str(value)
+	# Use red for negative, green for positive
+	if value < 0:
+		modulate = color_negative
+	else:
+		modulate = color_ok
 	scale = Vector2.ONE * start_scale
 
 	visible = true

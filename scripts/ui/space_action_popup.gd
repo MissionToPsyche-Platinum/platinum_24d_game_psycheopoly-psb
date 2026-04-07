@@ -141,8 +141,9 @@ func show_actions(space_num: int) -> void:
 				can_move = true
 		"reward":
 			description = "You have earned $%d." % space_info.get("amount", 0)
-			GameController.credit(current_action_player_index, space_info.get("amount", 0))
-			
+		"go":
+			description = "Collect $200!"
+
 	action_description.text = description
 	pay_button.text = "Pay $%d" % pay_amount if can_pay else "Pay"
 	purchase_button.visible = can_purchase
@@ -301,5 +302,10 @@ func _on_auction_pressed() -> void:
 
 
 func _on_close_pressed() -> void:
+	# Handle reward space credit on button press (not on popup show)
+	var space_info = SpaceData.get_space_info(current_space_num)
+	if space_info and space_info.type == "reward":
+		GameController.credit(current_action_player_index, space_info.get("amount", 0))
+
 	close_pressed.emit()
 	hide_popup()

@@ -334,7 +334,9 @@ func _ensure_player_match_stats(player_index: int) -> void:
 	if not match_stats.has(player_index):
 		match_stats[player_index] = {
 			"earnings": 0,
-			"properties_acquired": 0
+			"properties_acquired": 0,
+			"turns_taken": 0,
+			"times_in_jail": 0
 		}
 
 
@@ -364,6 +366,34 @@ func get_player_properties_acquired(player_index: int) -> int:
 	if not match_stats.has(player_index):
 		return 0
 	return int(match_stats[player_index].get("properties_acquired", 0))
+
+
+func increment_turns_taken(player_index: int, amount: int = 1) -> void:
+	if player_index < 0:
+		return
+
+	_ensure_player_match_stats(player_index)
+	match_stats[player_index]["turns_taken"] += amount
+
+
+func increment_times_in_jail(player_index: int, amount: int = 1) -> void:
+	if player_index < 0:
+		return
+
+	_ensure_player_match_stats(player_index)
+	match_stats[player_index]["times_in_jail"] += amount
+
+
+func get_player_turns_taken(player_index: int) -> int:
+	if not match_stats.has(player_index):
+		return 0
+	return int(match_stats[player_index].get("turns_taken", 0))
+
+
+func get_player_times_in_jail(player_index: int) -> int:
+	if not match_stats.has(player_index):
+		return 0
+	return int(match_stats[player_index].get("times_in_jail", 0))
 
 
 func get_match_duration_seconds() -> int:

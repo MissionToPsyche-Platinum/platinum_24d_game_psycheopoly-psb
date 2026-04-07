@@ -228,15 +228,23 @@ func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> 
 		and GameState.board[space_index] is Ownable \
 		and (GameState.board[space_index] as Ownable)._is_mortgaged
 
+	var has_upgrades := space_index < GameState.board.size() \
+		and GameState.board[space_index] is PropertySpace \
+		and (GameState.board[space_index] as PropertySpace)._current_upgrades > 0
+
 	var item_label := _build_space_label(space_index)
 	if is_mortgaged:
 		item_label += " [MORTGAGED]"
+	if has_upgrades:
+		item_label += " [HAS UPGRADES]"
 
 	tree_item.set_icon(PROPERTY_COLUMN, item_icon)
 	tree_item.set_text(PROPERTY_COLUMN, item_label)
 	if is_mortgaged:
 		tree_item.set_custom_color(PROPERTY_COLUMN, Color(0.9, 0.2, 0.2, 1))
-	tree_item.set_selectable(PROPERTY_COLUMN, true)
+	if has_upgrades:
+		tree_item.set_custom_color(PROPERTY_COLUMN, Color(0.9, 0.6, 0.2, 1))
+	tree_item.set_selectable(PROPERTY_COLUMN, not has_upgrades)
 	tree_item.set_metadata(PROPERTY_COLUMN, space_index)
 	tree_item.set_text(DETAILS_COLUMN, "...")
 	tree_item.set_selectable(DETAILS_COLUMN, false)

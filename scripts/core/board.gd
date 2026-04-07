@@ -130,6 +130,14 @@ const NotificationPopupScene = preload("res://scenes/NotificationPopup.tscn")
 var notification_popup: Control = null
 var notification_popup_layer: CanvasLayer = null
 
+const AiTurnBannerScene = preload("res://scenes/AiTurnBanner.tscn")
+var ai_turn_banner: Control = null
+
+const AiActionToastScene = preload("res://scenes/AiActionToast.tscn")
+var ai_action_toast: Control = null
+
+const FloatingNumberScene = preload("res://scenes/FloatingNumber.tscn")
+
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 var settings_menu: Control = null
 var settings_menu_layer: CanvasLayer = null
@@ -187,6 +195,8 @@ func _ready() -> void:
 		
 	if not GameController.transaction_logged.is_connected(_on_transaction_logged):
 		GameController.transaction_logged.connect(_on_transaction_logged)
+	if not GameController.player_money_changed.is_connected(_on_player_money_changed):
+		GameController.player_money_changed.connect(_on_player_money_changed)
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -238,7 +248,9 @@ func _ready() -> void:
 	call_deferred("_setup_bankruptcy_popup_async")
 	_setup_jail_popup()
 	_setup_notification_popup()
-	
+	_setup_ai_turn_banner()
+	_setup_ai_action_toast()
+
 	call_deferred("_setup_end_game_popup_async")
 	_setup_match_stats_popup()
 
@@ -258,6 +270,8 @@ func _ready() -> void:
 		GameController.bankruptcy_needed.connect(_on_bankruptcy_needed)
 	if not GameController.player_sent_to_jail.is_connected(_on_player_sent_to_jail):
 		GameController.player_sent_to_jail.connect(_on_player_sent_to_jail)
+
+	# AI action feedback is handled via transaction_logged (see _on_transaction_logged)
 
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
@@ -309,6 +323,24 @@ func _setup_notification_popup() -> void:
 	notification_popup = NotificationPopupScene.instantiate()
 	notification_popup_layer.add_child(notification_popup)
 	get_tree().root.call_deferred("add_child", notification_popup_layer)
+
+func _setup_ai_turn_banner() -> void:
+	var banner_layer = CanvasLayer.new()
+	banner_layer.name = "AiTurnBannerLayer"
+	banner_layer.layer = 15 # Above game board but below most popups
+
+	ai_turn_banner = AiTurnBannerScene.instantiate()
+	banner_layer.add_child(ai_turn_banner)
+	get_tree().root.call_deferred("add_child", banner_layer)
+
+func _setup_ai_action_toast() -> void:
+	var toast_layer = CanvasLayer.new()
+	toast_layer.name = "AiActionToastLayer"
+	toast_layer.layer = 50 # Below popups but above game
+
+	ai_action_toast = AiActionToastScene.instantiate()
+	toast_layer.add_child(ai_action_toast)
+	get_tree().root.call_deferred("add_child", toast_layer)
 	
 func _setup_end_game_popup() -> void:
 	# Prevent duplicate creation
@@ -590,8 +622,13 @@ func _on_turn_started(player_index: int) -> void:
 
 	if space_info_panel:
 		space_info_panel.update_space_display(current_piece.board_space)
-		
+
 	var current_player := GameController.get_current_player()
+
+	# Show AI turn banner for AI players
+	if current_player and current_player.player_is_ai and ai_turn_banner and ai_turn_banner.has_method("show_banner"):
+		ai_turn_banner.show_banner(current_player.player_name)
+
 	if current_player and current_player.is_in_jail:
 		current_player.has_rolled = true # Disable regular rolling temporarily
 		if jail_popup and jail_popup.has_method("show_for_player") and current_player.player_is_ai == false:
@@ -604,6 +641,10 @@ func _on_turn_ended(player_index: int) -> void:
 
 	var player_name := get_player_log_name(player_index)
 	log_event("%s ended their turn." % player_name)
+
+	# Hide AI turn banner
+	if ai_turn_banner and ai_turn_banner.has_method("hide_banner"):
+		ai_turn_banner.hide_banner()
 	
 
 
@@ -1241,6 +1282,9 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				# _on_player_sent_to_jail handles the notification and action_completed
 				if (current_player.player_is_ai == true):
 					AiManager.handle_doubles_jail()
+				else:
+					# For humans, end turn after going to jail
+					GameController.end_turn()
 				return
 		else:
 			current_player.doubles_count = 0
@@ -1783,8 +1827,16 @@ func _on_action_completed() -> void:
 		p.last_roll_was_doubles = false
 
 func _on_doubles_rolled() -> void:
-	if notification_popup && GameController.get_current_player().player_is_ai == false:
-		var current_player := GameController.get_current_player()
+	var current_player := GameController.get_current_player()
+	if current_player and current_player.player_is_ai:
+		if ai_action_toast and ai_action_toast.has_method("show_toast"):
+			if current_player.is_in_jail:
+				ai_action_toast.show_toast("Rolled doubles! Leaving the Launch Pad.")
+			else:
+				ai_action_toast.show_toast("Rolled doubles! Rolling again.")
+		return
+
+	if notification_popup:
 		if current_player and current_player.is_in_jail:
 			notification_popup.show_notification("Doubles!", "Go for Launch! Move forward.")
 		else:
@@ -1803,7 +1855,50 @@ func _on_colorblind_mode_changed(enabled: bool) -> void:
 	
 func _on_transaction_logged(message: String) -> void:
 	log_event(message)
-	
+
+	var current_player := GameController.get_current_player()
+
+	# Show special toast for passing GO
+	if "Passed GO" in message:
+		if ai_action_toast and ai_action_toast.has_method("show_toast"):
+			ai_action_toast.show_toast("Passed GO! Collect $200")
+	# Show AI action toast for other AI actions
+	elif current_player and current_player.player_is_ai and ai_action_toast and ai_action_toast.has_method("show_toast"):
+		ai_action_toast.show_toast(message)
+
+func _on_player_money_changed(player_index: int, delta: int) -> void:
+	# Only show floating numbers for the human player viewing the board
+	var current_player := GameController.get_current_player()
+	if not current_player:
+		return
+	if GameState.current_player_index != player_index:
+		return
+	if delta == 0:
+		return
+	_spawn_floating_number(delta)
+
+func _spawn_floating_number(amount: int) -> void:
+	if not money_hud or not is_instance_valid(money_hud):
+		return
+
+	var floating_num = FloatingNumberScene.instantiate()
+	floating_num.add_to_group("floating_money_numbers")
+	money_hud.add_child(floating_num)
+	floating_num.z_index = 100
+
+	# Stagger if other floating numbers are still alive
+	var existing := get_tree().get_nodes_in_group("floating_money_numbers").size() - 1
+	var stack_offset := Vector2(0, -18 * existing)
+
+	# Position to the right of the money panel
+	var panel := money_hud.get_node_or_null("Panel") as Control
+	if panel:
+		floating_num.position = Vector2(panel.position.x + panel.size.x + 8, panel.position.y + (panel.size.y - 24) * 0.5) + stack_offset
+	else:
+		floating_num.position = Vector2(120, -20) + stack_offset
+
+	if floating_num.has_method("play"):
+		floating_num.call("play", amount)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_pause"):
@@ -2270,10 +2365,13 @@ func _on_end_game_stats_requested() -> void:
 			var earnings := int(GameState.get_player_earnings(i))
 			var final_net_worth := int(GameState.get_player_final_net_worth(i))
 			var pre_bankruptcy_net_worth := int(p.net_worth_before_bankruptcy)
+			var turns_taken := int(GameState.get_player_turns_taken(i))
+			var times_in_jail := int(GameState.get_player_times_in_jail(i))
 
 			detail_lines.append("%s" % player_name)
 			detail_lines.append("Cash: $%d    Properties Owned: %d" % [cash, props])
 			detail_lines.append("Earnings: $%d    Final Net Worth: $%d" % [earnings, final_net_worth])
+			detail_lines.append("Turns Taken: %d    Times in Jail: %d" % [turns_taken, times_in_jail])
 
 			if pre_bankruptcy_net_worth >= 0:
 				detail_lines.append("Net Worth Before Bankruptcy: $%d" % pre_bankruptcy_net_worth)

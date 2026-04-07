@@ -321,6 +321,21 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 		trade_btn.pressed.connect(_on_trade_sell_pressed.bind(space_index))
 		hbox.add_child(trade_btn)
 
+	# Bankruptcy mode: Sell button for GOOJ cards
+	if show_trade_sell and asset_kind == "go_for_launch_card":
+		var sell_btn := Button.new()
+		sell_btn.text = "Sell"
+		sell_btn.custom_minimum_size = Vector2(50, 24)
+		sell_btn.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8-Bold.ttf"))
+		sell_btn.add_theme_font_size_override("font_size", 10)
+		sell_btn.flat = false
+		sell_btn.focus_mode = Control.FOCUS_NONE
+		sell_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		sell_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sell_btn.tooltip_text = "Sell for $50"
+		sell_btn.pressed.connect(_on_gooj_sell_pressed)
+		hbox.add_child(sell_btn)
+
 	# Mortgage/unmortgage button — only for ownable board properties
 	var is_player_turn := not _bankruptcy_mode and _current_player_index == GameState.current_player_index
 	if is_player_turn and asset_kind == "property" and prop.get("space", null) is Ownable:
@@ -373,6 +388,11 @@ func _create_property_item(prop: Dictionary, show_trade_sell: bool) -> HBoxConta
 
 func _on_trade_sell_pressed(space_index: int) -> void:
 	trade_sell_requested.emit(space_index)
+
+
+func _on_gooj_sell_pressed() -> void:
+	GameController.sell_gooj_card(_current_player_index)
+	_show_player_by_index(_current_player_index)
 
 
 func _get_type_display_name(type: String) -> String:

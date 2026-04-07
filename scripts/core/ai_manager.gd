@@ -120,13 +120,17 @@ func handle_doubles_jail():
 func ai_jail_decision():
 	print("AI Manager: AI makes jail decision")
 	var current_player = GameController.get_current_player()
-	
-	if (false):
+
+	# Attempt to roll for doubles if still early in jail (< 2 turns)
+	if current_player.turns_in_jail < 2:
 		ai_jail_roll.emit(GameState.current_player_index)
+		await get_tree().process_frame  # Let jail popup process before rolling
+		await _ai_pause("pre_roll")
+		ai_dice_roll.emit()  # Actually trigger the dice roll
 		await GameController.player_rolled
 		if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
 			ai_turn_mid()
-	elif (GameController.get_current_player().go_for_launch_cards > 0):
+	elif GameController.get_current_player().go_for_launch_cards > 0:
 		ai_jail_card.emit(GameState.current_player_index)
 	else:
 		ai_jail_pay.emit(GameState.current_player_index)
