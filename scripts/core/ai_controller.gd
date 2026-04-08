@@ -1,6 +1,6 @@
 extends Node
 
-const API_KEY = "AIzaSyBg-44QGHmuoL8s-tUWX9-HTSmyUj1jP0w"
+const API_KEY = "AIzaSyBg-44QGHmuoL8s-tUWX9-HTSmyUj1jP0w" # Intentionally not hidden since this is a client-side application and the key is restricted to only the Gemini API with free account limits in place.
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key="
 
 var http_request: HTTPRequest
@@ -43,6 +43,7 @@ func take_turn(game_state_dictionary: Dictionary):
 	# Extract difficulty from dictionary and remove it so it's not confusing in the JSON dump
 	var diff = game_state_dictionary.get("difficulty", "Normal")
 	var is_in_jail = game_state_dictionary.get("is_in_jail", false)
+	var amount_owed = game_state_dictionary.get("amount_owed_in_bankruptcy", 0)
 	
 	# 1. Format the current game state into a text prompt
 	var prompt_text = "You are an AI playing a Monopoly-like board game.\n"
@@ -58,7 +59,22 @@ func take_turn(game_state_dictionary: Dictionary):
 	prompt_text += JSON.stringify(game_state_dictionary, "\t")
 	prompt_text += '\nBased on this game state, choose the best action to take.\n'
 	
-	if is_in_jail and not game_state_dictionary.get("has_rolled_dice", false):
+	if amount_owed > 0:
+		prompt_text += 'RULES:\n'
+		prompt_text += '- You are facing bankruptcy. You owe: $' + str(amount_owed) + '\n'
+		prompt_text += '- Your current balance is $' + str(game_state_dictionary.get("balance", 0)) + '\n'
+		prompt_text += '- You MUST choose ONE of the following actions to resolve this debt:\n'
+		prompt_text += '  1. "mortgage_property" utilizing "valid_mortgages" list.\n'
+		prompt_text += '  2. "sell_upgrade" utilizing "valid_upgrades_to_sell" list.\n'
+		if game_state_dictionary.get("balance", 0) >= amount_owed:
+			prompt_text += '  3. "pay_debt" because you now have enough cash to satisfy the debt.\n'
+		prompt_text += '  4. "declare_bankruptcy" if you cannot mathematically raise enough cash or wish to surrender.\n'
+		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
+		prompt_text += '{"action": "mortgage_property", "args": {"space_index": <int>}}\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}}\nOR\n{"action": "declare_bankruptcy"}'
+		if game_state_dictionary.get("balance", 0) >= amount_owed:
+			prompt_text += '\nOR\n{"action": "pay_debt"}'
+		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
+	elif is_in_jail and not game_state_dictionary.get("has_rolled_dice", false):
 		prompt_text += 'RULES:\n'
 		prompt_text += '- You are currently in the Launch Pad (jail).\n'
 		prompt_text += '- You MUST choose ONE of the following actions to attempt escape:\n'
@@ -192,6 +208,26 @@ func execute_action(action_name: String, args: Dictionary):
 		"use_jail_card":
 			print("AiController: Executing action: use jail card")
 			AiManager.ai_jail_card.emit(GameState.current_player_index)
+
+		"mortgage_property":
+			var space_index = int(args.get("space_index", -1))
+			print("AiController: Executing action: mortgage property at space index ", space_index)
+			AiManager.ai_property_mortgage(space_index)
+			AiManager.continue_llm_bankruptcy()
+			
+		"sell_upgrade":
+			var space_index = int(args.get("space_index", -1))
+			print("AiController: Executing action: sell upgrade at space index ", space_index)
+			AiManager.ai_sells_upgrade(space_index)
+			AiManager.continue_llm_bankruptcy()
+			
+		"pay_debt":
+			print("AiController: Executing action: pay debt")
+			AiManager.ai_pay_bankruptcy.emit()
+			
+		"declare_bankruptcy":
+			print("AiController: Executing action: declare bankruptcy")
+			AiManager.ai_declare_bankruptcy.emit()
 
 		"buy_property":
 			var space_index = int(args.get("space_index", -1))

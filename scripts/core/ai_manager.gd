@@ -172,6 +172,7 @@ func _ready() -> void:
 # Fallback state vars
 var _fallback_state: String = ""
 var _last_space_num: int = -1
+var _bankruptcy_amount: int = 0
 
 func execute_fallback() -> void:
 	print("AiManager: LLM failed or disabled. Permanently falling back to decision tree from state: ", _fallback_state)
@@ -180,6 +181,8 @@ func execute_fallback() -> void:
 	GameState.use_llm_ai = false
 	
 	match _fallback_state:
+		"bankruptcy":
+			ai_bankruptcy_resolve(_bankruptcy_amount)
 		"jail":
 			ai_jail_decision()
 		"start":
@@ -215,10 +218,15 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		if bs is Ownable and bs.is_owned():
 			var owner_idx = bs.get_property_owner()
 			if all_owned_properties.has(owner_idx):
-				all_owned_properties[owner_idx].append({
+				var prop_data = {
 					"space_index": p_space_idx,
-					"name": bs._space_name
-				})
+					"name": bs._space_name,
+					"is_mortgaged": bs._is_mortgaged
+				}
+				if bs is PropertySpace:
+					prop_data["current_upgrades"] = bs._current_upgrades
+					
+				all_owned_properties[owner_idx].append(prop_data)
 
 	var opponents = []
 	for i in range(GameState.players.size()):
@@ -233,6 +241,8 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 				"owned_properties": all_owned_properties[i]
 			})
 
+	var owed = _bankruptcy_amount if _fallback_state == "bankruptcy" else 0
+
 	# Pass difficulty setting in the prompt
 	return {
 		"player_index": curr_player_idx,
@@ -244,6 +254,9 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		"is_in_jail": curr_player.is_in_jail,
 		"turns_in_jail": curr_player.turns_in_jail,
 		"jail_cards": curr_player.go_for_launch_cards,
+		"amount_owed_in_bankruptcy": owed,
+		"valid_mortgages": validMortgages,
+		"valid_upgrades_to_sell": validDowngrades,
 		"owned_properties": all_owned_properties[curr_player_idx],
 		"can_buy_property_here": can_buy,
 		"opponents": opponents
@@ -251,6 +264,7 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 
 func _run_llm_ai_turn() -> void:
 	_begin_ai_turn_context()
+	update_valid_mid_turn_targets()
 	var curr_player_idx = GameState.current_player_index
 	var state_dict = get_ai_game_state(curr_player_idx)
 	
@@ -459,6 +473,12 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 
 # AI should attempt to not go bankrupt through mortgaging properties and selling upgrades, make it do that here. 
 func ai_bankruptcy_resolve(amount: int) -> void:
+	if GameState.use_llm_ai:
+		_bankruptcy_amount = amount
+		_fallback_state = "bankruptcy"
+		_run_llm_ai_turn()
+		return
+		
 	var acting_ai := active_ai_player_index
 	if not _is_same_ai_turn(acting_ai):
 		return
@@ -489,7 +509,13 @@ func ai_bankruptcy_resolve(amount: int) -> void:
 		ai_pay_bankruptcy.emit()
 	else:
 		ai_declare_bankruptcy.emit()
-	
+
+func continue_llm_bankruptcy() -> void:
+	if GameState.use_llm_ai and _fallback_state == "bankruptcy":
+		# Ensure the board changes had time to propagate logically before polling the API again
+		await get_tree().create_timer(0.5).timeout
+		_run_llm_ai_turn()
+
 # Updates valid upgrades, downgrades, mortgages, and unmortgages
 func update_valid_mid_turn_targets() -> void:
 	validUpgrades = [] # holds the space numbers of upgradable properties
