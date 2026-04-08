@@ -1,6 +1,6 @@
 extends Node
 
-const API_KEY = "AIzaSyBg-44QGHmuoL8s-tUWX9-HTSmyUj1jP0w" # Intentionally not hidden since this is a client-side application and the key is restricted to only the Gemini API with free account limits in place.
+const API_KEY = "AIzaSyAcGj2-Kidc7I7ZQAkUhln7SC9zY_nyegg"
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key="
 
 var http_request: HTTPRequest
@@ -91,11 +91,20 @@ func take_turn(game_state_dictionary: Dictionary):
 	else:
 		prompt_text += 'RULES:\n'
 		prompt_text += '- If "can_buy_property_here" is true, you should consider "buy_property".\n'
+		prompt_text += '- You can also do ONE property management action per response if valid options exist in game state:\n'
+		prompt_text += '  - "upgrade_property" using "valid_upgrades"\n'
+		prompt_text += '  - "sell_upgrade" using "valid_upgrades_to_sell"\n'
+		prompt_text += '  - "mortgage_property" using "valid_mortgages"\n'
+		prompt_text += '  - "unmortgage_property" using "valid_unmortgages"\n'
 		prompt_text += '- You can optionally propose a trade to another player using "propose_trade".\n'
-		prompt_text += '- If you do not want to or cannot buy a property or trade, you MUST choose "end_turn".\n\n'
+		prompt_text += '- If you do not want to or cannot buy a property, trade, or do property management, you MUST choose "end_turn".\n\n'
 		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
 		prompt_text += '{"action": "buy_property", "args": {"space_index": <int>}}'
 		prompt_text += '\nOR\n{"action": "propose_trade", "args": {"target_player_index": <int>, "offer_cash": <int>, "request_cash": <int>, "offered_properties": [<int>], "requested_properties": [<int>]}}'
+		prompt_text += '\nOR\n{"action": "upgrade_property", "args": {"space_index": <int>}}'
+		prompt_text += '\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}}'
+		prompt_text += '\nOR\n{"action": "mortgage_property", "args": {"space_index": <int>}}'
+		prompt_text += '\nOR\n{"action": "unmortgage_property", "args": {"space_index": <int>}}'
 		prompt_text += '\nOR\n{"action": "end_turn"}'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	# 2. Construct the core content for the API request
@@ -142,6 +151,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	if error != OK:
 		print("AiController: Failed to parse JSON response")
 		if _is_evaluating_trade: _resolve_trade_fallback()
+		elif _is_evaluating_auction: _resolve_auction_fallback()
 		else: AiManager.execute_fallback()
 		return
 		
@@ -175,16 +185,29 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 									AiManager.ai_trade_accept.emit()
 								else:
 									AiManager.ai_trade_reject.emit()
+							elif _is_evaluating_auction:
+								_is_evaluating_auction = false
+								if function_name == "auction_bid":
+									var amount = int(args.get("amount", 0))
+									AiManager.ai_auction_bid.emit(amount)
+								else:
+									AiManager.ai_auction_pass.emit()
 							else:
 								call_deferred("execute_action", function_name, args)
 							return
 					else:
 						print("AiController: Failed to parse inner JSON from text block: ", raw_text)
-					
+
 	if _is_evaluating_trade: _resolve_trade_fallback()
+	elif _is_evaluating_auction: _resolve_auction_fallback()
 	else:
 		print("AiController: No valid action found in the response. Ending turn by default.")
 		AiManager.execute_fallback()
+
+func _resolve_auction_fallback():
+	_is_evaluating_auction = false
+	print("AiController: Failed to evaluate auction with LLM, passing by default.")
+	AiManager.ai_auction_pass.emit()
 
 func _resolve_trade_fallback():
 	_is_evaluating_trade = false
@@ -213,14 +236,32 @@ func execute_action(action_name: String, args: Dictionary):
 			var space_index = int(args.get("space_index", -1))
 			print("AiController: Executing action: mortgage property at space index ", space_index)
 			AiManager.ai_property_mortgage(space_index)
-			AiManager.continue_llm_bankruptcy()
-			
+			if AiManager._fallback_state == "bankruptcy":
+				AiManager.continue_llm_bankruptcy()
+			else:
+				call_deferred("_resume_ai_turn")
+
 		"sell_upgrade":
 			var space_index = int(args.get("space_index", -1))
 			print("AiController: Executing action: sell upgrade at space index ", space_index)
 			AiManager.ai_sells_upgrade(space_index)
-			AiManager.continue_llm_bankruptcy()
-			
+			if AiManager._fallback_state == "bankruptcy":
+				AiManager.continue_llm_bankruptcy()
+			else:
+				call_deferred("_resume_ai_turn")
+
+		"upgrade_property":
+			var space_index = int(args.get("space_index", -1))
+			print("AiController: Executing action: upgrade property at space index ", space_index)
+			AiManager.ai_property_upgrade(space_index)
+			call_deferred("_resume_ai_turn")
+
+		"unmortgage_property":
+			var space_index = int(args.get("space_index", -1))
+			print("AiController: Executing action: unmortgage property at space index ", space_index)
+			AiManager.ai_property_unmortgage(space_index)
+			call_deferred("_resume_ai_turn")
+
 		"pay_debt":
 			print("AiController: Executing action: pay debt")
 			AiManager.ai_pay_bankruptcy.emit()
@@ -283,7 +324,9 @@ func _resume_ai_turn() -> void:
 	AiManager.ai_turn_mid()
 
 var _is_evaluating_trade: bool = false
+var _is_evaluating_auction: bool = false
 var _pending_trade_offer: Dictionary = {}
+var _pending_auction_data: Dictionary = {}
 
 func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	_is_evaluating_trade = true
@@ -322,3 +365,43 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	if error != OK:
 		print("AiController: HTTP request error during trade evaluation: ", error)
 		_resolve_trade_fallback()
+
+func evaluate_auction(state_dict: Dictionary, auction_data: Dictionary):
+	_is_evaluating_auction = true
+	_pending_auction_data = auction_data
+	print("AiController: Evaluating auction...")
+
+	# Rate limiter pacing
+	var current_time = Time.get_ticks_msec()
+	var elapsed = current_time - _last_request_time
+
+	if _last_request_time > 0 and elapsed < MIN_REQUEST_INTERVAL_MSEC:
+		var wait_time = (MIN_REQUEST_INTERVAL_MSEC - elapsed) / 1000.0
+		print("AiController: Pacing API requests (free tier limits). Waiting ", "%.2f" % wait_time, " seconds...")
+		await get_tree().create_timer(wait_time).timeout
+
+	# Recalculate
+	current_time = Time.get_ticks_msec()
+	_last_request_time = current_time
+
+	var prompt_text = "You are playing a Monopoly-style board game and are participating in an auction.\n"
+	prompt_text += "You are playing as " + str(state_dict.get("player_name", "AI")) + " (Player ID: " + str(state_dict.get("player_index", -1)) + ").\n"
+	prompt_text += "Here is the current game state:\n"
+	prompt_text += JSON.stringify(state_dict, "\t")
+	prompt_text += "\nAuction details:\n"
+	prompt_text += JSON.stringify(auction_data, "\t")
+	prompt_text += "\nDo you want to bid on this property or pass? Your bid MUST be strictly greater than highest_bid and less than or equal to your current balance.\n"
+	prompt_text += "If you do not want to bid, or cannot afford to bid higher than highest_bid, choose pass.\n"
+	prompt_text += "You MUST output ONLY raw JSON formatted exactly like this:\n"
+	prompt_text += '{"action": "auction_bid", "args": {"amount": <integer_amount>}}\nOR\n{"action": "auction_pass"}\n'
+	prompt_text += 'Do not include any explanation or markdown formatting.\n'
+
+	var contents = [{"role": "user", "parts": [{"text": prompt_text}]}]
+	var body = {"contents": contents}
+	var json_body = JSON.stringify(body)
+	var headers = ["Content-Type: application/json"]
+
+	var error = http_request.request(API_URL + API_KEY, headers, HTTPClient.METHOD_POST, json_body)
+	if error != OK:
+		print("AiController: HTTP request error during auction evaluation: ", error)
+		_resolve_auction_fallback()

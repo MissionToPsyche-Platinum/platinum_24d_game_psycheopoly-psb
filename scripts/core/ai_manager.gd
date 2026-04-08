@@ -9,7 +9,7 @@ signal ai_move(space_num: int)
 signal ai_purchase(space_num: int)
 
 signal ai_auction_pass()
-signal ai_auction_bid(amount: int, highest_bid: int)
+signal ai_auction_bid(amount: int)
 
 signal ai_trade_reject()
 signal ai_trade_accept()
@@ -255,8 +255,10 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		"turns_in_jail": curr_player.turns_in_jail,
 		"jail_cards": curr_player.go_for_launch_cards,
 		"amount_owed_in_bankruptcy": owed,
-		"valid_mortgages": validMortgages,
+		"valid_upgrades": validUpgrades,
 		"valid_upgrades_to_sell": validDowngrades,
+		"valid_mortgages": validMortgages,
+		"valid_unmortgages": validUnmortgages,
 		"owned_properties": all_owned_properties[curr_player_idx],
 		"can_buy_property_here": can_buy,
 		"opponents": opponents
@@ -718,6 +720,19 @@ func ai_turn_end() -> void:
 
 # AI should decide how much to bid on an auction here
 func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) -> void:
+	if GameState.use_llm_ai:
+		if _llm_ai_controller:
+			var state_dict = get_ai_game_state(player_index)
+			var space = GameState.board[space_num]
+			var auction_data = {
+				"highest_bid": highest_bid,
+				"space_index": space_num,
+				"property_name": space._space_name,
+				"initial_price": space._initial_price if space is Ownable else 0
+			}
+			_llm_ai_controller.evaluate_auction(state_dict, auction_data)
+			return
+
 	await _ai_pause("before_trade")
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
