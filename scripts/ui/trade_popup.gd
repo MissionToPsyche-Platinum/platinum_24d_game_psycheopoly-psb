@@ -469,7 +469,7 @@ func _on_submit(trade_offer: Dictionary) -> void:
 
 	_set_review_mode(_summarize_trade_offer(trade_offer))
 	if (GameState.players[(int(trade_offer.get("target_player", -1)))].player_is_ai):
-		AiManager.ai_trade_decision()
+		AiManager.ai_trade_decision(trade_offer)
 
 func _on_cancel_pressed() -> void:
 	hide_popup()

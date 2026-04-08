@@ -25,8 +25,8 @@ signal ai_declare_bankruptcy()
 signal ai_pay_bankruptcy()
 
 #Signals called by other classes
-signal ai_auction_turn(player_index: int)
-signal ai_trade_turn()
+signal ai_auction_turn(player_index: int, highest_bid: int, space_num: int)
+signal ai_trade_turn(trade_offer: Dictionary)
 signal ai_doubles_jail()
 signal ai_bankruptcy(amount: int)
 signal ai_leaves_jail()
@@ -39,6 +39,83 @@ var validDowngrades: Array[int] = [] # holds the space numbers of downgradable p
 var validMortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 
+func _initialize_property_multipliers(player: AiPlayerState) -> void:
+	for i in range(GameState.board.size()):
+		if GameState.board[i] is Ownable:
+			player.base_property_value_multipliers.append(1.1 + 0.4 * randf()) # TODO: set this based on difficulty, with a bit of variance between different properties/sets
+		else:
+			player.base_property_value_multipliers.append(0)
+		player.current_property_value_multipliers.append(player.base_property_value_multipliers[i])
+		player.master_property_value_multiplier = 1.2
+
+
+func _update_property_multipliers(player: AiPlayerState) -> void:
+	var totalOwnedSpaces = 0 # total number of spaces owned by players across the board
+	var AIOwnedSpaces = 0 # total number of spaces owned by the AI
+	var upgradableSpaces = 0 # total number of spaces able to be upgraded by the AI
+
+	for i in range(GameState.board.size()):
+		var multiplier = 0
+		var space = GameState.board[i]
+		if space is Ownable:
+			multiplier = player.base_property_value_multipliers[i] 
+			if (space._is_owned):
+				totalOwnedSpaces += 1
+				if (space._player_owner == player.player_id):
+					AIOwnedSpaces += 1
+					multiplier *= 1.2 # Ai values holding on to spaces it already has
+
+			if space is PropertySpace:
+				if (GameController._check_if_upgrade_is_valid(space, player.player_id)):
+					upgradableSpaces += 1
+				var propertySet = GameController._get_property_set(space)
+				var ownedPropertiesInSet = 0; # amount of properties owned by the AI
+				var otherPlayerOwnedProperties = 0 # properties in set owned by players other than the AI
+				for j in range(propertySet.size()):
+					if (propertySet[j].is_owned):
+						if(propertySet[j]._player_owner == player.player_id):
+							ownedPropertiesInSet += 1
+						else:
+							if (propertySet[j] != space): # Don't count the current space being owned against it
+								otherPlayerOwnedProperties += 1 
+				if (propertySet.size() == ownedPropertiesInSet):
+					multiplier *= 4
+				elif (propertySet.size() - ownedPropertiesInSet == 1):
+					multiplier *= 1.7
+				elif (propertySet.size() - ownedPropertiesInSet == 2 && propertySet.size() == 3):
+					multiplier *= 1.3
+				if (otherPlayerOwnedProperties == 1):
+					multiplier *= 0.8
+				elif (otherPlayerOwnedProperties == 2):
+					multiplier *= 0.6
+		player.current_property_value_multipliers[i] = multiplier
+	
+	var master_multiplier = 0.8
+	# update master multiplier
+	if (player.balance >= 500): # Ai is more likely to buy properties when it has a lot of money
+		master_multiplier += (player.balance - 500) / 2500.0
+
+	if (AIOwnedSpaces < totalOwnedSpaces / float(GameState.players.size())):
+		var difference = totalOwnedSpaces / float(GameState.players.size()) - AIOwnedSpaces
+		master_multiplier += difference / 10
+	
+	# If AI has any spaces that can be upgraded, then AI should propritize upgrading them
+	if (upgradableSpaces > 0):
+		master_multiplier *= 0.5
+	
+	player.master_property_value_multiplier = master_multiplier
+	
+	#for i in range(GameState.board.size()):
+	#	print(GameState.board[i]._space_name, ": ", _calculate_AI_property_value(player, i))
+	
+
+func _calculate_AI_property_value(player: AiPlayerState, space_num: int) -> float:
+	if (GameState.board[space_num] is Ownable):
+		return player.current_property_value_multipliers[space_num] * player.master_property_value_multiplier * GameState.board[space_num]._initial_price
+	else:
+		return 0
+	
+	
 var active_ai_player_index: int = -1
 
 #Right now visibly the AI is just going light speed on board
@@ -97,6 +174,11 @@ func ai_turn_start() -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
+	if (GameController.get_current_player().base_property_value_multipliers.is_empty()):
+		_initialize_property_multipliers(GameController.get_current_player())
+	else:
+		_update_property_multipliers(GameController.get_current_player())
+		
 	if GameController.get_current_player().is_in_jail:
 		ai_jail_decision()
 		return
@@ -227,7 +309,8 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
-	if GameController.get_current_player().balance >= GameState.board[space_num]._initial_price:
+	var player = GameController.get_current_player()
+	if (player.balance >= GameState.board[space_num]._initial_price && _calculate_AI_property_value(player, space_num) >= GameState.board[space_num]._initial_price):
 		ai_purchase.emit(space_num)
 	else:
 		await _ai_pause("before_trade")
@@ -304,7 +387,14 @@ func ai_turn_mid() -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
-	ai_create_trade_offer()
+	var player = GameController.get_current_player()
+	if (player.master_property_value_multiplier > 1 && player.master_property_value_multiplier - randf() * 0.5 > 1):
+		ai_create_trade_offer(true)
+	elif(player.master_property_value_multiplier < 1 && player.master_property_value_multiplier - randf() * 1.5 < 0):
+		ai_create_trade_offer(false)
+	else:
+		ai_turn_post_trade()
+
 
 # Forces the AI to wait until its trade offer is complete before resuming
 func check_trade_completion() -> void:
@@ -338,14 +428,14 @@ func ai_turn_post_trade() -> void:
 			if validUpgrades.size() > 0:
 				var randInt = randi_range(0, validUpgrades.size() - 1)
 				ai_property_upgrade(validUpgrades[randInt])
-		elif randFloat > 0.3:
-			if validDowngrades.size() > 0:
-				var randInt = randi_range(0, validDowngrades.size() - 1)
-				ai_sells_upgrade(validDowngrades[randInt])
-		elif randFloat > 0.15:
-			if validMortgages.size() > 0:
-				var randInt = randi_range(0, validMortgages.size() - 1)
-				ai_property_mortgage(validMortgages[randInt])
+		#elif (randFloat > 0.3):
+		#	if (validDowngrades.size() > 0):
+		#		var randInt = randi_range(0, validDowngrades.size() - 1)
+		#		ai_sells_upgrade(validDowngrades[randInt])
+		#elif (randFloat > 0.4):
+		#	if (validMortgages.size() > 0):
+		#		var randInt = randi_range(0, validMortgages.size() - 1)
+		#		ai_property_mortgage(validMortgages[randInt])
 		else:
 			if validUnmortgages.size() > 0:
 				var randInt = randi_range(0, validUnmortgages.size() - 1)
@@ -359,46 +449,80 @@ func ai_turn_post_trade() -> void:
 
 	ai_turn_end()
 
+# sorts the properties from highest multiplier -> lowest
+func _sort_by_multiplier(a: int, b: int) -> bool:
+	var current_player = GameController.get_current_player()
+	if (current_player.current_property_value_multipliers[a] > current_player.current_property_value_multipliers[b]):
+		return true
+	return false
+	
+
+
 # AI should decide what to trade here
-func ai_create_trade_offer() -> void:
+func ai_create_trade_offer(buying: bool) -> void:
 	var current_player := active_ai_player_index
 	if not _is_same_ai_turn(current_player):
 		return
+	
+	var offeringProperties: Array[int] = []
+	var receivingProperties: Array[int] = []
+	var offeringCash = 0
+	var receivingCash = 0
 
 	# Generate a random target player to trade with
 	var target_player = randi_range(0, GameState.players.size() - 2)
 	if target_player >= current_player:
 		target_player += 1
+		
+	var receivablePropeties: Array[int] = []
+	if buying:
+		for i in range(GameState.players.size()):
+			if i != current_player:
+				receivablePropeties.append_array(GameController.get_tradeable_space_indexes(i))
+		receivablePropeties.sort_custom(_sort_by_multiplier)
 
-	var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
-	var receivablePropeties: Array[int] = GameController.get_tradeable_space_indexes(target_player)
+		if receivablePropeties.size() > 0:
+			receivingProperties.append(receivablePropeties[0])
+			target_player = GameState.board[receivingProperties[0]]._player_owner
 
-	var offeringProperties: Array[int] = []
-	var receivingProperties: Array[int] = []
+			var maxOffer = min(
+				GameController.get_current_player().balance,
+				_calculate_AI_property_value(GameState.players[current_player], receivingProperties[0])
+			)
+			offeringCash = randi_range(maxOffer / 2, maxOffer)
+	else:
+		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
+		offerablePropeties.sort_custom(_sort_by_multiplier)
 
-	if offerablePropeties.size() > 0:
-		offerablePropeties.shuffle()
-		for i in range(randi_range(0, offerablePropeties.size() - 1)):
-			offeringProperties.append(offerablePropeties[i])
+		if offerablePropeties.size() > 0:
+			offeringProperties.append(offerablePropeties[offerablePropeties.size() - 1])
 
-	if receivablePropeties.size() > 0:
-		receivablePropeties.shuffle()
-		for i in range(randi_range(0, receivablePropeties.size() - 1)):
-			receivingProperties.append(receivablePropeties[i])
+			var propertyValue = _calculate_AI_property_value(GameState.players[current_player], offeringProperties[0])
+			if propertyValue < GameState.players[target_player].balance:
+				receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
+			else:
+				receivingCash = GameState.players[target_player].balance
+			
+	if offeringProperties.size() > 0 or receivingProperties.size() > 0:
+		if not _is_same_ai_turn(current_player):
+			return
 
-	var offeringCash = randi_range(0, GameState.players[current_player].balance)
-	var receivingCash = randi_range(0, GameState.players[target_player].balance)
+		# Give the AI action toast time to finish before the trade popup is requested
+		await get_tree().create_timer(2.9, true).timeout
 
-	if not _is_same_ai_turn(current_player):
-		return
+		if not _is_same_ai_turn(current_player):
+			return
 
-	# Give the AI action toast time to finish before the trade popup is requested
-	await get_tree().create_timer(2.9, true).timeout
-
-	if not _is_same_ai_turn(current_player):
-		return
-
-	ai_trade_create.emit(current_player, target_player, offeringCash, receivingCash, offeringProperties, receivingProperties)
+		ai_trade_create.emit(
+			current_player,
+			target_player,
+			offeringCash,
+			receivingCash,
+			offeringProperties,
+			receivingProperties
+		) # only create offer if AI is trading a property
+	else:
+		ai_turn_post_trade()
 
 
 func ai_property_upgrade(space_num: int) -> void:
@@ -451,7 +575,7 @@ func ai_turn_end() -> void:
 		ai_turn_start()
 
 # AI should decide how much to bid on an auction here
-func ai_auction_decision(player_index: int, highest_bid: int) -> void:
+func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) -> void:
 	await _ai_pause("before_trade")
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
@@ -460,28 +584,35 @@ func ai_auction_decision(player_index: int, highest_bid: int) -> void:
 	if not GameState.players[player_index].player_is_ai:
 		return
 
-	var decision
-	if (GameState.players[player_index].balance - highest_bid >= 50):
-		decision = randf()
-	elif (GameState.players[player_index].balance - highest_bid >= 10):
-		decision = randf() / 1.34
-	elif (GameState.players[player_index].balance - highest_bid >= 1):
-		decision = randf() / 2
-	else:
-		decision = 0
-		
-	if (decision > 0.75):
+	var player = GameState.players[player_index]
+	var value = _calculate_AI_property_value(player, space_num)
+	if (player.balance > highest_bid + 50 && value > highest_bid + 50):
 		ai_auction_bid.emit(50)
-	elif (decision > 0.5):
+	elif (player.balance > highest_bid + 10 && value > highest_bid + 10):
 		ai_auction_bid.emit(10)
-	elif (decision > 0.25):
+	elif (player.balance > highest_bid + 1 && value > highest_bid + 1):
 		ai_auction_bid.emit(1)
 	else:
 		ai_auction_pass.emit()
 # AI should decide whether to accept or decline a trade here
-func ai_trade_decision() -> void:
-	#ai_trade_reject.emit()
-	ai_trade_accept.emit()
+func ai_trade_decision(trade_offer: Dictionary) -> void:
+	var player = trade_offer.get("target_player", -1)
+
+
+	var value_offered = trade_offer.get("offer_cash", 0)
+	var offered_spaces = trade_offer.get("offered_spaces", [])
+	for i in range(offered_spaces.size()):
+		value_offered += _calculate_AI_property_value(GameState.players[player], offered_spaces[i])
+		
+	var value_requested = trade_offer.get("request_cash", 0)
+	var requested_spaces = trade_offer.get("requested_spaces", [])
+	for i in range(requested_spaces.size()):
+		value_requested += _calculate_AI_property_value(GameState.players[player], requested_spaces[i])
+		
+	if (value_offered > value_requested):
+		ai_trade_accept.emit()
+	else:
+		ai_trade_reject.emit()
 	
 
 func _begin_ai_turn_context() -> int:
