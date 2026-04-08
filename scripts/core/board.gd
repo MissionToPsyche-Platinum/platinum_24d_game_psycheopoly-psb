@@ -527,6 +527,12 @@ func _finish_setup_auction_popup() -> void:
 	if not AuctionMgr.auction_ended.is_connected(_on_auction_ended):
 		AuctionMgr.auction_ended.connect(_on_auction_ended)
 
+	# AI auction actions should bypass popup button signals/human input guards.
+	if not AiManager.ai_auction_bid.is_connected(_on_ai_auction_bid_requested):
+		AiManager.ai_auction_bid.connect(_on_ai_auction_bid_requested)
+	if not AiManager.ai_auction_pass.is_connected(_on_ai_auction_pass_requested):
+		AiManager.ai_auction_pass.connect(_on_ai_auction_pass_requested)
+
 
 func _setup_bankruptcy_popup() -> void:
 	var existing := get_tree().root.find_child("BankruptcyPopup", true, false) as BankruptcyPopup
@@ -1083,11 +1089,30 @@ func _on_auction_pass_requested() -> void:
 	AuctionMgr.pass_turn()
 
 
+func _on_ai_auction_bid_requested(amount: int) -> void:
+	if not _is_ai_auction_turn():
+		return
+	AuctionMgr.submit_increment(amount)
+
+
+func _on_ai_auction_pass_requested() -> void:
+	if not _is_ai_auction_turn():
+		return
+	AuctionMgr.pass_turn()
+
+
 func _is_human_auction_turn() -> bool:
 	var bidder_index := AuctionMgr.get_current_player_index()
 	if bidder_index < 0 or bidder_index >= GameState.players.size():
 		return false
 	return not GameState.players[bidder_index].player_is_ai
+
+
+func _is_ai_auction_turn() -> bool:
+	var bidder_index := AuctionMgr.get_current_player_index()
+	if bidder_index < 0 or bidder_index >= GameState.players.size():
+		return false
+	return GameState.players[bidder_index].player_is_ai
 
 
 func _on_property_details_closed() -> void:

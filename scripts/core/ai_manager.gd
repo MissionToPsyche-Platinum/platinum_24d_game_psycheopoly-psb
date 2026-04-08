@@ -34,6 +34,9 @@ signal ai_leaves_jail()
 var ai_is_mid_turn = false
 var rng
 
+var _auction_target_space_num: int = -1
+var _auction_max_bid_by_player: Dictionary = {}
+
 var validUpgrades: Array[int] = [] # holds the space numbers of upgradable properties
 var validDowngrades: Array[int] = [] # holds the space numbers of downgradable properties
 var validMortgages: Array[int] = [] # holds the space numbers of mortgagable properties
@@ -167,6 +170,8 @@ func _ready() -> void:
 	
 	GameController.trade_finished.connect(check_trade_completion)
 	ai_leaves_jail.connect(ai_turn_start)
+	if not AuctionMgr.auction_ended.is_connected(_on_auction_ended_reset_targets):
+		AuctionMgr.auction_ended.connect(_on_auction_ended_reset_targets)
 
 # Emits the ai turn start signal if the next player is AI 
 # Fallback state vars
@@ -219,8 +224,290 @@ func _get_recent_previous_turn_events(max_entries: int = 8) -> Array[String]:
 
 	return []
 
+
+func _on_auction_ended_reset_targets(_winner_index: int, _winning_bid: int, _space_num: int, _property_ref) -> void:
+	_auction_target_space_num = -1
+	_auction_max_bid_by_player.clear()
+
+
+func _ensure_ai_valuation_model(player: AiPlayerState) -> void:
+	if player.base_property_value_multipliers.is_empty():
+		_initialize_property_multipliers(player)
+	else:
+		_update_property_multipliers(player)
+
+
+func _get_monopoly_equivalent(space) -> String:
+	if space is PropertySpace:
+		return "color_group"
+	if space is InstrumentSpace:
+		return "railroad_like"
+	if space is PlanetSpace:
+		return "utility_like"
+	if space is Ownable:
+		return "ownable"
+	return "none"
+
+
+func _get_property_group_members(space_num: int, space) -> Array[int]:
+	var members: Array[int] = []
+	if space is PropertySpace:
+		var property_set = GameController._get_property_set(space)
+		for set_space in property_set:
+			for i in range(GameState.board.size()):
+				if GameState.board[i] == set_space:
+					members.append(i)
+					break
+		return members
+
+	if space is InstrumentSpace:
+		for i in range(GameState.board.size()):
+			if GameState.board[i] is InstrumentSpace:
+				members.append(i)
+		return members
+
+	if space is PlanetSpace:
+		for i in range(GameState.board.size()):
+			if GameState.board[i] is PlanetSpace:
+				members.append(i)
+		return members
+
+	if space is Ownable:
+		members.append(space_num)
+
+	return members
+
+
+func _get_property_group_name(space) -> String:
+	if space is PropertySpace:
+		return str(space._property_set)
+	if space is InstrumentSpace:
+		return "Instruments"
+	if space is PlanetSpace:
+		return "Planets"
+	if space is Ownable:
+		return "Ownables"
+	return "None"
+
+
+func _get_board_price(space_num: int) -> int:
+	if space_num < 0 or space_num >= GameState.board.size():
+		return 0
+	var space = GameState.board[space_num]
+	if space is Ownable:
+		return int(space._initial_price)
+	return 0
+
+
+func _get_ai_estimated_value(ai_player_idx: int, space_num: int) -> int:
+	if ai_player_idx < 0 or ai_player_idx >= GameState.players.size():
+		return 0
+	if space_num < 0 or space_num >= GameState.board.size():
+		return 0
+	if not (GameState.board[space_num] is Ownable):
+		return 0
+
+	var player = GameState.players[ai_player_idx]
+	if player.current_property_value_multipliers.size() <= space_num:
+		_ensure_ai_valuation_model(player)
+
+	if player.current_property_value_multipliers.size() <= space_num:
+		return _get_board_price(space_num)
+
+	return int(round(_calculate_AI_property_value(player, space_num)))
+
+
+func _build_property_context(space_num: int, ai_player_idx: int) -> Dictionary:
+	if space_num < 0 or space_num >= GameState.board.size():
+		return {
+			"space_index": space_num,
+			"asset_type": "special",
+			"name": "Unknown",
+			"board_price": 0,
+			"ai_estimated_value": 0,
+			"monopoly_equivalent": "none",
+			"group_name": "None",
+			"group_member_space_indexes": []
+		}
+
+	var space = GameState.board[space_num]
+	if not (space is Ownable):
+		return {
+			"space_index": space_num,
+			"asset_type": "non_ownable",
+			"name": space._space_name,
+			"board_price": 0,
+			"ai_estimated_value": 0,
+			"monopoly_equivalent": "none",
+			"group_name": "None",
+			"group_member_space_indexes": []
+		}
+
+	var members = _get_property_group_members(space_num, space)
+	var data = {
+		"space_index": space_num,
+		"asset_type": "property",
+		"name": space._space_name,
+		"is_mortgaged": space._is_mortgaged,
+		"is_owned": space._is_owned,
+		"owner_index": space._player_owner,
+		"board_price": _get_board_price(space_num),
+		"ai_estimated_value": _get_ai_estimated_value(ai_player_idx, space_num),
+		"monopoly_equivalent": _get_monopoly_equivalent(space),
+		"group_name": _get_property_group_name(space),
+		"group_member_space_indexes": members,
+		"group_size": members.size()
+	}
+
+	if space is PropertySpace:
+		data["current_upgrades"] = space._current_upgrades
+
+	return data
+
+
+func _build_trade_offer_context(trade_offer: Dictionary, ai_player_idx: int) -> Dictionary:
+	var offer_data = trade_offer.duplicate(true)
+	var offered_spaces = offer_data.get("offered_spaces", [])
+	var requested_spaces = offer_data.get("requested_spaces", [])
+
+	var offered_property_details: Array = []
+	var requested_property_details: Array = []
+	var offered_board_total := int(offer_data.get("offer_cash", 0))
+	var requested_board_total := int(offer_data.get("request_cash", 0))
+	var offered_estimated_total := offered_board_total
+	var requested_estimated_total := requested_board_total
+
+	for raw_space_idx in offered_spaces:
+		var space_idx := int(raw_space_idx)
+		if space_idx < 0:
+			offered_property_details.append({
+				"space_index": space_idx,
+				"asset_type": "special",
+				"name": "Go For Launch Card",
+				"board_price": 50,
+				"ai_estimated_value": 60,
+				"monopoly_equivalent": "none",
+				"group_name": "Cards",
+				"group_member_space_indexes": []
+			})
+			offered_board_total += 50
+			offered_estimated_total += 60
+		else:
+			var prop_data = _build_property_context(space_idx, ai_player_idx)
+			offered_property_details.append(prop_data)
+			offered_board_total += int(prop_data.get("board_price", 0))
+			offered_estimated_total += int(prop_data.get("ai_estimated_value", 0))
+
+	for raw_space_idx in requested_spaces:
+		var space_idx := int(raw_space_idx)
+		if space_idx < 0:
+			requested_property_details.append({
+				"space_index": space_idx,
+				"asset_type": "special",
+				"name": "Go For Launch Card",
+				"board_price": 50,
+				"ai_estimated_value": 60,
+				"monopoly_equivalent": "none",
+				"group_name": "Cards",
+				"group_member_space_indexes": []
+			})
+			requested_board_total += 50
+			requested_estimated_total += 60
+		else:
+			var prop_data = _build_property_context(space_idx, ai_player_idx)
+			requested_property_details.append(prop_data)
+			requested_board_total += int(prop_data.get("board_price", 0))
+			requested_estimated_total += int(prop_data.get("ai_estimated_value", 0))
+
+	offer_data["offered_property_details"] = offered_property_details
+	offer_data["requested_property_details"] = requested_property_details
+	offer_data["offered_total_board_value"] = offered_board_total
+	offer_data["requested_total_board_value"] = requested_board_total
+	offer_data["offered_total_ai_estimated_value"] = offered_estimated_total
+	offer_data["requested_total_ai_estimated_value"] = requested_estimated_total
+
+	return offer_data
+
+
+func _get_auction_pressure_bonus(player_index: int, space_num: int) -> int:
+	if space_num < 0 or space_num >= GameState.board.size():
+		return 0
+
+	var space = GameState.board[space_num]
+	if not (space is Ownable):
+		return 0
+
+	var members = _get_property_group_members(space_num, space)
+	if members.size() <= 1:
+		return 0
+
+	var ai_owned := 0
+	var top_other_owned := 0
+	var owner_counts: Dictionary = {}
+
+	for idx in members:
+		var mspace = GameState.board[idx]
+		if mspace is Ownable and mspace._is_owned:
+			var owner_idx: int = int(mspace._player_owner)
+			owner_counts[owner_idx] = int(owner_counts.get(owner_idx, 0)) + 1
+			if owner_idx == player_index:
+				ai_owned += 1
+
+	for owner_idx in owner_counts.keys():
+		if int(owner_idx) == player_index:
+			continue
+		top_other_owned = maxi(top_other_owned, int(owner_counts[owner_idx]))
+
+	var board_price := _get_board_price(space_num)
+	if ai_owned == members.size() - 1:
+		return int(board_price * 0.45)
+	if top_other_owned == members.size() - 1:
+		return int(board_price * 0.30)
+	if ai_owned > 0:
+		return int(board_price * 0.15)
+
+	return 0
+
+
+func _get_or_create_auction_max_bid(player_index: int, space_num: int) -> int:
+	if _auction_target_space_num != space_num:
+		_auction_target_space_num = space_num
+		_auction_max_bid_by_player.clear()
+
+	if _auction_max_bid_by_player.has(player_index):
+		return int(_auction_max_bid_by_player[player_index])
+
+	if player_index < 0 or player_index >= GameState.players.size():
+		return 0
+
+	var player = GameState.players[player_index]
+	_ensure_ai_valuation_model(player)
+
+	var board_price := _get_board_price(space_num)
+	var estimated_value := _get_ai_estimated_value(player_index, space_num)
+	var reserve_cash := 200
+	if player.balance >= 1200:
+		reserve_cash = 300
+	elif player.balance <= 500:
+		reserve_cash = 100
+
+	var liquidity_cap := maxi(0, player.balance - reserve_cash)
+	var ceiling := estimated_value + _get_auction_pressure_bonus(player_index, space_num)
+
+	if board_price > 0:
+		ceiling = maxi(ceiling, int(board_price * 0.65))
+		ceiling = mini(ceiling, int(board_price * 1.8))
+
+	ceiling = clampi(ceiling, 0, liquidity_cap)
+	_auction_max_bid_by_player[player_index] = ceiling
+
+	print("AiManager: Auction cap for ", GameState.players[player_index].player_name, " on space ", space_num, " is $", ceiling)
+
+	return ceiling
+
 func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 	var curr_player = GameState.players[curr_player_idx]
+	_ensure_ai_valuation_model(curr_player)
 
 	# Get info about the current space
 	var space = GameState.board[curr_player.board_space]
@@ -236,15 +523,7 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		if bs is Ownable and bs.is_owned():
 			var owner_idx = bs.get_property_owner()
 			if all_owned_properties.has(owner_idx):
-				var prop_data = {
-					"space_index": p_space_idx,
-					"name": bs._space_name,
-					"is_mortgaged": bs._is_mortgaged
-				}
-				if bs is PropertySpace:
-					prop_data["current_upgrades"] = bs._current_upgrades
-					
-				all_owned_properties[owner_idx].append(prop_data)
+				all_owned_properties[owner_idx].append(_build_property_context(p_space_idx, curr_player_idx))
 
 	var opponents = []
 	for i in range(GameState.players.size()):
@@ -269,6 +548,10 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		"balance": curr_player.balance,
 		"current_space_name": space._space_name,
 		"current_space_index": curr_player.board_space,
+		"current_space_board_price": _get_board_price(curr_player.board_space),
+		"current_space_monopoly_equivalent": _get_monopoly_equivalent(space),
+		"current_space_group_name": _get_property_group_name(space),
+		"current_space_group_member_space_indexes": _get_property_group_members(curr_player.board_space, space),
 		"has_rolled_dice": curr_player.has_rolled,
 		"is_in_jail": curr_player.is_in_jail,
 		"turns_in_jail": curr_player.turns_in_jail,
@@ -291,8 +574,6 @@ func _run_llm_ai_turn() -> void:
 	var state_dict = get_ai_game_state(curr_player_idx)
 	
 	if _llm_ai_controller:
-		print("AiManager: Handing off to LLM AI with state:")
-		print(JSON.stringify(state_dict, "\t"))
 		_llm_ai_controller.take_turn(state_dict)
 	else:
 		push_error("AiController not initialized correctly.")
@@ -732,19 +1013,6 @@ func ai_turn_end() -> void:
 
 # AI should decide how much to bid on an auction here
 func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) -> void:
-	if GameState.use_llm_ai:
-		if _llm_ai_controller:
-			var state_dict = get_ai_game_state(player_index)
-			var space = GameState.board[space_num]
-			var auction_data = {
-				"highest_bid": highest_bid,
-				"space_index": space_num,
-				"property_name": space._space_name,
-				"initial_price": space._initial_price if space is Ownable else 0
-			}
-			_llm_ai_controller.evaluate_auction(state_dict, auction_data)
-			return
-
 	await _ai_pause("before_trade")
 	if player_index < 0 or player_index >= GameState.players.size():
 		return
@@ -754,15 +1022,24 @@ func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) ->
 		return
 
 	var player = GameState.players[player_index]
-	var value = _calculate_AI_property_value(player, space_num)
-	if (player.balance > highest_bid + 50 && value > highest_bid + 50):
-		ai_auction_bid.emit(50)
-	elif (player.balance > highest_bid + 10 && value > highest_bid + 10):
-		ai_auction_bid.emit(10)
-	elif (player.balance > highest_bid + 1 && value > highest_bid + 1):
-		ai_auction_bid.emit(1)
-	else:
+	var min_inc := 1
+	min_inc = maxi(1, int(AuctionMgr.min_increment))
+
+	var next_required := highest_bid + min_inc
+	var max_bid := _get_or_create_auction_max_bid(player_index, space_num)
+
+	if player.balance < next_required or max_bid < next_required:
 		ai_auction_pass.emit()
+		return
+
+	var chosen_increment := min_inc
+	var max_delta := max_bid - highest_bid
+	if max_delta >= 50 and player.balance >= highest_bid + 50:
+		chosen_increment = 50
+	elif max_delta >= 10 and player.balance >= highest_bid + 10:
+		chosen_increment = 10
+
+	ai_auction_bid.emit(chosen_increment)
 # AI should decide whether to accept or decline a trade here
 func ai_trade_decision(trade_offer: Dictionary) -> void:
 	if GameState.use_llm_ai:
@@ -770,7 +1047,8 @@ func ai_trade_decision(trade_offer: Dictionary) -> void:
 			var player_idx = trade_offer.get("target_player", -1)
 			if player_idx != -1:
 				var state_dict = get_ai_game_state(player_idx)
-				_llm_ai_controller.evaluate_trade(trade_offer, state_dict)
+				var enriched_trade_offer = _build_trade_offer_context(trade_offer, player_idx)
+				_llm_ai_controller.evaluate_trade(enriched_trade_offer, state_dict)
 				return
 			
 	var player = trade_offer.get("target_player", -1)
