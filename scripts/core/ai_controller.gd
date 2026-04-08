@@ -255,8 +255,6 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 		return
 		
 	var response_string = body.get_string_from_utf8()
-	print("AiController: Received raw response from Gemini:")
-	print(response_string)
 	
 	var json = JSON.new()
 	var error = json.parse(response_string)

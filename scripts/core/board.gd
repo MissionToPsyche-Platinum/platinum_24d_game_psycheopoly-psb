@@ -835,6 +835,8 @@ func _start_auction(space_num: int) -> void:
 
 
 func _on_auction_bid_increment_requested(amount: int) -> void:
+	if not _is_human_auction_turn():
+		return
 	AuctionMgr.submit_increment(amount)
 
 
@@ -843,6 +845,7 @@ func _on_auction_turn_changed(player_index: int) -> void:
 		return
 
 	var player_name := GameState.get_player_display_name(player_index)
+	var is_ai_turn := GameState.players[player_index].player_is_ai
 	print("Auction turn:", player_name)
 
 	if auction_popup:
@@ -850,9 +853,15 @@ func _on_auction_turn_changed(player_index: int) -> void:
 		if auction_popup.has_method("set_current_bidder"):
 			auction_popup.call("set_current_bidder", player_name)
 
+		if auction_popup.has_method("set_action_controls_enabled"):
+			auction_popup.call("set_action_controls_enabled", not is_ai_turn)
+
 		# keep status consistent
 		if auction_popup.has_method("set_status"):
-			auction_popup.call("set_status", "Waiting for " + player_name + "…")
+			if is_ai_turn:
+				auction_popup.call("set_status", player_name + " is thinking...")
+			else:
+				auction_popup.call("set_status", "Your turn to bid")
 
 
 func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
@@ -1069,7 +1078,16 @@ func _on_auction_details_requested() -> void:
 
 
 func _on_auction_pass_requested() -> void:
+	if not _is_human_auction_turn():
+		return
 	AuctionMgr.pass_turn()
+
+
+func _is_human_auction_turn() -> bool:
+	var bidder_index := AuctionMgr.get_current_player_index()
+	if bidder_index < 0 or bidder_index >= GameState.players.size():
+		return false
+	return not GameState.players[bidder_index].player_is_ai
 
 
 func _on_property_details_closed() -> void:

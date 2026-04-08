@@ -132,6 +132,7 @@ func _play_ui(player: AudioStreamPlayer, pitch_min := 0.97, pitch_max := 1.03) -
 
 func show_popup(space_num: int) -> void:
 	visible = true
+	set_action_controls_enabled(true)
 	if bid_controls:
 		bid_controls.visible = false
 
@@ -179,9 +180,19 @@ func show_popup(space_num: int) -> void:
 
 func hide_popup() -> void:
 	visible = false
+	set_action_controls_enabled(true)
 	if bid_controls:
 		bid_controls.visible = false
 	current_space_num = -1
+
+func set_action_controls_enabled(enabled: bool) -> void:
+	bid_btn.visible = enabled
+	pass_btn.visible = enabled
+	bid_btn.disabled = not enabled
+	pass_btn.disabled = not enabled
+
+	if bid_controls:
+		bid_controls.visible = false
 
 func set_current_bidder(bidder_name: String) -> void:
 	current_bidder_label.text = "Current Bidder: " + bidder_name
