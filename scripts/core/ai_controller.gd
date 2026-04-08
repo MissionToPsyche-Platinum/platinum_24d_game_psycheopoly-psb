@@ -1,7 +1,7 @@
 extends Node
 
-const API_KEY = "AIzaSyAcGj2-Kidc7I7ZQAkUhln7SC9zY_nyegg"
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key="
+var API_KEY = ""
 
 var http_request: HTTPRequest
 
@@ -9,11 +9,23 @@ var _last_request_time: int = 0
 const MIN_REQUEST_INTERVAL_MSEC: int = 2100 # ~2.1 seconds to stay under 30 requests/minute
 
 func _ready():
+	_load_env()
 	# Create and configure the HTTPRequest node dynamically
 	http_request = HTTPRequest.new()
 	http_request.timeout = 25.0
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
+
+func _load_env():
+	var file = FileAccess.open("res://.env", FileAccess.READ)
+	if file:
+		var content = file.get_as_text()
+		for line in content.split("\n"):
+			if line.begins_with("GEMINI_API_KEY="):
+				API_KEY = line.split("=")[1].strip_edges()
+	
+	if API_KEY == "":
+		push_error("AiController: GEMINI_API_KEY not found in .env file!")
 
 # Example game_state structure:
 # {

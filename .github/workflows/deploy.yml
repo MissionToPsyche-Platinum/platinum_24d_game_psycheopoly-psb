@@ -23,6 +23,9 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: Inject API Key
+        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+
       - name: Export Web
         run: |
           mkdir -v -p build/web
