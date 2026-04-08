@@ -9,6 +9,18 @@ var _request_in_flight: bool = false
 var _last_request_time: int = 0
 const MIN_REQUEST_INTERVAL_MSEC: int = 2100 # ~2.1 seconds to stay under 30 requests/minute
 
+func _extract_reason(action_dict: Dictionary) -> String:
+	var reason_text := str(action_dict.get("reason", "")).strip_edges()
+	if reason_text == "":
+		reason_text = str(action_dict.get("rationale", "")).strip_edges()
+	if reason_text == "":
+		reason_text = str(action_dict.get("thought", "")).strip_edges()
+
+	reason_text = reason_text.replace("\n", " ").replace("\r", " ")
+	if reason_text.length() > 240:
+		reason_text = reason_text.substr(0, 240) + "..."
+	return reason_text
+
 func _ready():
 	_load_env()
 	# Create and configure the HTTPRequest node dynamically
@@ -91,9 +103,10 @@ func take_turn(game_state_dictionary: Dictionary):
 			prompt_text += '  3. "pay_debt" because you now have enough cash to satisfy the debt.\n'
 		prompt_text += '  4. "declare_bankruptcy" if you cannot mathematically raise enough cash or wish to surrender.\n'
 		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
-		prompt_text += '{"action": "mortgage_property", "args": {"space_index": <int>}}\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}}\nOR\n{"action": "declare_bankruptcy"}'
+		prompt_text += '{"action": "mortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}, "reason": "<short rationale>"}\nOR\n{"action": "declare_bankruptcy", "reason": "<short rationale>"}'
 		if game_state_dictionary.get("balance", 0) >= amount_owed:
-			prompt_text += '\nOR\n{"action": "pay_debt"}'
+			prompt_text += '\nOR\n{"action": "pay_debt", "reason": "<short rationale>"}'
+		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	elif is_in_jail and not game_state_dictionary.get("has_rolled_dice", false):
 		prompt_text += 'RULES:\n'
@@ -105,9 +118,10 @@ func take_turn(game_state_dictionary: Dictionary):
 		if has_cards:
 			prompt_text += '  3. "use_jail_card" to use your Get Out card.\n'
 		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
-		prompt_text += '{"action": "roll_dice"}\nOR\n{"action": "pay_jail"}'
+		prompt_text += '{"action": "roll_dice", "reason": "<short rationale>"}\nOR\n{"action": "pay_jail", "reason": "<short rationale>"}'
 		if has_cards:
-			prompt_text += '\nOR\n{"action": "use_jail_card"}'
+			prompt_text += '\nOR\n{"action": "use_jail_card", "reason": "<short rationale>"}'
+		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	else:
 		prompt_text += 'RULES:\n'
@@ -120,13 +134,14 @@ func take_turn(game_state_dictionary: Dictionary):
 		prompt_text += '- You can optionally propose a trade to another player using "propose_trade".\n'
 		prompt_text += '- If you do not want to or cannot buy a property, trade, or do property management, you MUST choose "end_turn".\n\n'
 		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
-		prompt_text += '{"action": "buy_property", "args": {"space_index": <int>}}'
-		prompt_text += '\nOR\n{"action": "propose_trade", "args": {"target_player_index": <int>, "offer_cash": <int>, "request_cash": <int>, "offered_properties": [<int>], "requested_properties": [<int>]}}'
-		prompt_text += '\nOR\n{"action": "upgrade_property", "args": {"space_index": <int>}}'
-		prompt_text += '\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}}'
-		prompt_text += '\nOR\n{"action": "mortgage_property", "args": {"space_index": <int>}}'
-		prompt_text += '\nOR\n{"action": "unmortgage_property", "args": {"space_index": <int>}}'
-		prompt_text += '\nOR\n{"action": "end_turn"}'
+		prompt_text += '{"action": "buy_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
+		prompt_text += '\nOR\n{"action": "propose_trade", "args": {"target_player_index": <int>, "offer_cash": <int>, "request_cash": <int>, "offered_properties": [<int>], "requested_properties": [<int>]}, "reason": "<short rationale>"}'
+		prompt_text += '\nOR\n{"action": "upgrade_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
+		prompt_text += '\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
+		prompt_text += '\nOR\n{"action": "mortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
+		prompt_text += '\nOR\n{"action": "unmortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
+		prompt_text += '\nOR\n{"action": "end_turn", "reason": "<short rationale>"}'
+		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	# 2. Construct the core content for the API request
 	var contents = [
@@ -204,8 +219,13 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 						if action_dict.has("action"):
 							var function_name = action_dict["action"]
 							var args = action_dict.get("args", {})
+							var decision_reason := _extract_reason(action_dict)
 							
 							print("AiController: Gemma decided to call function: ", function_name, " with args: ", args)
+							if decision_reason != "":
+								print("AiController: LLM reasoning: ", decision_reason)
+							else:
+								print("AiController: LLM reasoning: (none provided)")
 							
 							if _is_evaluating_trade:
 								_is_evaluating_trade = false
@@ -386,7 +406,8 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	prompt_text += "\nTrade details:\n"
 	prompt_text += JSON.stringify(trade_offer, "\t")
 	prompt_text += "\nDO you accept this trade? You MUST output ONLY raw JSON formatted exactly like this:\n"
-	prompt_text += '{"action": "accept_trade"}\nOR\n{"action": "reject_trade"}\n'
+	prompt_text += '{"action": "accept_trade", "reason": "<short rationale>"}\nOR\n{"action": "reject_trade", "reason": "<short rationale>"}\n'
+	prompt_text += 'The "reason" field is required and must be one concise sentence (max 20 words).\n'
 	prompt_text += 'Do not include any explanation or markdown formatting.\n'
 	
 	var contents = [{"role": "user", "parts": [{"text": prompt_text}]}]
@@ -433,7 +454,8 @@ func evaluate_auction(state_dict: Dictionary, auction_data: Dictionary):
 	prompt_text += "\nDo you want to bid on this property or pass? Your bid MUST be strictly greater than highest_bid and less than or equal to your current balance.\n"
 	prompt_text += "If you do not want to bid, or cannot afford to bid higher than highest_bid, choose pass.\n"
 	prompt_text += "You MUST output ONLY raw JSON formatted exactly like this:\n"
-	prompt_text += '{"action": "auction_bid", "args": {"amount": <integer_amount>}}\nOR\n{"action": "auction_pass"}\n'
+	prompt_text += '{"action": "auction_bid", "args": {"amount": <integer_amount>}, "reason": "<short rationale>"}\nOR\n{"action": "auction_pass", "reason": "<short rationale>"}\n'
+	prompt_text += 'The "reason" field is required and must be one concise sentence (max 20 words).\n'
 	prompt_text += 'Do not include any explanation or markdown formatting.\n'
 
 	var contents = [{"role": "user", "parts": [{"text": prompt_text}]}]
