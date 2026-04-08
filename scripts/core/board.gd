@@ -894,7 +894,7 @@ func _on_auction_ended(winner_index: int, winning_bid: int, _space_num: int, _pr
 			auction_popup.set_status(winner_name + " wins for $" + str(winning_bid) + "!")
 
 		# Let players read it
-		await get_tree().create_timer(2.5).timeout
+		await get_tree().create_timer(1.4).timeout
 		auction_popup.hide_popup()
 
 	# tell the game flow we’re done with this action and move on.
@@ -1946,7 +1946,7 @@ func _setup_pause_menu() -> void:
 	if pause_menu.has_signal("how_to_play_requested"):
 		pause_menu.how_to_play_requested.connect(_on_pause_how_to_play_requested)
 		
-		
+
 func _on_pause_settings_requested() -> void:
 	if pause_menu:
 		pause_menu.hide_menu_only()
@@ -1956,6 +1956,18 @@ func _on_pause_settings_requested() -> void:
 			settings_menu.open()
 		else:
 			settings_menu.show()
+			
+			
+func _on_pause_quit_requested() -> void:
+	if pause_menu:
+		pause_menu.set_paused(false)
+
+	# Reset persistent singleton state before leaving the board
+	if GameState and GameState.has_method("reset_for_new_game"):
+		GameState.reset_for_new_game()
+
+	_cleanup_root_ui()
+	call_deferred("_go_to_start_menu")
 		
 		
 func _setup_settings_menu() -> void:
@@ -2010,12 +2022,6 @@ func _on_game_rules_closed() -> void:
 	if pause_menu and is_instance_valid(pause_menu):
 		pause_menu.show_menu_only()
 
-func _on_pause_quit_requested() -> void:
-	if pause_menu:
-		pause_menu.set_paused(false)
-
-	_cleanup_root_ui()
-	call_deferred("_go_to_start_menu")
 	
 func _on_pause_how_to_play_requested() -> void:
 	print("Board: How to Play requested")
@@ -2041,7 +2047,44 @@ func _go_to_game_setup_screen() -> void:
 
 
 func _cleanup_root_ui() -> void:
-	# Free CanvasLayers / root-level UI added by Board
+	# Hide popups first
+	if space_action_popup and is_instance_valid(space_action_popup):
+		space_action_popup.hide()
+
+	if trade_popup and is_instance_valid(trade_popup):
+		trade_popup.hide()
+
+	if auction_popup and is_instance_valid(auction_popup):
+		auction_popup.hide()
+
+	if property_details_popup and is_instance_valid(property_details_popup):
+		property_details_popup.hide()
+
+	if bankruptcy_popup and is_instance_valid(bankruptcy_popup):
+		bankruptcy_popup.hide()
+
+	if assets_popup and is_instance_valid(assets_popup):
+		assets_popup.hide()
+
+	if notification_popup and is_instance_valid(notification_popup):
+		notification_popup.hide()
+
+	if jail_popup and is_instance_valid(jail_popup):
+		jail_popup.hide()
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide()
+
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		match_stats_popup.hide()
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.hide()
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.hide()
+
+	# Free root UI layers added by Board
 	var names_to_remove := [
 		"DiceRollLayer",
 		"MoneyHUDLayer",
@@ -2053,14 +2096,14 @@ func _cleanup_root_ui() -> void:
 		"EndGamePopupLayer",
 		"MatchStatsPopupLayer",
 		"AiTurnBannerLayer",
-		"AiActionToastLayer"
+		"AiActionToastLayer",
+		"GameRulesPopupLayer"
 	]
 
 	for child in get_tree().root.get_children():
 		if child.name in names_to_remove:
 			child.queue_free()
 
-	# Free root-added popups/panels that are instantiated directly
 	if space_info_panel and is_instance_valid(space_info_panel):
 		space_info_panel.queue_free()
 		space_info_panel = null
@@ -2117,19 +2160,25 @@ func _cleanup_root_ui() -> void:
 		match_stats_popup_layer.queue_free()
 		match_stats_popup_layer = null
 
-	# cleanup for AI turn banner / toast references
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.queue_free()
+		game_rules_popup = null
+
+	if game_rules_popup_layer and is_instance_valid(game_rules_popup_layer):
+		game_rules_popup_layer.queue_free()
+		game_rules_popup_layer = null
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.queue_free()
+		player_properties_preview = null
+
 	if ai_turn_banner and is_instance_valid(ai_turn_banner):
-		if ai_turn_banner.has_method("hide_banner"):
-			ai_turn_banner.hide_banner()
-		else:
-			ai_turn_banner.hide()
+		ai_turn_banner.hide()
 		ai_turn_banner = null
 
 	if ai_action_toast and is_instance_valid(ai_action_toast):
 		ai_action_toast.hide()
 		ai_action_toast = null
-		
-		
 		
 func _spawn_colorblind_symbols() -> void:
 	if not has_node("ColorBlindSymbols"):
@@ -2505,3 +2554,42 @@ func _wait_for_ai_toast_before_popup() -> void:
 
 	if ai_action_toast and is_instance_valid(ai_action_toast) and ai_action_toast.has_method("wait_until_finished"):
 		await ai_action_toast.wait_until_finished()
+
+
+	
+	#This UI panel still showing up in start menu if player quits with it visible in game, creating func to help resolve.
+func _force_remove_player_properties_preview_everywhere() -> void:
+	var nodes_to_remove: Array[Node] = []
+
+	for node in get_tree().root.find_children("*", "", true, false):
+		if node == null or not is_instance_valid(node):
+			continue
+
+		var should_remove := false
+		var node_name := str(node.name)
+
+		if node_name == "PlayerPropertiesPreview" or node_name == "PlayerPropertiesPreviewLayer":
+			should_remove = true
+
+		var script = node.get_script()
+		if script is Script:
+			var script_path := str(script.resource_path).to_lower()
+			if "playerpropertiespreview" in script_path or "player_properties_preview" in script_path:
+				should_remove = true
+
+		if should_remove:
+			nodes_to_remove.append(node)
+
+			var parent = node.get_parent()
+			if parent and is_instance_valid(parent):
+				var parent_name := str(parent.name)
+				if parent_name == "PlayerPropertiesPreviewLayer" and not nodes_to_remove.has(parent):
+					nodes_to_remove.append(parent)
+
+	for node in nodes_to_remove:
+		if node and is_instance_valid(node):
+			if node is CanvasItem:
+				node.hide()
+			node.queue_free()
+
+	player_properties_preview = null
