@@ -9,6 +9,69 @@ var _request_in_flight: bool = false
 var _last_request_time: int = 0
 const MIN_REQUEST_INTERVAL_MSEC: int = 2100 # ~2.1 seconds to stay under 30 requests/minute
 
+var _queued_follow_up_action_name: String = ""
+var _queued_follow_up_action_args: Dictionary = {}
+var _queued_follow_up_reason: String = ""
+
+func _clear_queued_follow_up_action() -> void:
+	_queued_follow_up_action_name = ""
+	_queued_follow_up_action_args = {}
+	_queued_follow_up_reason = ""
+
+func _queue_follow_up_action(action_dict: Dictionary) -> void:
+	_clear_queued_follow_up_action()
+
+	if not action_dict.has("next_action"):
+		return
+
+	var next_action = action_dict.get("next_action", {})
+	if typeof(next_action) != TYPE_DICTIONARY:
+		return
+
+	var next_action_name := str(next_action.get("action", "")).strip_edges()
+	if next_action_name == "":
+		return
+
+	var next_args = next_action.get("args", {})
+	if typeof(next_args) != TYPE_DICTIONARY:
+		next_args = {}
+
+	_queued_follow_up_action_name = next_action_name
+	_queued_follow_up_action_args = next_args
+	_queued_follow_up_reason = _extract_reason(next_action)
+
+func _execute_queued_follow_up_action() -> bool:
+	if _queued_follow_up_action_name == "":
+		return false
+
+	var next_action_name := _queued_follow_up_action_name
+	var next_args := _queued_follow_up_action_args.duplicate(true)
+	var next_reason := _queued_follow_up_reason
+	_clear_queued_follow_up_action()
+
+	if next_reason != "":
+		print("AiController: LLM follow-up reasoning: ", next_reason)
+	print("AiController: Executing queued follow-up action: ", next_action_name, " with args: ", next_args)
+	call_deferred("execute_action", next_action_name, next_args)
+	return true
+
+func _continue_after_action() -> void:
+	if _execute_queued_follow_up_action():
+		return
+	_resume_ai_turn()
+
+func _on_buy_action_completed() -> void:
+	if _execute_queued_follow_up_action():
+		return
+
+	# Optimization: when the model buys but does not provide a follow-up,
+	# end the turn immediately to avoid a second LLM call for "end_turn".
+	print("AiController: No queued follow-up after purchase. Auto-ending turn to save LLM call.")
+	AiManager.ai_turn_end()
+
+func _on_trade_finished_continue() -> void:
+	_continue_after_action()
+
 func _extract_reason(action_dict: Dictionary) -> String:
 	var reason_text := str(action_dict.get("reason", "")).strip_edges()
 	if reason_text == "":
@@ -50,6 +113,8 @@ func _load_env():
 #     "opponents": [{"name": "Player 2", "balance": 1200}]
 # }
 func take_turn(game_state_dictionary: Dictionary):
+	_clear_queued_follow_up_action()
+
 	if _request_in_flight:
 		print("AiController: Request already in flight. Ignoring duplicate AI turn request.")
 		return
@@ -106,6 +171,8 @@ func take_turn(game_state_dictionary: Dictionary):
 		prompt_text += '{"action": "mortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}, "reason": "<short rationale>"}\nOR\n{"action": "declare_bankruptcy", "reason": "<short rationale>"}'
 		if game_state_dictionary.get("balance", 0) >= amount_owed:
 			prompt_text += '\nOR\n{"action": "pay_debt", "reason": "<short rationale>"}'
+		prompt_text += '\nOptional: include "next_action" as a second step ONLY if it does not require new board info or player input.\n'
+		prompt_text += 'Example: {"action": "mortgage_property", "args": {"space_index": 5}, "reason": "...", "next_action": {"action": "pay_debt", "reason": "..."}}\n'
 		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	elif is_in_jail and not game_state_dictionary.get("has_rolled_dice", false):
@@ -121,6 +188,7 @@ func take_turn(game_state_dictionary: Dictionary):
 		prompt_text += '{"action": "roll_dice", "reason": "<short rationale>"}\nOR\n{"action": "pay_jail", "reason": "<short rationale>"}'
 		if has_cards:
 			prompt_text += '\nOR\n{"action": "use_jail_card", "reason": "<short rationale>"}'
+		prompt_text += '\nOptional: include "next_action" as a second step ONLY if it does not require new board info or player input.\n'
 		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	else:
@@ -141,6 +209,8 @@ func take_turn(game_state_dictionary: Dictionary):
 		prompt_text += '\nOR\n{"action": "mortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
 		prompt_text += '\nOR\n{"action": "unmortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
 		prompt_text += '\nOR\n{"action": "end_turn", "reason": "<short rationale>"}'
+		prompt_text += '\nOptional: include "next_action" as a second step ONLY if it does not require new board info or player input.\n'
+		prompt_text += 'Example: {"action": "buy_property", "args": {"space_index": <int>}, "reason": "...", "next_action": {"action": "end_turn", "reason": "..."}}\n'
 		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	# 2. Construct the core content for the API request
@@ -220,12 +290,15 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 							var function_name = action_dict["action"]
 							var args = action_dict.get("args", {})
 							var decision_reason := _extract_reason(action_dict)
+							_queue_follow_up_action(action_dict)
 							
 							print("AiController: Gemma decided to call function: ", function_name, " with args: ", args)
 							if decision_reason != "":
 								print("AiController: LLM reasoning: ", decision_reason)
 							else:
 								print("AiController: LLM reasoning: (none provided)")
+							if _queued_follow_up_action_name != "":
+								print("AiController: Queued follow-up action: ", _queued_follow_up_action_name)
 							
 							if _is_evaluating_trade:
 								_is_evaluating_trade = false
@@ -253,11 +326,13 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 		AiManager.execute_fallback()
 
 func _resolve_auction_fallback():
+	_clear_queued_follow_up_action()
 	_is_evaluating_auction = false
 	print("AiController: Failed to evaluate auction with LLM, passing by default.")
 	AiManager.ai_auction_pass.emit()
 
 func _resolve_trade_fallback():
+	_clear_queued_follow_up_action()
 	_is_evaluating_trade = false
 	print("AiController: Failed to evaluate trade with LLM, rejecting by default.")
 	AiManager.ai_trade_reject.emit()
@@ -284,7 +359,9 @@ func execute_action(action_name: String, args: Dictionary):
 			var space_index = int(args.get("space_index", -1))
 			print("AiController: Executing action: mortgage property at space index ", space_index)
 			AiManager.ai_property_mortgage(space_index)
-			if AiManager._fallback_state == "bankruptcy":
+			if _queued_follow_up_action_name != "":
+				call_deferred("_continue_after_action")
+			elif AiManager._fallback_state == "bankruptcy":
 				AiManager.continue_llm_bankruptcy()
 			else:
 				call_deferred("_resume_ai_turn")
@@ -293,7 +370,9 @@ func execute_action(action_name: String, args: Dictionary):
 			var space_index = int(args.get("space_index", -1))
 			print("AiController: Executing action: sell upgrade at space index ", space_index)
 			AiManager.ai_sells_upgrade(space_index)
-			if AiManager._fallback_state == "bankruptcy":
+			if _queued_follow_up_action_name != "":
+				call_deferred("_continue_after_action")
+			elif AiManager._fallback_state == "bankruptcy":
 				AiManager.continue_llm_bankruptcy()
 			else:
 				call_deferred("_resume_ai_turn")
@@ -302,13 +381,13 @@ func execute_action(action_name: String, args: Dictionary):
 			var space_index = int(args.get("space_index", -1))
 			print("AiController: Executing action: upgrade property at space index ", space_index)
 			AiManager.ai_property_upgrade(space_index)
-			call_deferred("_resume_ai_turn")
+			call_deferred("_continue_after_action")
 
 		"unmortgage_property":
 			var space_index = int(args.get("space_index", -1))
 			print("AiController: Executing action: unmortgage property at space index ", space_index)
 			AiManager.ai_property_unmortgage(space_index)
-			call_deferred("_resume_ai_turn")
+			call_deferred("_continue_after_action")
 
 		"pay_debt":
 			print("AiController: Executing action: pay debt")
@@ -328,12 +407,13 @@ func execute_action(action_name: String, args: Dictionary):
 
 			if can_buy_here:
 				# Connect before emitting because purchase is resolved synchronously
-				if not GameController.action_completed.is_connected(_resume_ai_turn):
-					GameController.action_completed.connect(_resume_ai_turn, CONNECT_ONE_SHOT)
+				if not GameController.action_completed.is_connected(_on_buy_action_completed):
+					GameController.action_completed.connect(_on_buy_action_completed, CONNECT_ONE_SHOT)
 				
 				AiManager.ai_purchase.emit(space_index)
 			else:
 				print("AiController: Could not find valid purchasable property at space index: ", space_index)
+				_clear_queued_follow_up_action()
 				AiManager.execute_fallback() # Fallback ending turn gracefully
 
 		"propose_trade":
@@ -353,17 +433,19 @@ func execute_action(action_name: String, args: Dictionary):
 			print("AiController: Proposing trade to player ", target_idx, " offering $", offer_cash, " props:", offer_props, " for $", request_cash, " props:", req_props)
 
 			# Connect before emitting because trade may resolve synchronously or async
-			if not GameController.trade_finished.is_connected(_resume_ai_turn):
-				GameController.trade_finished.connect(_resume_ai_turn, CONNECT_ONE_SHOT)
+			if not GameController.trade_finished.is_connected(_on_trade_finished_continue):
+				GameController.trade_finished.connect(_on_trade_finished_continue, CONNECT_ONE_SHOT)
 
 			AiManager.ai_trade_create.emit(GameState.current_player_index, target_idx, offer_cash, request_cash, offer_props, req_props)
 
 		"end_turn":
 			print("AiController: Executing action: ending turn")
+			_clear_queued_follow_up_action()
 			AiManager.ai_turn_end()
 			
 		_:
 			print("AiController: Unknown action received: ", action_name)
+			_clear_queued_follow_up_action()
 			# Fallback
 			AiManager.execute_fallback()
 
@@ -377,6 +459,7 @@ var _pending_trade_offer: Dictionary = {}
 var _pending_auction_data: Dictionary = {}
 
 func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
+	_clear_queued_follow_up_action()
 	_is_evaluating_trade = true
 	_pending_trade_offer = trade_offer
 	print("AiController: Evaluating trade offer...")
@@ -423,6 +506,7 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 		_resolve_trade_fallback()
 
 func evaluate_auction(state_dict: Dictionary, auction_data: Dictionary):
+	_clear_queued_follow_up_action()
 	_is_evaluating_auction = true
 	_pending_auction_data = auction_data
 	print("AiController: Evaluating auction...")
