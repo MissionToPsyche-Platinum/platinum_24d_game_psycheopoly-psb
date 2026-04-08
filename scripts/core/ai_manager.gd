@@ -192,30 +192,56 @@ func ai_turn_start() -> void:
 		ai_turn_mid()
 
 # Specifically handles the case where the AI rolls doubles 3 times in a row, since this path leads to ai never landing on a space
-func handle_doubles_jail():
-	GameController.get_current_player().last_roll_was_doubles = false
-	GameController.get_current_player().has_rolled = true
-	ai_turn_mid()
+func handle_doubles_jail() -> void:
+	var current_player = GameController.get_current_player()
+	if current_player == null:
+		return
+
+	current_player.last_roll_was_doubles = false
+	current_player.doubles_count = 0
+	current_player.has_rolled = true
+
+	active_ai_player_index = -1
+	GameController.end_turn()
 
 
 # AI should choose between rolling, paying, and using a card here
-func ai_jail_decision():
+func ai_jail_decision() -> void:
 	print("AI Manager: AI makes jail decision")
 	var current_player = GameController.get_current_player()
+	if current_player == null:
+		return
 
-	# Attempt to roll for doubles if still early in jail (< 2 turns)
-	if current_player.turns_in_jail < 2:
-		ai_jail_roll.emit(GameState.current_player_index)
-		await get_tree().process_frame  # Let jail popup process before rolling
+	# Third jail turn:
+	# AI must pay $50 to leave immediately, then roll normally for the turn.
+	if current_player.turns_in_jail >= 2:
+		var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
+		if not paid:
+			return
+
+		GameController.release_player_from_jail(GameState.current_player_index)
+		current_player.has_rolled = false
+
 		await _ai_pause("pre_roll")
-		ai_dice_roll.emit()  # Actually trigger the dice roll
-		await GameController.player_rolled
-		if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
-			ai_turn_mid()
-	elif GameController.get_current_player().go_for_launch_cards > 0:
-		ai_jail_card.emit(GameState.current_player_index)
-	else:
-		ai_jail_pay.emit(GameState.current_player_index)
+		if not _is_same_ai_turn(active_ai_player_index):
+			return
+
+		ai_dice_roll.emit()
+		return
+
+	# Turns 1 and 2: try to roll doubles to get out
+	ai_jail_roll.emit(GameState.current_player_index)
+	await get_tree().process_frame
+	await _ai_pause("pre_roll")
+
+	if not _is_same_ai_turn(active_ai_player_index):
+		return
+
+	ai_dice_roll.emit()
+	await GameController.player_rolled
+
+	if current_player.is_in_jail:
+		ai_turn_mid()
 
 
 

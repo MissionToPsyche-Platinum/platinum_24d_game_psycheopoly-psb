@@ -602,7 +602,7 @@ func _on_turn_started(player_index: int) -> void:
 	if turn_log_panel and turn_log_panel.has_method("add_turn_header"):
 		turn_log_panel.add_turn_header(player_index, player_name, turn_number, is_new_round)
 	else:
-			log_event("Turn %d - %s's turn" % [turn_number, player_name])
+		log_event("Turn %d - %s's turn" % [turn_number, player_name])
 
 	if current_piece != null and is_instance_valid(current_piece):
 		if current_piece.space_changed.is_connected(_on_piece_space_changed):
@@ -630,11 +630,36 @@ func _on_turn_started(player_index: int) -> void:
 		ai_turn_banner.show_banner(current_player.player_name)
 
 	if current_player and current_player.is_in_jail:
+		# At the start of the 3rd jail turn, the player has already used 2 attempts.
+		if int(current_player.turns_in_jail) >= 2:
+			if current_player.player_is_ai == false:
+				if notification_popup:
+					notification_popup.show_notification(
+						"Launch Pad Release",
+						"This is your third turn in the Launch Pad. $50 Will be deducted from your account and you will be released. You may now roll normally"
+					)
+					await notification_popup.dismissed
+
+			var paid := GameController.request_payment(player_index, 50, "Launch Permit")
+			if not paid:
+				log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
+				GameController.turn_setup_complete.emit(player_index)
+				return
+
+			log_event("%s paid $50 to leave the Launch Pad on the third turn." % player_name)
+			GameController.release_player_from_jail(player_index)
+
+			# Now the player is out of jail and can take a normal roll this turn.
+			current_player.has_rolled = false
+			GameController.turn_setup_complete.emit(player_index)
+			return
+
+		# Normal jail flow for turns 1 and 2 only
 		current_player.has_rolled = true # Disable regular rolling temporarily
 		if jail_popup and jail_popup.has_method("show_for_player") and current_player.player_is_ai == false:
 			jail_popup.show_for_player(player_index)
-	GameController.turn_setup_complete.emit(player_index)
 
+	GameController.turn_setup_complete.emit(player_index)
 
 func _on_turn_ended(player_index: int) -> void:
 	print("Board: Turn ended for player ", player_index)
@@ -1279,15 +1304,24 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			if current_player.doubles_count == 3:
 				print("Rolled 3 doubles! Go to jail.")
 				log_event("%s rolled doubles three times and was sent to the Launch Pad." % roller_name)
+
+				
+				# This is not a normal doubles extra-roll anymore.
+				# Clear doubles state now so action_completed does not re-enable rolling.
+				current_player.last_roll_was_doubles = false
+				current_player.doubles_count = 0
+				current_player.has_rolled = true
+
 				GameController.send_player_to_jail(GameState.current_player_index)
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
-				# _on_player_sent_to_jail handles the notification and action_completed
-				if (current_player.player_is_ai == true):
+
+				if current_player.player_is_ai == true:
 					AiManager.handle_doubles_jail()
 				else:
 					# For humans, end turn after going to jail
 					GameController.end_turn()
+
 				return
 		else:
 			current_player.doubles_count = 0
@@ -1305,7 +1339,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> void:
 	player.turns_in_jail += 1
 	player.has_rolled = true
-	# Doubles out of jail do not grant an extra turn, so we reset flags
+	# Doubles out of jail do not grant an extra turn
 	player.last_roll_was_doubles = false
 	player.doubles_count = 0
 
@@ -1313,37 +1347,45 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 
 	if is_doubles:
 		log_event("%s rolled doubles in the Launch Pad and left it." % player_name)
-
 		print("Rolled doubles! Escaped jail.")
 
 		GameController.release_player_from_jail(GameState.current_player_index)
 
-		# Move the rolled amount
 		var old_space: int = int(current_piece.board_space)
 		current_piece.move_forward(total)
 		update_piece_layouts_at(old_space)
+
+	elif player.turns_in_jail >= 3:
+		# On the 3rd jail turn, the player is forced to pay and then move normally,
+		# regardless of whether the roll was doubles.
+		print("3rd turn in jail. Forced to pay $50 bail and leave.")
+		log_event("%s paid $50 to leave the Launch Pad on the third turn." % player_name)
+
+		var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
+		if not paid:
+			log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
+			GameController.emit_signal("player_rolled", player)
+			return
+
+		GameController.release_player_from_jail(GameState.current_player_index)
+
+		var old_space: int = int(current_piece.board_space)
+		current_piece.move_forward(total)
+		update_piece_layouts_at(old_space)
+
 	else:
-		if player.turns_in_jail == 3:
-			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
-			log_event("%s did not roll doubles on their final Launch Pad turn and must pay $50 to leave." % player_name)
+		print("Did not roll doubles. Stay in jail.")
+		log_event("%s did not roll doubles and remains on the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
 
-			var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
-			if not paid:
-				log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
-			else:
-				log_event("%s paid $50 to leave the Launch Pad after failing to roll doubles." % player_name)
+		if player.player_is_ai == false and notification_popup:
+			notification_popup.show_notification(
+				"Failed to Roll Doubles",
+				"You did not roll doubles. You will remain in the Launch Pad for another turn."
+			)
+			await notification_popup.dismissed
 
-			GameController.release_player_from_jail(GameState.current_player_index)
-
-			var old_space: int = int(current_piece.board_space)
-			current_piece.move_forward(total)
-			update_piece_layouts_at(old_space)
-		else:
-			print("Did not roll doubles. Stay in jail.")
-			log_event("%s did not roll doubles and remains on the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
-
-			# Don't move, turn effectively over. Need to simulate action completed so End Turn button enables.
-			GameController.action_completed.emit()
+		# Turn ends still in jail
+		GameController.action_completed.emit()
 
 	GameController.emit_signal("player_rolled", player)
 
