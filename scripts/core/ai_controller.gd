@@ -4,6 +4,7 @@ const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemma-3
 var API_KEY = ""
 
 var http_request: HTTPRequest
+var _request_in_flight: bool = false
 
 var _last_request_time: int = 0
 const MIN_REQUEST_INTERVAL_MSEC: int = 2100 # ~2.1 seconds to stay under 30 requests/minute
@@ -37,6 +38,10 @@ func _load_env():
 #     "opponents": [{"name": "Player 2", "balance": 1200}]
 # }
 func take_turn(game_state_dictionary: Dictionary):
+	if _request_in_flight:
+		print("AiController: Request already in flight. Ignoring duplicate AI turn request.")
+		return
+
 	var current_time = Time.get_ticks_msec()
 	var elapsed = current_time - _last_request_time
 	
@@ -136,12 +141,19 @@ func take_turn(game_state_dictionary: Dictionary):
 	var headers = ["Content-Type: application/json"]
 	
 	# Send the HTTP request
+	_request_in_flight = true
 	var error = http_request.request(API_URL + API_KEY, headers, HTTPClient.METHOD_POST, json_body)
 	if error != OK:
+		_request_in_flight = false
+		if error == ERR_BUSY:
+			print("AiController: HTTP request is busy. Keeping current in-flight request and skipping duplicate.")
+			return
 		print("AiController: An error occurred in the HTTP request: ", error)
 		AiManager.execute_fallback()
 
-func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
+func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray):
+	_request_in_flight = false
+
 	if result != HTTPRequest.RESULT_SUCCESS:
 		print("AiController: API Network Request failed entirely! Result code: ", result)
 		AiManager.execute_fallback()
@@ -345,6 +357,11 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	_pending_trade_offer = trade_offer
 	print("AiController: Evaluating trade offer...")
 
+	if _request_in_flight:
+		print("AiController: Request already in flight during trade evaluation. Rejecting trade by fallback.")
+		_resolve_trade_fallback()
+		return
+
 	# Rate limiter pacing
 	var current_time = Time.get_ticks_msec()
 	var elapsed = current_time - _last_request_time
@@ -373,8 +390,10 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	var json_body = JSON.stringify(body)
 	var headers = ["Content-Type: application/json"]
 	
+	_request_in_flight = true
 	var error = http_request.request(API_URL + API_KEY, headers, HTTPClient.METHOD_POST, json_body)
 	if error != OK:
+		_request_in_flight = false
 		print("AiController: HTTP request error during trade evaluation: ", error)
 		_resolve_trade_fallback()
 
@@ -382,6 +401,11 @@ func evaluate_auction(state_dict: Dictionary, auction_data: Dictionary):
 	_is_evaluating_auction = true
 	_pending_auction_data = auction_data
 	print("AiController: Evaluating auction...")
+
+	if _request_in_flight:
+		print("AiController: Request already in flight during auction evaluation. Passing by fallback.")
+		_resolve_auction_fallback()
+		return
 
 	# Rate limiter pacing
 	var current_time = Time.get_ticks_msec()
@@ -413,7 +437,9 @@ func evaluate_auction(state_dict: Dictionary, auction_data: Dictionary):
 	var json_body = JSON.stringify(body)
 	var headers = ["Content-Type: application/json"]
 
+	_request_in_flight = true
 	var error = http_request.request(API_URL + API_KEY, headers, HTTPClient.METHOD_POST, json_body)
 	if error != OK:
+		_request_in_flight = false
 		print("AiController: HTTP request error during auction evaluation: ", error)
 		_resolve_auction_fallback()

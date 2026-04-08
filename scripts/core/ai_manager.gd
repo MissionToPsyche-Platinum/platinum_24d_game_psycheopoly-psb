@@ -281,8 +281,8 @@ func _run_llm_ai_turn() -> void:
 # Actions that should occur at the start of the AI player's turn
 func ai_turn_start() -> void:
 	if GameState.use_llm_ai:
-		var acting_ai := _begin_ai_turn_context()
-		if not _is_same_ai_turn(acting_ai):
+		var llm_acting_ai := _begin_ai_turn_context()
+		if not _is_same_ai_turn(llm_acting_ai):
 			return
 		
 		var current_player = GameController.get_current_player()
@@ -293,7 +293,7 @@ func ai_turn_start() -> void:
 			
 		if not current_player.has_rolled:
 			await _ai_pause("pre_roll")
-			if not _is_same_ai_turn(acting_ai):
+			if not _is_same_ai_turn(llm_acting_ai):
 				return
 			ai_dice_roll.emit()
 			return
@@ -302,9 +302,9 @@ func ai_turn_start() -> void:
 		
 	print("AI Manager: AI turn start")
 
-	var acting_ai := _begin_ai_turn_context()
+	var classic_acting_ai := _begin_ai_turn_context()
 
-	if not _is_same_ai_turn(acting_ai):
+	if not _is_same_ai_turn(classic_acting_ai):
 		return
 
 	if (GameController.get_current_player().base_property_value_multipliers.is_empty()):
@@ -318,7 +318,7 @@ func ai_turn_start() -> void:
 
 	if not GameController.get_current_player().has_rolled:
 		await _ai_pause("pre_roll")
-		if not _is_same_ai_turn(acting_ai):
+		if not _is_same_ai_turn(classic_acting_ai):
 			return
 		ai_dice_roll.emit()
 	else:
@@ -388,6 +388,8 @@ func ai_lands_on_space(space_num: int) -> void:
 				ai_pay.emit(space_num)
 			else:
 				await ai_lands_on_unowned_property(space_num)
+				if GameState.use_llm_ai:
+					return
 
 		"CardSpace":
 			await _ai_pause("card_draw")
