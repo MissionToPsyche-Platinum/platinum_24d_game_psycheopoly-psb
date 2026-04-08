@@ -861,9 +861,13 @@ func release_player_from_jail(player_index: int) -> void:
 	
 	emit_signal("player_released_from_jail", player_index)
 
-func end_turn() -> void:
+func end_turn(force_ai_turn: bool = false) -> void:
 	var current_player = get_current_player()
 	if current_player:
+		if current_player.player_is_ai and not force_ai_turn:
+			print("GameController: Ignoring end_turn call during AI turn without force.")
+			return
+
 		# Track turns taken
 		GameState.increment_turns_taken(GameState.current_player_index)
 

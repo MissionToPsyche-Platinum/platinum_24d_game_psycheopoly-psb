@@ -726,7 +726,7 @@ func ai_turn_end() -> void:
 
 	if GameController.get_current_player().has_rolled == true or GameController.get_current_player().is_in_jail:
 		active_ai_player_index = -1
-		GameController.end_turn()
+		GameController.end_turn(true)
 	else:
 		ai_turn_start()
 
