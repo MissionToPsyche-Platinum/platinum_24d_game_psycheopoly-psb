@@ -358,12 +358,6 @@ func ai_jail_roll_sequence():
 
 # Controls logic for AI players landing on spaces, then moves the AI to the middle of its turn
 func ai_lands_on_space(space_num: int) -> void:
-	if GameState.use_llm_ai:
-		_fallback_state = "lands"
-		_last_space_num = space_num
-		_run_llm_ai_turn()
-		return
-		
 	var acting_ai := active_ai_player_index
 	if not _is_same_ai_turn(acting_ai):
 		return
@@ -391,11 +385,7 @@ func ai_lands_on_space(space_num: int) -> void:
 	match gname:
 		"PropertySpace", "InstrumentSpace", "PlanetSpace":
 			if property._is_owned == true:
-				if current_player.balance > GameController.calculate_rent(GameState.board[space_num]):
-					ai_pay.emit(space_num)
-				else:
-					ai_pay.emit(space_num)
-					await GameController.action_completed
+				ai_pay.emit(space_num)
 			else:
 				await ai_lands_on_unowned_property(space_num)
 
