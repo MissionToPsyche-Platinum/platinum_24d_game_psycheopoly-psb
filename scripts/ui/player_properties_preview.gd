@@ -35,6 +35,11 @@ func _ready() -> void:
 			GameController.property_ownership_changed.connect(_on_property_ownership_changed)
 		if not GameController.property_upgraded.is_connected(_on_property_ownership_changed):
 			GameController.property_upgraded.connect(_on_property_ownership_changed)
+		if not GameController.trade_completed.is_connected(_on_trade_completed):
+			GameController.trade_completed.connect(_on_trade_completed)
+		if not GameController.player_released_from_jail.is_connected(_on_player_released_from_jail):
+			GameController.player_released_from_jail.connect(_on_player_released_from_jail)
+		
 
 		# Initial update if game already started
 		var current = GameController.get_current_player()
@@ -47,13 +52,14 @@ func _ready() -> void:
 	if trade_button:
 		trade_button.pressed.connect(_on_trade_pressed)
 
-	# OPTIONAL but recommended:
-	# If your SettingsManager emits a signal when colorblind mode changes,
-	# this makes the preview update instantly when toggled.
 	if SettingsManager:
 		if SettingsManager.has_signal("colorblind_mode_changed"):
 			if not SettingsManager.colorblind_mode_changed.is_connected(_on_colorblind_mode_changed):
 				SettingsManager.colorblind_mode_changed.connect(_on_colorblind_mode_changed)
+				
+	if ChanceCardMgr:
+		if not ChanceCardMgr.card_resolved.is_connected(_on_card_resolved):
+			ChanceCardMgr.card_resolved.connect(_on_card_resolved)
 
 
 func _on_current_player_changed(player) -> void:
@@ -91,7 +97,7 @@ func _update_properties_display(player) -> void:
 	for child in properties_grid.get_children():
 		child.queue_free()
 
-	# Get all properties owned by this player
+	# Get all assets owned by this player
 	var owned_properties: Array[Dictionary] = []
 
 	if GameState and GameState.board.size() > 0:
@@ -105,20 +111,31 @@ func _update_properties_display(player) -> void:
 					# Get the space info to show color / symbol
 					var space_info = SpaceData.SPACE_INFO[i]
 					owned_properties.append({
+						"asset_kind": "property",
 						"space_index": i,
 						"name": space_info.get("name", "Unknown"),
 						"color": space_info.get("color", Color.WHITE),
 						"type": space_info.get("type", "property")
 					})
 
+	# Add Go For Launch cards as assets
+	if player.go_for_launch_cards > 0:
+		for n in range(player.go_for_launch_cards):
+			owned_properties.append({
+				"asset_kind": "go_for_launch_card",
+				"name": "Go For Launch Card",
+				"color": Color(0.35, 0.85, 1.0, 1.0),
+				"type": "card"
+			})
+
 	# Update count label
 	count_label.text = "(%d)" % owned_properties.size()
 
-	# Create visual blocks for each property
+	# Create visual blocks for each asset
 	for prop in owned_properties:
 		var border_container := PanelContainer.new()
 		var stylebox := StyleBoxFlat.new()
-		stylebox.bg_color = Color(0, 0, 0, 0)  # Transparent background
+		stylebox.bg_color = Color(0, 0, 0, 0)
 		stylebox.border_width_left = 1
 		stylebox.border_width_top = 1
 		stylebox.border_width_right = 1
@@ -126,47 +143,83 @@ func _update_properties_display(player) -> void:
 		stylebox.border_color = Color(0.3, 0.3, 0.3, 1)
 		border_container.add_theme_stylebox_override("panel", stylebox)
 		border_container.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
-		border_container.tooltip_text = prop.name
+		border_container.tooltip_text = str(prop.get("name", "Unknown Asset"))
 
-		var space_index := int(prop.space_index)
-		var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_index)
+		var asset_kind := str(prop.get("asset_kind", "property"))
 
-		if SettingsManager.is_colorblind_enabled() and symbol_texture != null:
-			# Small symbol icon with black outline for compact preview
-			# Slightly larger than before for better readability
-			var icon_holder := Control.new()
-			icon_holder.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
+		# Real board properties
+		if asset_kind == "property":
+			var space_index := int(prop.get("space_index", -1))
+			var symbol_texture: Texture2D = null
 
-			# Shadow / outline
-			var symbol_shadow := TextureRect.new()
-			symbol_shadow.texture = symbol_texture
-			symbol_shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			symbol_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			symbol_shadow.custom_minimum_size = Vector2(10, 10)
-			symbol_shadow.position = Vector2(3, 3)
-			symbol_shadow.modulate = Color.BLACK
-			icon_holder.add_child(symbol_shadow)
+			if space_index >= 0:
+				symbol_texture = ColorblindHelpers.get_symbol_texture_for_space(space_index)
 
-			# Main symbol
-			var symbol := TextureRect.new()
-			symbol.texture = symbol_texture
-			symbol.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			symbol.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			symbol.custom_minimum_size = Vector2(10, 10)
-			symbol.position = Vector2(2, 2)
-			icon_holder.add_child(symbol)
+			if SettingsManager.is_colorblind_enabled() and symbol_texture != null:
+				# Small symbol icon with black outline for compact preview
+				var icon_holder := Control.new()
+				icon_holder.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
 
-			border_container.add_child(icon_holder)
+				# Shadow / outline
+				var symbol_shadow := TextureRect.new()
+				symbol_shadow.texture = symbol_texture
+				symbol_shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				symbol_shadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				symbol_shadow.custom_minimum_size = Vector2(10, 10)
+				symbol_shadow.position = Vector2(3, 3)
+				symbol_shadow.modulate = Color.BLACK
+				icon_holder.add_child(symbol_shadow)
+
+				# Main symbol
+				var symbol := TextureRect.new()
+				symbol.texture = symbol_texture
+				symbol.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				symbol.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				symbol.custom_minimum_size = Vector2(10, 10)
+				symbol.position = Vector2(2, 2)
+				icon_holder.add_child(symbol)
+
+				border_container.add_child(icon_holder)
+			else:
+				# Normal color block
+				var property_block := ColorRect.new()
+				property_block.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
+				property_block.color = prop.get("color", Color.WHITE)
+				border_container.add_child(property_block)
+
+		elif asset_kind == "go_for_launch_card":
+			# Colored card block with centered "G" for extra empahasis of uniqueness
+			var card_holder := CenterContainer.new()
+			card_holder.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
+
+			var background := ColorRect.new()
+			background.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
+			background.color = prop.get("color", Color(0.35, 0.85, 1.0, 1.0))
+			card_holder.add_child(background)
+
+			var letter := Label.new()
+			letter.text = "G"
+			letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			letter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			letter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			letter.add_theme_font_override("font", load("res://assets/fonts/PixelOperator8.ttf"))
+			letter.add_theme_font_size_override("font_size", 12)
+			letter.add_theme_color_override("font_color", Color.WHITE)
+			card_holder.add_child(letter)
+
+			border_container.add_child(card_holder)
+
 		else:
-			# Normal color block
-			var property_block := ColorRect.new()
-			property_block.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
-			property_block.color = prop.color
-			border_container.add_child(property_block)
+			# Fallback display for other non-property assets
+			var asset_block := ColorRect.new()
+			asset_block.custom_minimum_size = Vector2(PROPERTY_BLOCK_SIZE, PROPERTY_BLOCK_SIZE)
+			asset_block.color = prop.get("color", Color.WHITE)
+			border_container.add_child(asset_block)
 
 		properties_grid.add_child(border_container)
 
-	# Show message if no properties
+	# Show message if no assets
 	if owned_properties.is_empty():
 		var no_props_label := Label.new()
 		no_props_label.text = "No properties yet"
@@ -174,7 +227,6 @@ func _update_properties_display(player) -> void:
 		no_props_label.add_theme_font_size_override("font_size", 10)
 		no_props_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1))
 		properties_grid.add_child(no_props_label)
-
 
 func _on_view_details_pressed() -> void:
 	# Show detailed properties popup
@@ -212,3 +264,15 @@ func open_details_for_player(player) -> void:
 
 func _on_trade_pressed() -> void:
 	trade_pressed.emit()
+
+
+func _on_card_resolved(card_num: int) -> void:
+	# Refresh preview when a Go For Launch card is drawn
+	if card_num == 34 or card_num == 35:
+		refresh_preview()
+
+func _on_trade_completed(_trade_offer: Dictionary) -> void:
+	refresh_preview()
+
+func _on_player_released_from_jail(_player_index: int) -> void:
+	refresh_preview()

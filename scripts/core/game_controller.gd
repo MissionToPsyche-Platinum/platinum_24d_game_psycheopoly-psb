@@ -57,6 +57,9 @@ signal trade_finished()
 ## Emitted when a game action resolves and should be written to the turn log
 signal transaction_logged(message: String)
 
+## Emitted whenever a player's balance changes. delta is positive for credit, negative for debit.
+signal player_money_changed(player_index: int, delta: int)
+
 # ------------------------------------------------------------------------------
 # Signals to be called from space action popup
 # ------------------------------------------------------------------------------
@@ -71,6 +74,10 @@ signal unmortgage_property(property, player)
 signal difficulty_changed(new_value: String)
 signal colorblind_mode_changed(enabled: bool)
 signal setup_changed()
+##signal movement_completed
+
+# ID so trade / sell and other UI can recognize the card without adding major refactoiring of current system.
+const GO_FOR_LAUNCH_TRADE_ID := -1001 
 
 
 func _ready() -> void:
@@ -90,6 +97,7 @@ func debit(player_index: int, amount: int, reason: String = "") -> void:
 	GameState.players[player_index].balance -= amount
 	print("DEBIT ", GameState.players[player_index].player_name, " -$", amount, " ", reason, " => $", GameState.players[player_index].balance)
 	player_money_updated.emit(GameState.players[player_index])
+	player_money_changed.emit(player_index, -amount)
 
 
 func credit(player_index: int, amount: int, reason: String = "") -> void:
@@ -100,6 +108,7 @@ func credit(player_index: int, amount: int, reason: String = "") -> void:
 	GameState.players[player_index].balance += amount
 	print("CREDIT ", GameState.players[player_index].player_name, " +$", amount, " ", reason, " => $", GameState.players[player_index].balance)
 	player_money_updated.emit(GameState.players[player_index])
+	player_money_changed.emit(player_index, amount)
 
 
 func transfer(from_index: int, to_index: int, amount: int, reason: String = "") -> void:
@@ -165,6 +174,16 @@ func _is_property_group_developed(property: PropertySpace) -> bool:
 	return false
 
 
+func _has_upgrades(space_index: int) -> bool:
+	"""Check if a property space has upgrades."""
+	if space_index < 0 or space_index >= GameState.board.size():
+		return false
+	var space = GameState.board[space_index]
+	if space is PropertySpace:
+		return (space as PropertySpace)._current_upgrades > 0
+	return false
+
+
 func _is_space_tradeable_by_owner(space_index: int, owner_index: int) -> bool:
 	if space_index < 0 or space_index >= GameState.board.size():
 		return false
@@ -181,11 +200,17 @@ func get_tradeable_space_indexes(player_index: int) -> Array[int]:
 	var tradeable: Array[int] = []
 	if not _is_valid_player_index(player_index):
 		return tradeable
+
 	for i in range(GameState.board.size()):
 		if _is_space_tradeable_by_owner(i, player_index):
 			tradeable.append(i)
-	return tradeable
 
+	# Add one tradeable entry per Go For Launch card owned
+	var player := GameState.players[player_index]
+	for n in range(int(player.go_for_launch_cards)):
+		tradeable.append(GO_FOR_LAUNCH_TRADE_ID)
+
+	return tradeable
 
 func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 	var result := {"ok": false, "reason": "Invalid trade offer."}
@@ -195,6 +220,41 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 
 	if not _is_valid_player_index(offering_player) or not _is_valid_player_index(target_player):
 		result.reason = "Trade players are invalid."
+		return result
+
+	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
+	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
+
+	var offered_card_count := 0
+	for entry in offered_spaces:
+		var space_index := int(entry)
+		if space_index == GO_FOR_LAUNCH_TRADE_ID:
+			offered_card_count += 1
+		elif not _is_space_tradeable_by_owner(space_index, offering_player):
+			result.reason = "You can only offer assets you own."
+			return result
+		elif _has_upgrades(space_index):
+			result.reason = "You cannot trade properties with upgrades."
+			return result
+
+	var requested_card_count := 0
+	for entry in requested_spaces:
+		var space_index := int(entry)
+		if space_index == GO_FOR_LAUNCH_TRADE_ID:
+			requested_card_count += 1
+		elif not _is_space_tradeable_by_owner(space_index, target_player):
+			result.reason = "Requested asset is not owned by the selected player."
+			return result
+		elif _has_upgrades(space_index):
+			result.reason = "You cannot trade properties with upgrades."
+			return result
+
+	if offered_card_count > int(GameState.players[offering_player].go_for_launch_cards):
+		result.reason = "You do not own that many Go For Launch cards."
+		return result
+
+	if requested_card_count > int(GameState.players[target_player].go_for_launch_cards):
+		result.reason = "The other player does not own that many Go For Launch cards."
 		return result
 
 	result.ok = true
@@ -224,10 +284,24 @@ func execute_trade_offer(trade_offer: Dictionary) -> bool:
 		transfer(target_player, offering_player, request_cash, "trade cash")
 
 	for offered_space in offered_spaces:
-		_transfer_property(GameState.board[int(offered_space)] as Ownable, target_player)
+		var asset_id := int(offered_space)
+		if asset_id == GO_FOR_LAUNCH_TRADE_ID:
+			GameState.players[offering_player].go_for_launch_cards -= 1
+			GameState.players[target_player].go_for_launch_cards += 1
+		else:
+			_transfer_property(GameState.board[asset_id] as Ownable, target_player)
 
 	for requested_space in requested_spaces:
-		_transfer_property(GameState.board[int(requested_space)] as Ownable, offering_player)
+		var asset_id := int(requested_space)
+		if asset_id == GO_FOR_LAUNCH_TRADE_ID:
+			GameState.players[target_player].go_for_launch_cards -= 1
+			GameState.players[offering_player].go_for_launch_cards += 1
+		else:
+			_transfer_property(GameState.board[asset_id] as Ownable, offering_player)
+
+	# Refresh UI that depends on player-held assets
+	player_money_updated.emit(GameState.players[offering_player])
+	player_money_updated.emit(GameState.players[target_player])
 
 	trade_completed.emit(trade_offer)
 	print("Trade completed between ", GameState.get_player_display_name(offering_player), " and ", GameState.get_player_display_name(target_player))
@@ -538,6 +612,24 @@ func _unmortgage_property(property: Ownable, player: int) -> void:
 	transaction_logged.emit("%s unmortgaged %s for $%d." % [player_name, property_name, cost])
 
 
+func sell_gooj_card(player_index: int) -> void:
+	"""Sell a Go For Launch card for $50."""
+	if player_index < 0 or player_index >= GameState.players.size():
+		return
+
+	var player := GameState.players[player_index]
+	if player.go_for_launch_cards <= 0:
+		print("Player has no Go For Launch cards to sell.")
+		return
+
+	const GOOJ_SELL_VALUE := 50
+	player.go_for_launch_cards -= 1
+	credit(player_index, GOOJ_SELL_VALUE, "Sold Go For Launch Card")
+
+	var player_name := get_player_log_name(player_index)
+	transaction_logged.emit("%s sold a Go For Launch Card for $%d." % [player_name, GOOJ_SELL_VALUE])
+
+
 ## Changes the ownership of an ownable property
 func _transfer_property(property: Ownable, player: int) -> void:
 	property.set_property_owner(player)
@@ -747,13 +839,16 @@ func _is_player_active(index: int) -> bool:
 func send_player_to_jail(player_index: int) -> void:
 	if not _is_valid_player_index(player_index):
 		return
-	
+
 	var player = GameState.players[player_index]
 	player.is_in_jail = true
 	player.turns_in_jail = 0
 	player.doubles_count = 0
 	player.has_rolled = true
-	
+
+	# Track jail visits
+	GameState.increment_times_in_jail(player_index)
+
 	emit_signal("player_sent_to_jail", player_index)
 
 func release_player_from_jail(player_index: int) -> void:
@@ -769,6 +864,9 @@ func release_player_from_jail(player_index: int) -> void:
 func end_turn() -> void:
 	var current_player = get_current_player()
 	if current_player:
+		# Track turns taken
+		GameState.increment_turns_taken(GameState.current_player_index)
+
 		# Clean up turn flags so UI and next turn start clean.
 		current_player.has_rolled = false
 		current_player.doubles_count = 0

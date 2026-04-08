@@ -1,0 +1,145 @@
+[gd_scene load_steps=3 format=3 uid="uid://fjcp0m3o3mmy"]
+
+[ext_resource type="Script" uid="uid://dld24o52hsxoo" path="res://scripts/ui/game_rules_popup.gd" id="1_j4crc"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j4crc"]
+bg_color = Color(0.073003955, 0.23997921, 0.38225865, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.81960785, 0.4, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="GameRulesPopup" type="CanvasLayer"]
+script = ExtResource("1_j4crc")
+
+[node name="Control" type="Control" parent="."]
+custom_minimum_size = Vector2(920, 620)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DimOverlay" type="ColorRect" parent="Control"]
+custom_minimum_size = Vector2(960, 620)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.101960786, 0.101960786, 0.14901961, 0.98039216)
+
+[node name="PanelContainer" type="PanelContainer" parent="Control"]
+custom_minimum_size = Vector2(800, 620)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -528.0
+offset_top = -310.0
+offset_right = 528.0
+offset_bottom = 310.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/PanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="HeaderHBox" type="HBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 700
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Control/PanelContainer/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "GAME RULES"
+
+[node name="CloseButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_j4crc")
+text = "CLOSE"
+
+[node name="HSeparator" type="HSeparator" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ContentHBox" type="HBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SectionButtons" type="VBoxContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox"]
+layout_mode = 2
+
+[node name="OverviewButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Overview"
+
+[node name="SetupButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Setup"
+
+[node name="TurnButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Taking A Turn"
+
+[node name="PropertiesButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Buying Properties"
+
+[node name="RentButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Rent"
+
+[node name="AuctionButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Auctions"
+
+[node name="TradeButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Trading"
+
+[node name="SpecialSpacesButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Special Spaces"
+
+[node name="CardsButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Cards"
+
+[node name="LaunchPadButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Launch Pad"
+
+[node name="BankruptcyButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Bankruptcy"
+
+[node name="WinningButton" type="Button" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/SectionButtons"]
+layout_mode = 2
+text = "Winning"
+
+[node name="RulesScroll" type="ScrollContainer" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox"]
+custom_minimum_size = Vector2(700, 500)
+layout_mode = 2
+
+[node name="RulesText" type="RichTextLabel" parent="Control/PanelContainer/MarginContainer/VBoxContainer/ContentHBox/RulesScroll"]
+custom_minimum_size = Vector2(700, 500)
+layout_mode = 2
+bbcode_enabled = true
+scroll_active = false

@@ -96,7 +96,6 @@ func submit_bid(amount: int) -> bool:
 	else:
 		min_required = maxi(high_bid + min_increment, min_increment)
 
-
 	if amount < min_required:
 		emit_signal("message", "Bid must be at least $" + str(min_required) + ".")
 		return false
@@ -109,11 +108,17 @@ func submit_bid(amount: int) -> bool:
 	# Accept bid
 	high_bid = amount
 	high_bidder_index = p_idx
-	passed.clear() # reset: everyone is back in after a new high bid
+
+	# A player who passes is out for the rest of the auction.
 
 	emit_signal("bid_updated", high_bid, high_bidder_index)
 
-	# After a bid, advance to next eligible player
+	# After a bid, if everyone else has already passed, end immediately.
+	if _should_end_auction():
+		_end_auction()
+		return true
+
+	# Otherwise advance to next eligible player
 	_advance_turn()
 
 	return true

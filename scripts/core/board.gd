@@ -26,6 +26,11 @@ var piece: Node2D = null
 var tile_map_layer: TileMapLayer = null
 var highlight_layer: TileMapLayer = null
 
+var pending_card_player_index: int = -1
+var pending_card_space_num: int = -1
+var pending_card_followup_movement: bool = false
+
+
 @onready var board_tilemap: Node = $TileMap # reference to tilemap so we can implement the colorblind mode.
 @onready var turn_log_panel: Control = $TurnLogLayer/TurnLogPanel
 
@@ -125,6 +130,14 @@ const NotificationPopupScene = preload("res://scenes/NotificationPopup.tscn")
 var notification_popup: Control = null
 var notification_popup_layer: CanvasLayer = null
 
+const AiTurnBannerScene = preload("res://scenes/AiTurnBanner.tscn")
+var ai_turn_banner: Control = null
+
+const AiActionToastScene = preload("res://scenes/AiActionToast.tscn")
+var ai_action_toast: Control = null
+
+const FloatingNumberScene = preload("res://scenes/FloatingNumber.tscn")
+
 const SettingsMenuScene = preload("res://scenes/SettingsMenu.tscn")
 var settings_menu: Control = null
 var settings_menu_layer: CanvasLayer = null
@@ -136,6 +149,12 @@ var pause_menu_layer: CanvasLayer = null
 const EndGamePopupScene = preload("res://scenes/EndGamePopup.tscn")
 var end_game_popup: EndGamePopup = null
 var end_game_popup_layer: CanvasLayer = null
+
+#Game Rules popup
+const GameRulesPopupScene = preload("res://scenes/GameRulesPopup.tscn")
+
+var game_rules_popup: CanvasLayer = null
+var game_rules_popup_layer: CanvasLayer = null
 
 # Pending debt info while player is resolving bankruptcy
 var pending_debtor_index: int = -1
@@ -176,6 +195,8 @@ func _ready() -> void:
 		
 	if not GameController.transaction_logged.is_connected(_on_transaction_logged):
 		GameController.transaction_logged.connect(_on_transaction_logged)
+	if not GameController.player_money_changed.is_connected(_on_player_money_changed):
+		GameController.player_money_changed.connect(_on_player_money_changed)
 
 	# Spawn pieces using the configured players/colors
 	# If players aren't built yet for some reason, we'll rebuild when setup_changed fires.
@@ -209,6 +230,9 @@ func _ready() -> void:
 	#instantiae pause menu
 	_setup_pause_menu()
 	
+	#Instantiate game rules
+	_setup_game_rules_popup()
+	
 	#instantite settings menu
 	_setup_settings_menu()
 	
@@ -224,7 +248,9 @@ func _ready() -> void:
 	call_deferred("_setup_bankruptcy_popup_async")
 	_setup_jail_popup()
 	_setup_notification_popup()
-	
+	_setup_ai_turn_banner()
+	_setup_ai_action_toast()
+
 	call_deferred("_setup_end_game_popup_async")
 	_setup_match_stats_popup()
 
@@ -244,6 +270,8 @@ func _ready() -> void:
 		GameController.bankruptcy_needed.connect(_on_bankruptcy_needed)
 	if not GameController.player_sent_to_jail.is_connected(_on_player_sent_to_jail):
 		GameController.player_sent_to_jail.connect(_on_player_sent_to_jail)
+
+	# AI action feedback is handled via transaction_logged (see _on_transaction_logged)
 
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
@@ -295,6 +323,24 @@ func _setup_notification_popup() -> void:
 	notification_popup = NotificationPopupScene.instantiate()
 	notification_popup_layer.add_child(notification_popup)
 	get_tree().root.call_deferred("add_child", notification_popup_layer)
+
+func _setup_ai_turn_banner() -> void:
+	var banner_layer = CanvasLayer.new()
+	banner_layer.name = "AiTurnBannerLayer"
+	banner_layer.layer = 15 # Above game board but below most popups
+
+	ai_turn_banner = AiTurnBannerScene.instantiate()
+	banner_layer.add_child(ai_turn_banner)
+	get_tree().root.call_deferred("add_child", banner_layer)
+
+func _setup_ai_action_toast() -> void:
+	var toast_layer = CanvasLayer.new()
+	toast_layer.name = "AiActionToastLayer"
+	toast_layer.layer = 50 # Below popups but above game
+
+	ai_action_toast = AiActionToastScene.instantiate()
+	toast_layer.add_child(ai_action_toast)
+	get_tree().root.call_deferred("add_child", toast_layer)
 	
 func _setup_end_game_popup() -> void:
 	# Prevent duplicate creation
@@ -576,8 +622,13 @@ func _on_turn_started(player_index: int) -> void:
 
 	if space_info_panel:
 		space_info_panel.update_space_display(current_piece.board_space)
-		
+
 	var current_player := GameController.get_current_player()
+
+	# Show AI turn banner for AI players
+	if current_player and current_player.player_is_ai and ai_turn_banner and ai_turn_banner.has_method("show_banner"):
+		ai_turn_banner.show_banner(current_player.player_name)
+
 	if current_player and current_player.is_in_jail:
 		current_player.has_rolled = true # Disable regular rolling temporarily
 		if jail_popup and jail_popup.has_method("show_for_player") and current_player.player_is_ai == false:
@@ -590,6 +641,10 @@ func _on_turn_ended(player_index: int) -> void:
 
 	var player_name := get_player_log_name(player_index)
 	log_event("%s ended their turn." % player_name)
+
+	# Hide AI turn banner
+	if ai_turn_banner and ai_turn_banner.has_method("hide_banner"):
+		ai_turn_banner.hide_banner()
 	
 
 
@@ -623,12 +678,19 @@ func _on_piece_movement_finished(space_num: int) -> void:
 	print("Piece finished moving at space: ", space_num)
 	update_piece_layouts_at(space_num)
 
+	# If this movement came from a card, the follow-up movement has now completed.
+	# Clear the flag here so doubles logic is not released too early, but future
+	# action_completed calls can behave normally again after this landing resolves.
+	if pending_card_followup_movement:
+		pending_card_followup_movement = false
+
 	var player_name := get_player_log_name(GameState.current_player_index)
 	var default_space_name := "Space %d" % space_num
 	var space_name := default_space_name
+	var landed_space = null
 
 	if space_num >= 0 and space_num < GameState.board.size():
-		var landed_space = GameState.board[space_num]
+		landed_space = GameState.board[space_num]
 
 		if landed_space != null and landed_space.has_method("get_name"):
 			var candidate = str(landed_space.get_name()).strip_edges()
@@ -648,6 +710,23 @@ func _on_piece_movement_finished(space_num: int) -> void:
 
 	log_event("%s landed on %s." % [player_name, space_name])
 
+	# Capture card context NOW so delayed card logging doesn't use the next player
+	if landed_space != null:
+		var scr: Script = landed_space.get_script() as Script
+		var gname := ""
+		if scr != null:
+			gname = scr.get_global_name()
+
+		if gname == "CardSpace":
+			pending_card_player_index = GameState.current_player_index
+			pending_card_space_num = space_num
+		else:
+			pending_card_player_index = -1
+			pending_card_space_num = -1
+	else:
+		pending_card_player_index = -1
+		pending_card_space_num = -1
+
 	# Skip space action popup if the player was just sent to jail — the
 	# notification popup and jail popup handle everything from here.
 	var current_player := GameController.get_current_player()
@@ -658,14 +737,16 @@ func _on_piece_movement_finished(space_num: int) -> void:
 		if not space_action_popup.is_node_ready():
 			await space_action_popup.ready
 
-		if (current_player.player_is_ai == false):
+		if current_player.player_is_ai == false:
 			space_action_popup.show_actions(space_num)
-		else:
-			AiManager.ai_lands_on_space(space_num)
 
-		await get_tree().process_frame
-		if not space_action_popup.visible:
-			GameController.action_completed.emit()
+			# Only humans use this fallback auto-complete behavior
+			await get_tree().process_frame
+			if not space_action_popup.visible:
+				GameController.action_completed.emit()
+		else:
+			# AI may trigger async card / popup flows, so try not to auto-complete here
+			AiManager.ai_lands_on_space(space_num)
 
 
 func _on_purchase_pressed(space_num: int) -> void:
@@ -834,16 +915,28 @@ func _on_move_pressed(space_num: int) -> void:
 
 
 func _on_draw_card_pressed(space_num: int) -> void:
-	var player_name := get_player_log_name(GameState.current_player_index)
+	var acting_player_index := pending_card_player_index
+	if acting_player_index < 0:
+		acting_player_index = GameState.current_player_index
+
+	var player_name := get_player_log_name(acting_player_index)
 	var space_name := "a card space"
 
-	var space_info = SpaceDataRef.get_space_info(space_num)
+	var effective_space_num := space_num
+	if effective_space_num < 0 and pending_card_space_num >= 0:
+		effective_space_num = pending_card_space_num
+
+	var space_info = SpaceDataRef.get_space_info(effective_space_num)
 	if space_info.has("name"):
 		var candidate := str(space_info["name"]).strip_edges()
 		if candidate != "":
 			space_name = candidate
 
 	log_event("%s drew a card from %s." % [player_name, space_name])
+
+	# Clear pending card context after logging
+	pending_card_player_index = -1
+	pending_card_space_num = -1
 
 	# action_completed is emitted by chance_card_popup once the card is closed
 	pass
@@ -1189,6 +1282,9 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				# _on_player_sent_to_jail handles the notification and action_completed
 				if (current_player.player_is_ai == true):
 					AiManager.handle_doubles_jail()
+				else:
+					# For humans, end turn after going to jail
+					GameController.end_turn()
 				return
 		else:
 			current_player.doubles_count = 0
@@ -1211,19 +1307,11 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	player.doubles_count = 0
 
 	var player_name := get_player_log_name(GameState.current_player_index)
-	var die_1 := 0
-	var die_2 := 0
-
-	# We only know total + doubles here, not the original d1/d2 values.
-	# So we log the total cleanly for jail resolution.
-	if is_doubles:
-		log_event("%s rolled doubles (%d) in the Launch Pad." % [player_name, total])
-	else:
-		log_event("%s rolled %d in the Launch Pad and did not get doubles." % [player_name, total])
 
 	if is_doubles:
+		log_event("%s rolled doubles in the Launch Pad and left it." % player_name)
+
 		print("Rolled doubles! Escaped jail.")
-		log_event("%s escaped the Launch Pad and moves %d spaces." % [player_name, total])
 
 		GameController.release_player_from_jail(GameState.current_player_index)
 
@@ -1234,13 +1322,13 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	else:
 		if player.turns_in_jail == 3:
 			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
-			log_event("%s failed to escape after 3 turns and must pay $50 for a Launch Permit." % player_name)
+			log_event("%s did not roll doubles on their final Launch Pad turn and must pay $50 to leave." % player_name)
 
 			var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
 			if not paid:
-				log_event("%s cannot afford the $50 Launch Permit and may go bankrupt." % player_name)
+				log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
 			else:
-				log_event("%s pays $50 for a Launch Permit and leaves the Launch Pad." % player_name)
+				log_event("%s paid $50 to leave the Launch Pad after failing to roll doubles." % player_name)
 
 			GameController.release_player_from_jail(GameState.current_player_index)
 
@@ -1249,7 +1337,7 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 			update_piece_layouts_at(old_space)
 		else:
 			print("Did not roll doubles. Stay in jail.")
-			log_event("%s remains in the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
+			log_event("%s did not roll doubles and remains on the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
 
 			# Don't move, turn effectively over. Need to simulate action completed so End Turn button enables.
 			GameController.action_completed.emit()
@@ -1257,7 +1345,10 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 	GameController.emit_signal("player_rolled", player)
 
 
+
 func _card_forward_movement(move_spaces: int) -> void:
+	pending_card_followup_movement = true
+
 	# Move the current player's piece forward to the correct space
 	if current_piece:
 		var old_space: int = int(current_piece.board_space)
@@ -1267,6 +1358,8 @@ func _card_forward_movement(move_spaces: int) -> void:
 
 
 func _card_teleport_movement(space_location: int) -> void:
+	pending_card_followup_movement = true
+
 	if current_piece:
 		var old_space: int = int(current_piece.board_space)
 		current_piece.teleport_to_space(space_location)
@@ -1720,6 +1813,13 @@ func _on_action_completed() -> void:
 	var p := GameController.get_current_player()
 	if not p:
 		return
+
+	# If a chance/community-style card is still causing follow-up movement,
+	# do not clear doubles/rolled state yet. The destination landing still
+	# needs to resolve as part of the same turn.
+	if pending_card_followup_movement:
+		return
+
 	# If they rolled doubles, allow another roll by clearing has_rolled
 	# (DiceRollPanel should re-enable the Roll button automatically)
 	if p.last_roll_was_doubles:
@@ -1727,8 +1827,16 @@ func _on_action_completed() -> void:
 		p.last_roll_was_doubles = false
 
 func _on_doubles_rolled() -> void:
-	if notification_popup && GameController.get_current_player().player_is_ai == false:
-		var current_player := GameController.get_current_player()
+	var current_player := GameController.get_current_player()
+	if current_player and current_player.player_is_ai:
+		if ai_action_toast and ai_action_toast.has_method("show_toast"):
+			if current_player.is_in_jail:
+				ai_action_toast.show_toast("Rolled doubles! Leaving the Launch Pad.")
+			else:
+				ai_action_toast.show_toast("Rolled doubles! Rolling again.")
+		return
+
+	if notification_popup:
 		if current_player and current_player.is_in_jail:
 			notification_popup.show_notification("Doubles!", "Go for Launch! Move forward.")
 		else:
@@ -1747,7 +1855,50 @@ func _on_colorblind_mode_changed(enabled: bool) -> void:
 	
 func _on_transaction_logged(message: String) -> void:
 	log_event(message)
-	
+
+	var current_player := GameController.get_current_player()
+
+	# Show special toast for passing GO
+	if "Passed GO" in message:
+		if ai_action_toast and ai_action_toast.has_method("show_toast"):
+			ai_action_toast.show_toast("Passed GO! Collect $200")
+	# Show AI action toast for other AI actions
+	elif current_player and current_player.player_is_ai and ai_action_toast and ai_action_toast.has_method("show_toast"):
+		ai_action_toast.show_toast(message)
+
+func _on_player_money_changed(player_index: int, delta: int) -> void:
+	# Only show floating numbers for the human player viewing the board
+	var current_player := GameController.get_current_player()
+	if not current_player:
+		return
+	if GameState.current_player_index != player_index:
+		return
+	if delta == 0:
+		return
+	_spawn_floating_number(delta)
+
+func _spawn_floating_number(amount: int) -> void:
+	if not money_hud or not is_instance_valid(money_hud):
+		return
+
+	var floating_num = FloatingNumberScene.instantiate()
+	floating_num.add_to_group("floating_money_numbers")
+	money_hud.add_child(floating_num)
+	floating_num.z_index = 100
+
+	# Stagger if other floating numbers are still alive
+	var existing := get_tree().get_nodes_in_group("floating_money_numbers").size() - 1
+	var stack_offset := Vector2(0, -18 * existing)
+
+	# Position to the right of the money panel
+	var panel := money_hud.get_node_or_null("Panel") as Control
+	if panel:
+		floating_num.position = Vector2(panel.position.x + panel.size.x + 8, panel.position.y + (panel.size.y - 24) * 0.5) + stack_offset
+	else:
+		floating_num.position = Vector2(120, -20) + stack_offset
+
+	if floating_num.has_method("play"):
+		floating_num.call("play", amount)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_pause"):
@@ -1788,6 +1939,9 @@ func _setup_pause_menu() -> void:
 
 	if pause_menu.has_signal("quit_requested"):
 		pause_menu.quit_requested.connect(_on_pause_quit_requested)
+
+	if pause_menu.has_signal("how_to_play_requested"):
+		pause_menu.how_to_play_requested.connect(_on_pause_how_to_play_requested)
 		
 		
 func _on_pause_settings_requested() -> void:
@@ -1825,6 +1979,33 @@ func _on_settings_closed() -> void:
 	
 	if pause_menu and pause_menu.has_method("show_menu_only"):
 		pause_menu.show_menu_only()
+		
+func _setup_game_rules_popup() -> void:
+	game_rules_popup_layer = CanvasLayer.new()
+	game_rules_popup_layer.name = "GameRulesPopupLayer"
+	game_rules_popup_layer.layer = 550
+
+	game_rules_popup = GameRulesPopupScene.instantiate()
+	game_rules_popup.name = "GameRulesPopup"
+
+	game_rules_popup_layer.add_child(game_rules_popup)
+	get_tree().root.call_deferred("add_child", game_rules_popup_layer)
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.hide()
+
+	if game_rules_popup.has_signal("closed"):
+		game_rules_popup.closed.connect(_on_game_rules_closed)
+
+	print("Board: GameRulesPopup setup complete")
+	
+func _on_game_rules_closed() -> void:
+	print("Board: Game Rules closed")
+
+	_show_board_ui_after_rules()
+
+	if pause_menu and is_instance_valid(pause_menu):
+		pause_menu.show_menu_only()
 
 func _on_pause_quit_requested() -> void:
 	if pause_menu:
@@ -1832,6 +2013,17 @@ func _on_pause_quit_requested() -> void:
 
 	_cleanup_root_ui()
 	call_deferred("_go_to_start_menu")
+	
+func _on_pause_how_to_play_requested() -> void:
+	print("Board: How to Play requested")
+
+	_hide_board_ui_for_rules()
+
+	if pause_menu and is_instance_valid(pause_menu):
+		pause_menu.hide_menu_only()
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.show_popup()
 
 
 func _go_to_start_menu() -> void:
@@ -2173,10 +2365,13 @@ func _on_end_game_stats_requested() -> void:
 			var earnings := int(GameState.get_player_earnings(i))
 			var final_net_worth := int(GameState.get_player_final_net_worth(i))
 			var pre_bankruptcy_net_worth := int(p.net_worth_before_bankruptcy)
+			var turns_taken := int(GameState.get_player_turns_taken(i))
+			var times_in_jail := int(GameState.get_player_times_in_jail(i))
 
 			detail_lines.append("%s" % player_name)
 			detail_lines.append("Cash: $%d    Properties Owned: %d" % [cash, props])
 			detail_lines.append("Earnings: $%d    Final Net Worth: $%d" % [earnings, final_net_worth])
+			detail_lines.append("Turns Taken: %d    Times in Jail: %d" % [turns_taken, times_in_jail])
 
 			if pre_bankruptcy_net_worth >= 0:
 				detail_lines.append("Net Worth Before Bankruptcy: $%d" % pre_bankruptcy_net_worth)
@@ -2235,3 +2430,49 @@ func _on_match_stats_back_requested() -> void:
 
 	if end_game_popup and is_instance_valid(end_game_popup):
 		end_game_popup.show()
+
+
+func _hide_board_ui_for_rules() -> void:
+	if space_info_panel and is_instance_valid(space_info_panel):
+		space_info_panel.hide()
+
+	if dice_roll_ui and is_instance_valid(dice_roll_ui):
+		dice_roll_ui.hide()
+
+	if money_hud and is_instance_valid(money_hud):
+		money_hud.hide()
+
+	if player_name_hud and is_instance_valid(player_name_hud):
+		player_name_hud.hide()
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.hide()
+
+	if end_turn_button and is_instance_valid(end_turn_button):
+		end_turn_button.hide()
+
+	if turn_log_panel and is_instance_valid(turn_log_panel):
+		turn_log_panel.hide()
+		
+
+func _show_board_ui_after_rules() -> void:
+	if space_info_panel and is_instance_valid(space_info_panel):
+		space_info_panel.show()
+
+	if dice_roll_ui and is_instance_valid(dice_roll_ui):
+		dice_roll_ui.show()
+
+	if money_hud and is_instance_valid(money_hud):
+		money_hud.show()
+
+	if player_name_hud and is_instance_valid(player_name_hud):
+		player_name_hud.show()
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.show()
+
+	if end_turn_button and is_instance_valid(end_turn_button):
+		end_turn_button.show()
+
+	if turn_log_panel and is_instance_valid(turn_log_panel):
+		turn_log_panel.show()
