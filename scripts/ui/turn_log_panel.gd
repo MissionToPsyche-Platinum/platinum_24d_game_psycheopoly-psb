@@ -148,6 +148,52 @@ func add_turn_header(player_index: int, player_name: String, turn_number: int, i
 	]
 
 	add_log_entry(player_header)
+
+func get_previous_turn_entries(max_entries: int = 8) -> Array[String]:
+	var turn_header_indexes: Array[int] = []
+	for i in range(log_entries.size()):
+		if _is_turn_header(log_entries[i]):
+			turn_header_indexes.append(i)
+
+	# Need at least two turn headers: current turn and the one before it.
+	if turn_header_indexes.size() < 2:
+		return []
+
+	var previous_turn_header_idx := turn_header_indexes[turn_header_indexes.size() - 2]
+	var current_turn_header_idx := turn_header_indexes[turn_header_indexes.size() - 1]
+
+	var entries: Array[String] = []
+	var previous_turn_header := _strip_bbcode_tags(log_entries[previous_turn_header_idx]).strip_edges()
+	if previous_turn_header != "":
+		entries.append(previous_turn_header)
+
+	for i in range(previous_turn_header_idx + 1, current_turn_header_idx):
+		var plain_text := _strip_bbcode_tags(log_entries[i]).strip_edges()
+		if plain_text == "":
+			continue
+		if _is_round_header(plain_text):
+			continue
+		if _is_turn_header(log_entries[i]):
+			continue
+		entries.append(plain_text)
+
+	if max_entries > 0 and entries.size() > max_entries:
+		entries = entries.slice(entries.size() - max_entries, entries.size())
+
+	return entries
+
+func _is_turn_header(entry_text: String) -> bool:
+	var plain_text := _strip_bbcode_tags(entry_text).strip_edges().to_upper()
+	return plain_text.begins_with("--- ") and plain_text.ends_with("'S TURN ---")
+
+func _is_round_header(entry_text: String) -> bool:
+	var upper_text := entry_text.to_upper()
+	return upper_text.begins_with("=== ROUND ") and upper_text.ends_with(" BEGIN ===")
+
+func _strip_bbcode_tags(text: String) -> String:
+	var regex := RegEx.new()
+	regex.compile("\\[/?[^\\]]+\\]")
+	return regex.sub(text, "", true)
 	
 	
 func _get_player_header_color_from_game_state(player_index: int) -> String:
@@ -315,9 +361,9 @@ func _normalize_money_signs(text: String) -> String:
 			if prev_char == "+" or prev_char == "-":
 				continue
 
-		var sign := _infer_money_sign(result, start_idx)
-		if sign != "":
-			var replacement := sign + amount_text
+		var money_sign := _infer_money_sign(result, start_idx)
+		if money_sign != "":
+			var replacement := money_sign + amount_text
 			result = result.substr(0, start_idx) + replacement + result.substr(match.get_end())
 
 	return result

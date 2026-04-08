@@ -201,6 +201,24 @@ func check_if_ai_turn(player_index) -> void:
 	if GameState.players[player_index].player_is_ai == true:
 		ai_turn_start()
 
+func _get_recent_previous_turn_events(max_entries: int = 8) -> Array[String]:
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return []
+
+	if not current_scene.has_node("TurnLogLayer/TurnLogPanel"):
+		return []
+
+	var panel = current_scene.get_node("TurnLogLayer/TurnLogPanel")
+	if panel == null or not panel.has_method("get_previous_turn_entries"):
+		return []
+
+	var previous_turn_entries = panel.call("get_previous_turn_entries", max_entries)
+	if previous_turn_entries is Array:
+		return previous_turn_entries
+
+	return []
+
 func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 	var curr_player = GameState.players[curr_player_idx]
 
@@ -242,6 +260,7 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 			})
 
 	var owed = _bankruptcy_amount if _fallback_state == "bankruptcy" else 0
+	var recent_previous_turn_events: Array[String] = _get_recent_previous_turn_events(8)
 
 	# Pass difficulty setting in the prompt
 	return {
@@ -261,7 +280,8 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		"valid_unmortgages": validUnmortgages,
 		"owned_properties": all_owned_properties[curr_player_idx],
 		"can_buy_property_here": can_buy,
-		"opponents": opponents
+		"opponents": opponents,
+		"recent_previous_turn_events": recent_previous_turn_events
 	}
 
 func _run_llm_ai_turn() -> void:

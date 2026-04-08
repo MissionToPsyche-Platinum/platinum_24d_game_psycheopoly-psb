@@ -66,6 +66,10 @@ func take_turn(game_state_dictionary: Dictionary):
 	var prompt_text = "You are an AI playing a Monopoly-like board game.\n"
 	prompt_text += "You are playing as " + str(game_state_dictionary.get("player_name", "AI")) + " (Player ID: " + str(game_state_dictionary.get("player_index", -1)) + ").\n"
 	prompt_text += "The current difficulty is set to: " + diff + ".\n"
+	if game_state_dictionary.has("recent_previous_turn_events"):
+		var previous_turn_events = game_state_dictionary.get("recent_previous_turn_events", [])
+		if previous_turn_events is Array and previous_turn_events.size() > 0:
+			prompt_text += "Use recent_previous_turn_events for short-term context from the last completed turn. Prioritize legal moves from the provided valid_* action lists.\n"
 	
 	if diff == "Hard":
 		prompt_text += "Make very strategic, cutthroat decisions. Aggressively buy properties and try to bankrupt opponents.\n"
