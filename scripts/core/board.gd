@@ -787,6 +787,9 @@ func _start_auction(space_num: int) -> void:
 	if space_action_popup:
 		space_action_popup.hide()
 
+	# If an AI toast is currently showing, let it finish before opening auction
+	await _wait_for_ai_toast_before_popup()
+
 	# Make sure auction popup is fully ready (prevents null @onready fields)
 	if auction_popup and not auction_popup.is_node_ready():
 		await auction_popup.ready
@@ -2040,16 +2043,18 @@ func _go_to_game_setup_screen() -> void:
 func _cleanup_root_ui() -> void:
 	# Free CanvasLayers / root-level UI added by Board
 	var names_to_remove := [
-	"DiceRollLayer",
-	"MoneyHUDLayer",
-	"PlayerNameHUDLayer",
-	"PlayerPropertiesPreviewLayer",
-	"EndTurnButtonLayer",
-	"PauseMenuLayer",
-	"SettingsMenuLayer",
-	"EndGamePopupLayer",
-	"MatchStatsPopupLayer"
-]
+		"DiceRollLayer",
+		"MoneyHUDLayer",
+		"PlayerNameHUDLayer",
+		"PlayerPropertiesPreviewLayer",
+		"EndTurnButtonLayer",
+		"PauseMenuLayer",
+		"SettingsMenuLayer",
+		"EndGamePopupLayer",
+		"MatchStatsPopupLayer",
+		"AiTurnBannerLayer",
+		"AiActionToastLayer"
+	]
 
 	for child in get_tree().root.get_children():
 		if child.name in names_to_remove:
@@ -2111,6 +2116,18 @@ func _cleanup_root_ui() -> void:
 	if match_stats_popup_layer and is_instance_valid(match_stats_popup_layer):
 		match_stats_popup_layer.queue_free()
 		match_stats_popup_layer = null
+
+	# cleanup for AI turn banner / toast references
+	if ai_turn_banner and is_instance_valid(ai_turn_banner):
+		if ai_turn_banner.has_method("hide_banner"):
+			ai_turn_banner.hide_banner()
+		else:
+			ai_turn_banner.hide()
+		ai_turn_banner = null
+
+	if ai_action_toast and is_instance_valid(ai_action_toast):
+		ai_action_toast.hide()
+		ai_action_toast = null
 		
 		
 		
@@ -2476,3 +2493,15 @@ func _show_board_ui_after_rules() -> void:
 
 	if turn_log_panel and is_instance_valid(turn_log_panel):
 		turn_log_panel.show()
+
+func _wait_for_ai_toast_before_popup() -> void:
+	var current_player := GameController.get_current_player()
+
+	if current_player == null:
+		return
+
+	if not current_player.player_is_ai:
+		return
+
+	if ai_action_toast and is_instance_valid(ai_action_toast) and ai_action_toast.has_method("wait_until_finished"):
+		await ai_action_toast.wait_until_finished()

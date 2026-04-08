@@ -475,30 +475,52 @@ func ai_create_trade_offer(buying: bool) -> void:
 		target_player += 1
 		
 	var receivablePropeties: Array[int] = []
-	if (buying):
+	if buying:
 		for i in range(GameState.players.size()):
-			if (i != current_player):
+			if i != current_player:
 				receivablePropeties.append_array(GameController.get_tradeable_space_indexes(i))
 		receivablePropeties.sort_custom(_sort_by_multiplier)
-		if (receivablePropeties.size() > 0):
-			receivingProperties.append(receivablePropeties[0])	
+
+		if receivablePropeties.size() > 0:
+			receivingProperties.append(receivablePropeties[0])
 			target_player = GameState.board[receivingProperties[0]]._player_owner
-		var maxOffer = min(GameController.get_current_player().balance, _calculate_AI_property_value(GameState.players[current_player], receivingProperties[0]))
-		offeringCash = randi_range(maxOffer / 2, maxOffer)
+
+			var maxOffer = min(
+				GameController.get_current_player().balance,
+				_calculate_AI_property_value(GameState.players[current_player], receivingProperties[0])
+			)
+			offeringCash = randi_range(maxOffer / 2, maxOffer)
 	else:
 		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
 		offerablePropeties.sort_custom(_sort_by_multiplier)
-		if (offerablePropeties.size() > 0):
+
+		if offerablePropeties.size() > 0:
 			offeringProperties.append(offerablePropeties[offerablePropeties.size() - 1])
-		
-		var propertyValue = _calculate_AI_property_value(GameState.players[current_player], offeringProperties[0])
-		if (propertyValue < GameState.players[target_player].balance):
-			receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
-		else:
-			receivingCash = GameState.players[current_player]
+
+			var propertyValue = _calculate_AI_property_value(GameState.players[current_player], offeringProperties[0])
+			if propertyValue < GameState.players[target_player].balance:
+				receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
+			else:
+				receivingCash = GameState.players[target_player].balance
 			
-	if (offeringProperties.size() > 0 || receivingProperties.size() > 0):
-		ai_trade_create.emit(current_player, target_player, offeringCash, receivingCash, offeringProperties, receivingProperties) # only create offer is AI is trading a property
+	if offeringProperties.size() > 0 or receivingProperties.size() > 0:
+		if not _is_same_ai_turn(current_player):
+			return
+
+		# Give the AI action toast time to finish before the trade popup is requested
+		await get_tree().create_timer(2.9, true).timeout
+
+		if not _is_same_ai_turn(current_player):
+			return
+
+		ai_trade_create.emit(
+			current_player,
+			target_player,
+			offeringCash,
+			receivingCash,
+			offeringProperties,
+			receivingProperties
+		) # only create offer if AI is trading a property
 	else:
 		ai_turn_post_trade()
 

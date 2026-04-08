@@ -1,6 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://ai_action_toast"]
+[gd_scene load_steps=4 format=3 uid="uid://knfqucdrw1rm"]
 
-[ext_resource type="Script" uid="uid://ai_action_toast_script" path="res://scripts/ui/ai_action_toast.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dkxg03sxx5tm" path="res://scripts/ui/ai_action_toast.gd" id="1_script"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="2_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
@@ -16,7 +16,7 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [node name="AiActionToast" type="Control"]
-layout_mode = 1
+layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -48,15 +48,15 @@ theme_override_constants/margin_bottom = 5
 
 [node name="ToastLabel" type="Label" parent="PanelContainer/MarginContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "CPU bought Hebe for $120"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="DismissTimer" type="Timer" parent="."]
-wait_time = 2.0
+wait_time = 2.5
 one_shot = true
 
 [connection signal="timeout" from="DismissTimer" to="." method="_on_dismiss_timer_timeout"]
