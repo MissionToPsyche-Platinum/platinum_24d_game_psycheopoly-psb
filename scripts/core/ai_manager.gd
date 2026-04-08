@@ -392,6 +392,12 @@ func ai_create_trade_offer() -> void:
 	if not _is_same_ai_turn(current_player):
 		return
 
+	# Give the AI action toast time to finish before the trade popup is requested
+	await get_tree().create_timer(2.9, true).timeout
+
+	if not _is_same_ai_turn(current_player):
+		return
+
 	ai_trade_create.emit(current_player, target_player, offeringCash, receivingCash, offeringProperties, receivingProperties)
 
 
