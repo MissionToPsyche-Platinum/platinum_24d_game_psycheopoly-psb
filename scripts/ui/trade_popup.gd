@@ -25,12 +25,13 @@ signal popup_closed
 @onready var list_row: HBoxContainer = $Control/CenterContainer/Panel/MarginContainer/VBoxContainer/ListRow
 
 
-const ColorblindHelpers = preload("res://scripts/ui/colorblind_helpers.gd")
+const ColorblindHelpersRef = preload("res://scripts/ui/colorblind_helpers.gd")
 
 var _offering_player: int = -1
 var _pending_offer: Dictionary = {}
 var _color_icon_cache: Dictionary = {}
 var _in_review_mode: bool = false
+var _awaiting_ai_decision: bool = false
 
 const CHECKBOX_COLUMN := 0
 const PROPERTY_COLUMN := 1
@@ -108,6 +109,7 @@ func hide_popup() -> void:
 
 func _set_compose_mode() -> void:
 	_in_review_mode = false
+	_awaiting_ai_decision = false
 	compose_buttons.visible = true
 	review_box.visible = false
 	
@@ -123,6 +125,7 @@ func _set_compose_mode() -> void:
 
 func _set_review_mode(summary: String) -> void:
 	_in_review_mode = true
+	_awaiting_ai_decision = false
 	compose_buttons.visible = false
 	review_box.visible = true
 	
@@ -132,8 +135,18 @@ func _set_review_mode(summary: String) -> void:
 	status_label.visible = false
 	
 	root_panel.custom_minimum_size = Vector2(760, 310)
-	
-	back_button.visible = not (GameState.players[_offering_player].player_is_ai)
+
+	var offering_is_ai := false
+	if _offering_player >= 0 and _offering_player < GameState.players.size():
+		offering_is_ai = GameState.players[_offering_player].player_is_ai
+
+	var target_player := int(_pending_offer.get("target_player", -1))
+	if target_player >= 0 and target_player < GameState.players.size():
+		_awaiting_ai_decision = GameState.players[target_player].player_is_ai
+
+	back_button.visible = (not offering_is_ai) and (not _awaiting_ai_decision)
+	reject_button.visible = not _awaiting_ai_decision
+	accept_button.visible = not _awaiting_ai_decision
 
 
 	
@@ -209,8 +222,8 @@ func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> 
 
 	# Special non-board asset: Go For Launch card
 	if space_index == GameController.GO_FOR_LAUNCH_TRADE_ID:
-		var item_icon := _create_go_for_launch_icon()
-		tree_item.set_icon(PROPERTY_COLUMN, item_icon)
+		var special_item_icon := _create_go_for_launch_icon()
+		tree_item.set_icon(PROPERTY_COLUMN, special_item_icon)
 		tree_item.set_text(PROPERTY_COLUMN, "Go For Launch Card")
 		tree_item.set_selectable(PROPERTY_COLUMN, true)
 		tree_item.set_metadata(PROPERTY_COLUMN, space_index)
@@ -268,7 +281,7 @@ func _get_or_create_color_icon(space_info: Dictionary, space_index: int) -> Text
 	# Colorblind mode support:
 	
 	if SettingsManager.is_colorblind_enabled():
-		var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_index)
+		var symbol_texture: Texture2D = ColorblindHelpersRef.get_symbol_texture_for_space(space_index)
 		if symbol_texture != null:
 			return symbol_texture
 
@@ -404,7 +417,7 @@ func _format_space_summary(space_indexes: Array) -> String:
 		var mortgaged_tag := " [color=#e03333][MORTGAGED][/color]" if is_mortgaged else ""
 
 		if SettingsManager.is_colorblind_enabled():
-			var symbol_text := ColorblindHelpers.get_symbol_text_for_space(space_index)
+			var symbol_text := ColorblindHelpersRef.get_symbol_text_for_space(space_index)
 			if symbol_text != "":
 				entries.append("%s %s%s" % [symbol_text, space_name, mortgaged_tag])
 			else:
@@ -420,6 +433,10 @@ func _format_space_summary(space_indexes: Array) -> String:
 func _summarize_trade_offer(trade_offer: Dictionary) -> String:
 	var offering_name := GameState.get_player_display_name(int(trade_offer.get("offering_player", -1)))
 	var target_name := GameState.get_player_display_name(int(trade_offer.get("target_player", -1)))
+	var target_is_ai := false
+	var target_player := int(trade_offer.get("target_player", -1))
+	if target_player >= 0 and target_player < GameState.players.size():
+		target_is_ai = GameState.players[target_player].player_is_ai
 	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
 	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
 	var lines: Array[String] = []
@@ -439,7 +456,10 @@ func _summarize_trade_offer(trade_offer: Dictionary) -> String:
 	])
 	lines.append("Properties: %s" % _format_space_summary(requested_spaces))
 	lines.append("")
-	lines.append("Accept this trade?")
+	if target_is_ai:
+		lines.append("Awaiting AI decision...")
+	else:
+		lines.append("Accept this trade?")
 	lines.append("[/center]")
 	return "\n".join(lines)
 
