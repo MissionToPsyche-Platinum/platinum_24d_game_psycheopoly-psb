@@ -24,7 +24,8 @@ signal closed
 @onready var close_button: Button = %CloseButton
 @onready var colorblind_check: CheckBox = %ColorblindCheck
 
-@onready var computer_difficulty_option: OptionButton = %ComputerDifficultyOption
+@onready var computer_difficulty_option: OptionButton = %DifficultyOption
+@onready var use_llm_ai_check: CheckBox = %UseLlmAiCheck
 
 var _last_master_volume: float = 80.0
 var _last_sfx_volume: float = 80.0
@@ -130,7 +131,11 @@ func _ready() -> void:
 	if not colorblind_check.toggled.is_connected(_on_colorblind_toggled):
 		colorblind_check.toggled.connect(_on_colorblind_toggled)
 
-
+	if computer_difficulty_option and not computer_difficulty_option.item_selected.is_connected(_on_difficulty_selected):
+		computer_difficulty_option.item_selected.connect(_on_difficulty_selected)
+		
+	if use_llm_ai_check and not use_llm_ai_check.toggled.is_connected(_on_use_llm_ai_toggled):
+		use_llm_ai_check.toggled.connect(_on_use_llm_ai_toggled)
 
 # opwn and close menu for both pause menu and start screen
 
@@ -140,6 +145,18 @@ func open(is_pause_context: bool = false) -> void:
 	# Refresh values every time menu opens in case something changed elsewhere
 	_load_audio_settings_into_ui()
 	colorblind_check.button_pressed = SettingsManager.is_colorblind_enabled()
+	
+	if use_llm_ai_check:
+		use_llm_ai_check.button_pressed = GameState.use_llm_ai
+		
+	if computer_difficulty_option:
+		var diff = GameState.difficulty
+		if diff == "Easy":
+			computer_difficulty_option.selected = 0
+		elif diff == "Hard":
+			computer_difficulty_option.selected = 2
+		else:
+			computer_difficulty_option.selected = 1
 
 	# If opened while the game is paused, this menu must still process input
 	if _pause_context:
@@ -307,6 +324,19 @@ func _sync_mute_checkbox_from_sliders() -> void:
 func _on_colorblind_toggled(enabled: bool) -> void:
 	SettingsManager.set_colorblind_mode(enabled)
 	print("Colorblind mode:", enabled)
+
+func _on_difficulty_selected(index: int) -> void:
+	if index == 0:
+		GameState.difficulty = "Easy"
+	elif index == 2:
+		GameState.difficulty = "Hard"
+	else:
+		GameState.difficulty = "Normal"
+	print("Difficulty set to:", GameState.difficulty)
+
+func _on_use_llm_ai_toggled(enabled: bool) -> void:
+	GameState.use_llm_ai = enabled
+	print("Use LLM AI:", enabled)
 
 
 func _on_close_pressed() -> void:

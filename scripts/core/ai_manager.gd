@@ -145,9 +145,17 @@ func _ai_pause(key: String) -> void:
 	
 	await get_tree().create_timer(duration, true).timeout
 
+var ai_controller_script = preload("res://scripts/core/ai_controller.gd")
+var _llm_ai_controller: Node = null
+
 func _ready() -> void:
 	rng = RandomNumberGenerator.new()
 	rng.randomize()
+	
+	_llm_ai_controller = Node.new()
+	_llm_ai_controller.set_script(ai_controller_script)
+	_llm_ai_controller.name = "AiController"
+	add_child(_llm_ai_controller)
 	
 	GameController.turn_setup_complete.connect(check_if_ai_turn)
 	ai_auction_turn.connect(ai_auction_decision)
@@ -161,12 +169,121 @@ func _ready() -> void:
 	ai_leaves_jail.connect(ai_turn_start)
 
 # Emits the ai turn start signal if the next player is AI 
+# Fallback state vars
+var _fallback_state: String = ""
+var _last_space_num: int = -1
+
+func execute_fallback() -> void:
+	print("AiManager: LLM failed or disabled. Permanently falling back to decision tree from state: ", _fallback_state)
+	
+	# Permanently disable LLM for the remainder of the match to prevent spamming broken API
+	GameState.use_llm_ai = false
+	
+	match _fallback_state:
+		"jail":
+			ai_jail_decision()
+		"start":
+			ai_turn_start()
+		"mid":
+			ai_turn_mid()
+		"lands":
+			ai_lands_on_space(_last_space_num)
+		"unowned":
+			ai_lands_on_unowned_property(_last_space_num)
+		_:
+			print("AiManager: Unknown fallback state. Ending turn.")
+			ai_turn_end()
+
 func check_if_ai_turn(player_index) -> void:
 	if GameState.players[player_index].player_is_ai == true:
 		ai_turn_start()
 
+func get_ai_game_state(curr_player_idx: int) -> Dictionary:
+	var curr_player = GameState.players[curr_player_idx]
+
+	# Get info about the current space
+	var space = GameState.board[curr_player.board_space]
+	var can_buy = (space is Ownable) and not space.is_owned()
+
+	# Map out all owned properties for everyone
+	var all_owned_properties = {}
+	for i in range(GameState.players.size()):
+		all_owned_properties[i] = []
+
+	for p_space_idx in range(GameState.board.size()):
+		var bs = GameState.board[p_space_idx]
+		if bs is Ownable and bs.is_owned():
+			var owner_idx = bs.get_property_owner()
+			if all_owned_properties.has(owner_idx):
+				all_owned_properties[owner_idx].append({
+					"space_index": p_space_idx,
+					"name": bs._space_name
+				})
+
+	var opponents = []
+	for i in range(GameState.players.size()):
+		var p = GameState.players[i]
+		var bankrupt = p.is_bankrupt if "is_bankrupt" in p else false
+		if p != curr_player and not bankrupt:
+			opponents.append({
+				"player_index": i,
+				"name": p.player_name,
+				"balance": p.balance,
+				"space_index": p.board_space,
+				"owned_properties": all_owned_properties[i]
+			})
+
+	# Pass difficulty setting in the prompt
+	return {
+		"player_index": curr_player_idx,
+		"player_name": curr_player.player_name,
+		"balance": curr_player.balance,
+		"current_space_name": space._space_name,
+		"current_space_index": curr_player.board_space,
+		"has_rolled_dice": curr_player.has_rolled,
+		"is_in_jail": curr_player.is_in_jail,
+		"turns_in_jail": curr_player.turns_in_jail,
+		"jail_cards": curr_player.go_for_launch_cards,
+		"owned_properties": all_owned_properties[curr_player_idx],
+		"can_buy_property_here": can_buy,
+		"opponents": opponents
+	}
+
+func _run_llm_ai_turn() -> void:
+	_begin_ai_turn_context()
+	var curr_player_idx = GameState.current_player_index
+	var state_dict = get_ai_game_state(curr_player_idx)
+	
+	if _llm_ai_controller:
+		print("AiManager: Handing off to LLM AI with state:")
+		print(JSON.stringify(state_dict, "\t"))
+		_llm_ai_controller.take_turn(state_dict)
+	else:
+		push_error("AiController not initialized correctly.")
+		ai_turn_start()
+
 # Actions that should occur at the start of the AI player's turn
 func ai_turn_start() -> void:
+	if GameState.use_llm_ai:
+		var acting_ai := _begin_ai_turn_context()
+		if not _is_same_ai_turn(acting_ai):
+			return
+		
+		var current_player = GameController.get_current_player()
+		if current_player.is_in_jail:
+			_fallback_state = "jail"
+			_run_llm_ai_turn()
+			return
+			
+		if not current_player.has_rolled:
+			await _ai_pause("pre_roll")
+			if not _is_same_ai_turn(acting_ai):
+				return
+			ai_dice_roll.emit()
+			return
+			
+		return
+		
 	print("AI Manager: AI turn start")
 
 	var acting_ai := _begin_ai_turn_context()
@@ -202,25 +319,35 @@ func handle_doubles_jail():
 func ai_jail_decision():
 	print("AI Manager: AI makes jail decision")
 	var current_player = GameController.get_current_player()
-
+	
 	# Attempt to roll for doubles if still early in jail (< 2 turns)
 	if current_player.turns_in_jail < 2:
-		ai_jail_roll.emit(GameState.current_player_index)
-		await get_tree().process_frame  # Let jail popup process before rolling
-		await _ai_pause("pre_roll")
-		ai_dice_roll.emit()  # Actually trigger the dice roll
-		await GameController.player_rolled
-		if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
-			ai_turn_mid()
-	elif GameController.get_current_player().go_for_launch_cards > 0:
+		ai_jail_roll_sequence()
+	elif current_player.go_for_launch_cards > 0:
 		ai_jail_card.emit(GameState.current_player_index)
 	else:
 		ai_jail_pay.emit(GameState.current_player_index)
+
+func ai_jail_roll_sequence():
+	var current_player = GameController.get_current_player()
+	ai_jail_roll.emit(GameState.current_player_index)
+	await get_tree().process_frame  # Let jail popup process before rolling
+	await _ai_pause("pre_roll")
+	ai_dice_roll.emit()  # Actually trigger the dice roll
+	await GameController.player_rolled
+	if current_player and current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
+		ai_turn_mid()
 
 
 
 # Controls logic for AI players landing on spaces, then moves the AI to the middle of its turn
 func ai_lands_on_space(space_num: int) -> void:
+	if GameState.use_llm_ai:
+		_fallback_state = "lands"
+		_last_space_num = space_num
+		_run_llm_ai_turn()
+		return
+		
 	var acting_ai := active_ai_player_index
 	if not _is_same_ai_turn(acting_ai):
 		return
@@ -301,6 +428,12 @@ func ai_card_resolve(card_num: int) -> void:
 
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:
+	if GameState.use_llm_ai:
+		_fallback_state = "unowned"
+		_last_space_num = space_num
+		_run_llm_ai_turn()
+		return
+		
 	var acting_ai := active_ai_player_index
 	if not _is_same_ai_turn(acting_ai):
 		return
@@ -377,6 +510,11 @@ func update_valid_mid_turn_targets() -> void:
 
 # AI should whether to trade or not here
 func ai_turn_mid() -> void:
+	if GameState.use_llm_ai:
+		_fallback_state = "mid"
+		_run_llm_ai_turn()
+		return
+		
 	print("AI manager: AI moves to middle of turn")
 
 	var acting_ai := active_ai_player_index
@@ -574,9 +712,15 @@ func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) ->
 		ai_auction_pass.emit()
 # AI should decide whether to accept or decline a trade here
 func ai_trade_decision(trade_offer: Dictionary) -> void:
+	if GameState.use_llm_ai:
+		if _llm_ai_controller:
+			var player_idx = trade_offer.get("target_player", -1)
+			if player_idx != -1:
+				var state_dict = get_ai_game_state(player_idx)
+				_llm_ai_controller.evaluate_trade(trade_offer, state_dict)
+				return
+			
 	var player = trade_offer.get("target_player", -1)
-
-
 	var value_offered = trade_offer.get("offer_cash", 0)
 	var offered_spaces = trade_offer.get("offered_spaces", [])
 	for i in range(offered_spaces.size()):

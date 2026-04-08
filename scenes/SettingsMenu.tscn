@@ -187,6 +187,17 @@ popup/item_1/id = 1
 popup/item_2/text = "Hard"
 popup/item_2/id = 2
 
+[node name="UseLlmAiLabel" type="Label" parent="Panel/Padding/Content/GameplayGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Use LLM AI"
+
+[node name="UseLlmAiCheck" type="CheckBox" parent="Panel/Padding/Content/GameplayGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enable LLM Controller"
+
 [node name="AudioHeader" type="Label" parent="Panel/Padding/Content"]
 unique_name_in_owner = true
 layout_mode = 2

@@ -1038,6 +1038,10 @@ func _on_trade_pressed() -> void:
 
 
 func _on_piece_space_changed(space_num: int) -> void:
+	# Keep the global player state accurately synced with the piece's physical location!
+	if GameState.current_player_index >= 0 and GameState.current_player_index < GameState.players.size():
+		GameState.players[GameState.current_player_index].board_space = space_num
+		
 	# Only update panel if no tile selected
 	if not is_tile_selected and space_info_panel:
 		space_info_panel.update_space_display(space_num)

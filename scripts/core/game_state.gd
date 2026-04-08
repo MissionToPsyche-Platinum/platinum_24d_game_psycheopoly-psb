@@ -8,6 +8,9 @@ extends Node
 ## Default to "Normal" so Start Menu can initialize its OptionButton.
 var difficulty: String = "Normal"
 
+# Feature toggle for AI Controller
+var use_llm_ai: bool = true
+
 # Contains the board data model
 var board: Array[GameSpace] = []
 
