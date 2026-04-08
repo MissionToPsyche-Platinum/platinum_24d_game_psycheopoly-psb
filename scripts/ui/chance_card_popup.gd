@@ -97,6 +97,7 @@ func show_card_details(space_num: int) -> void:
 
 func _on_close_pressed() -> void:
 	var is_jail_card := current_card in [32, 33]
+	var is_movement_card := movement_value != -1
 
 	# Lock card resolution to the player/space that actually triggered the popup
 	ChanceCardMgr.set_pending_card_context(acting_player_index, space_number)
@@ -113,6 +114,7 @@ func _on_close_pressed() -> void:
 	acting_player_index = -1
 	space_number = -1
 
-	# For jail cards, board.gd shows the notification then emits action_completed
-	if not is_jail_card:
+	# For movement cards, let the movement/landing flow complete naturally.
+	# For jail cards, board.gd handles completion after the jail flow.
+	if not is_jail_card and not is_movement_card:
 		GameController.action_completed.emit()

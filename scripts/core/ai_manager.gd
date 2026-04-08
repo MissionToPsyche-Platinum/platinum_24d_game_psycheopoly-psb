@@ -274,11 +274,17 @@ func ai_lands_on_space(space_num: int) -> void:
 	match gname:
 		"PropertySpace", "InstrumentSpace", "PlanetSpace":
 			if property._is_owned == true:
-				if current_player.balance > GameController.calculate_rent(GameState.board[space_num]):
-					ai_pay.emit(space_num)
-				else:
-					ai_pay.emit(space_num)
+				var rent_owed := GameController.calculate_rent(GameState.board[space_num])
+				var needs_bankruptcy_flow: bool = current_player.balance < rent_owed
+
+				print("AI DEBUG: owned space landed on, emitting ai_pay for space ", space_num)
+				ai_pay.emit(space_num)
+
+				# Only wait if this payment was going to trigger bankruptcy handling.
+				if needs_bankruptcy_flow:
+					print("AI DEBUG: waiting for action_completed after bankruptcy-risk rent payment")
 					await GameController.action_completed
+					print("AI DEBUG: action_completed received after bankruptcy-risk rent payment")
 			else:
 				await ai_lands_on_unowned_property(space_num)
 
@@ -290,11 +296,38 @@ func ai_lands_on_space(space_num: int) -> void:
 			return
 
 		"ExpenseSpace":
+			var space_info = SpaceData.get_space_info(space_num)
+			var amount_owed := int(space_info.get("amount", 0))
+			var needs_bankruptcy_flow: bool = current_player.balance < amount_owed
+
+			print("AI DEBUG: expense space landed on, emitting ai_pay for space ", space_num)
 			ai_pay.emit(space_num)
+
+			# Only wait if this expense was going to trigger bankruptcy handling.
+			if needs_bankruptcy_flow:
+				print("AI DEBUG: waiting for action_completed after bankruptcy-risk expense payment")
+				await GameController.action_completed
+				print("AI DEBUG: action_completed received after bankruptcy-risk expense payment")
 
 		"SpecialSpace":
 			if space_num == 30:
+				print("AI DEBUG: landed on Solar Storm, moving to Launch Pad")
 				ai_move.emit(space_num)
+
+				# Let the board finish the transport / jail state update first.
+				await get_tree().process_frame
+
+				if not _is_same_ai_turn(acting_ai):
+					return
+
+				var updated_player = GameController.get_current_player()
+				if updated_player != null and updated_player.is_in_jail:
+					print("AI DEBUG: AI was sent to Launch Pad, ending turn immediately")
+					ai_turn_end()
+					return
+
+				return
+			# Space 10 ("just visiting"/Launch Pad tile) should fall through normally.
 
 		"GameSpace":
 			if space_num == 20:
@@ -304,8 +337,8 @@ func ai_lands_on_space(space_num: int) -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
+	print("AI DEBUG: entering ai_turn_mid from ai_lands_on_space")
 	ai_turn_mid()
-	
 
 func ai_card_resolve(card_num: int) -> void:
 	var acting_ai := active_ai_player_index
@@ -320,11 +353,25 @@ func ai_card_resolve(card_num: int) -> void:
 	if not current_player.has_rolled and not current_player.is_in_jail:
 		return
 
-	if card_num not in range(18, 33):
-		ai_turn_mid()
-	elif card_num in range(32, 33):
-		ai_turn_mid()
+	print("AI DEBUG: ai_card_resolve called for card ", card_num)
 
+	# Jail cards: turn should end through the jail flow, not mid-turn logic
+	if current_player.is_in_jail:
+		print("AI DEBUG: card resolution left AI in Launch Pad, ending turn")
+		ai_turn_end()
+		return
+
+	# Movement cards shouldnt  resume the turn here.
+	# Let the follow-up movement finish and let the destination landing handle continuation.
+	if card_num in range(18, 34):
+		print("AI DEBUG: movement card resolved, waiting for destination landing")
+		return
+
+	# Non-movement cards can continue the turn immediately
+	print("AI DEBUG: non-movement card resolved, continuing AI turn")
+	ai_turn_mid()
+	
+	
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:
 	var acting_ai := active_ai_player_index

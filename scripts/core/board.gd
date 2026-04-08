@@ -1551,65 +1551,48 @@ func _on_bankruptcy_declared() -> void:
 		push_warning("Board: invalid eliminated player during bankruptcy.")
 		return
 
-	# Capture names BEFORE we clear anything
 	var debtor_name := get_player_log_name(eliminated_player)
 	var creditor_name := "the Bank"
 
 	if creditor >= 0 and creditor < GameState.players.size():
 		creditor_name = get_player_log_name(creditor)
 
-	# -------------------------
-	# Turn Log: bankruptcy declaration
-	# -------------------------
 	if creditor >= 0 and creditor < GameState.players.size():
 		log_event("%s declared bankruptcy to %s." % [debtor_name, creditor_name])
 	else:
 		log_event("%s declared bankruptcy to the Bank." % debtor_name)
 
-	# Optional detail line (nice for clarity in the log)
 	if amount > 0 and reason.strip_edges() != "":
 		log_event("%s could not pay $%d for %s." % [debtor_name, amount, reason])
 	elif amount > 0:
 		log_event("%s could not pay $%d." % [debtor_name, amount])
 
-
-	# Capture net worth beforethe assets/cash are transferred away
 	var debtor := GameState.players[eliminated_player]
 	if debtor != null and debtor.net_worth_before_bankruptcy < 0:
 		debtor.net_worth_before_bankruptcy = int(GameState.get_player_final_net_worth(eliminated_player))
-	
-	# Resolve transfer of assets/cash before elimination
-	_resolve_bankruptcy_transfer(eliminated_player, creditor)
 
-	# Log asset transfer result
+	_resolve_bankruptcy_transfer(eliminated_player, creditor)
 
 	if creditor >= 0 and creditor < GameState.players.size():
 		log_event("%s's remaining assets were transferred to %s." % [debtor_name, creditor_name])
 	else:
 		log_event("%s's remaining assets were returned to the Bank." % debtor_name)
 
-	# Mark player inactive in GameState
-
 	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
 		GameState.player_active[eliminated_player] = false
 
-	# Visually remove their piece from board
 	if eliminated_player >= 0 and eliminated_player < pieces.size():
 		if is_instance_valid(pieces[eliminated_player]):
 			pieces[eliminated_player].queue_free()
 		pieces[eliminated_player] = null
 
-	# Hide bankruptcy UI
 	if bankruptcy_popup:
 		bankruptcy_popup.hide_popup()
 
-	# Final elimination log
 	log_event("%s was removed from the game." % debtor_name)
 
 	_clear_pending_bankruptcy()
 
-
-	# Check win condition
 	var active_count := 0
 	var last_active := -1
 	for i in range(GameState.player_active.size()):
@@ -1619,12 +1602,11 @@ func _on_bankruptcy_declared() -> void:
 
 	if active_count == 1:
 		log_event("%s wins the game!" % get_player_log_name(last_active))
+		GameController.action_completed.emit()
 		_show_win_screen(last_active)
 		return
 
-
-	# Advance turn immediately so we never land on a bankrupt player
-
+	GameController.action_completed.emit()
 	call_deferred("_advance_after_bankruptcy")
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
