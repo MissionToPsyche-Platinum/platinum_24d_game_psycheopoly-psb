@@ -321,10 +321,14 @@ func _get_ai_estimated_value(ai_player_idx: int, space_num: int) -> int:
 		return 0
 
 	var player = GameState.players[ai_player_idx]
-	if player.current_property_value_multipliers.size() <= space_num:
+	if not (player is AiPlayerState):
+		return _get_board_price(space_num)
+
+	var ai_player := player as AiPlayerState
+	if ai_player.current_property_value_multipliers.size() <= space_num:
 		_ensure_ai_valuation_model(player)
 
-	if player.current_property_value_multipliers.size() <= space_num:
+	if ai_player.current_property_value_multipliers.size() <= space_num:
 		return _get_board_price(space_num)
 
 	return int(round(_calculate_AI_property_value(player, space_num)))
@@ -1142,7 +1146,17 @@ func ai_turn_post_trade() -> void:
 # sorts the properties from highest multiplier -> lowest
 func _sort_by_multiplier(a: int, b: int) -> bool:
 	var current_player = GameController.get_current_player()
-	if (current_player.current_property_value_multipliers[a] > current_player.current_property_value_multipliers[b]):
+	if not (current_player is AiPlayerState):
+		return a < b
+
+	var ai_player := current_player as AiPlayerState
+	if ai_player.current_property_value_multipliers.size() <= maxi(a, b):
+		_ensure_ai_valuation_model(ai_player)
+
+	if ai_player.current_property_value_multipliers.size() <= maxi(a, b):
+		return a < b
+
+	if (ai_player.current_property_value_multipliers[a] > ai_player.current_property_value_multipliers[b]):
 		return true
 	return false
 	

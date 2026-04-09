@@ -90,6 +90,45 @@ func _action_space_is_valid(space_index: int, valid_space_indexes: Array) -> boo
 			return true
 	return false
 
+
+func _group_key_for_space(space_index: int) -> String:
+	if space_index < 0 or space_index >= GameState.board.size():
+		return ""
+
+	var space = GameState.board[space_index]
+	if space is PropertySpace:
+		return str(space._property_set) + "|color_group"
+	if space is InstrumentSpace:
+		return "Instruments|railroad_like"
+	if space is PlanetSpace:
+		return "Planets|utility_like"
+	if space is Ownable:
+		return "Ownables|ownable"
+
+	return ""
+
+
+func _count_spaces_by_group(space_indexes: Array[int]) -> Dictionary:
+	var counts: Dictionary = {}
+	for raw_idx in space_indexes:
+		var idx := int(raw_idx)
+		var key := _group_key_for_space(idx)
+		if key == "":
+			continue
+		counts[key] = int(counts.get(key, 0)) + 1
+	return counts
+
+
+func _sum_estimated_trade_value(ai_player_idx: int, space_indexes: Array[int]) -> int:
+	var total := 0
+	for raw_idx in space_indexes:
+		var idx := int(raw_idx)
+		if idx < 0:
+			total += 60
+		else:
+			total += int(AiManager._get_ai_estimated_value(ai_player_idx, idx))
+	return total
+
 func _ready():
 	_load_env()
 	# Create and configure the HTTPRequest node dynamically
@@ -234,6 +273,8 @@ func take_turn(game_state_dictionary: Dictionary):
 			prompt_text += '- Allowed: "propose_trade" only with a target_player_index listed in "trade_targets".\n'
 			prompt_text += '- When proposing a trade, include at least one non-zero cash flow or one property in offered/requested lists.\n'
 			prompt_text += '- Prefer proposing trade when it improves your long-term position or completes/blocks a group.\n'
+			prompt_text += '- Do NOT offer a property from a group in exchange for another property from the same group unless your net ownership in that group increases.\n'
+			prompt_text += '- Do NOT propose trades that complete an opponent group unless the trade also completes one of your groups with clear net gain.\n'
 
 		if actionable_count == 0:
 			prompt_text += '- No buy/trade/property-management actions are currently available.\n'
@@ -499,8 +540,8 @@ func execute_action(action_name: String, args: Dictionary):
 
 		"propose_trade":
 			var target_idx = int(args.get("target_player_index", -1))
-			var offer_cash = int(args.get("offer_cash", 0))
-			var request_cash = int(args.get("request_cash", 0))
+			var offer_cash: int = int(args.get("offer_cash", 0))
+			var request_cash: int = int(args.get("request_cash", 0))
 			var offer_props: Array[int] = []
 			var req_props: Array[int] = []
 
@@ -526,6 +567,51 @@ func execute_action(action_name: String, args: Dictionary):
 
 			if offer_cash == 0 and request_cash == 0 and offer_props.is_empty() and req_props.is_empty():
 				print("AiController: Invalid propose_trade payload with no exchanged assets.")
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
+
+			var offered_group_counts := _count_spaces_by_group(offer_props)
+			var requested_group_counts := _count_spaces_by_group(req_props)
+			for group_key in offered_group_counts.keys():
+				if requested_group_counts.has(group_key):
+					var offered_in_group := int(offered_group_counts[group_key])
+					var requested_in_group := int(requested_group_counts[group_key])
+					# Reject neutral/negative same-group swaps (e.g. orange-for-orange 1:1).
+					if requested_in_group <= offered_in_group:
+						print("AiController: Rejecting propose_trade same-group swap with no net group gain.")
+						_clear_queued_follow_up_action()
+						call_deferred("_resume_ai_turn")
+						return
+
+			var group_impacts: Array = AiManager._build_trade_group_impacts(req_props, offer_props, current_player_idx, target_idx)
+			var helps_opponent_complete := false
+			var breaks_own_group := false
+			var gains_group_position := false
+
+			for raw_impact in group_impacts:
+				if typeof(raw_impact) != TYPE_DICTIONARY:
+					continue
+				var impact: Dictionary = raw_impact
+				if bool(impact.get("offering_player_completes_group", false)) and not bool(impact.get("ai_completes_group", false)):
+					helps_opponent_complete = true
+				if bool(impact.get("ai_breaks_group", false)):
+					breaks_own_group = true
+				if bool(impact.get("ai_completes_group", false)) or bool(impact.get("offering_player_breaks_group", false)):
+					gains_group_position = true
+				elif int(impact.get("ai_owned_after", 0)) > int(impact.get("ai_owned_before", 0)):
+					gains_group_position = true
+
+			if helps_opponent_complete or breaks_own_group:
+				print("AiController: Rejecting propose_trade due to harmful group impact.")
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
+
+			var value_given: int = offer_cash + _sum_estimated_trade_value(current_player_idx, offer_props)
+			var value_received: int = request_cash + _sum_estimated_trade_value(current_player_idx, req_props)
+			if value_received < value_given and not gains_group_position:
+				print("AiController: Rejecting propose_trade due to negative estimated value without strategic group benefit.")
 				_clear_queued_follow_up_action()
 				call_deferred("_resume_ai_turn")
 				return
