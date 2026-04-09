@@ -353,7 +353,7 @@ const SPACE_INFO = [
 		"dataCost": 150,
 		"mortgage": 130,
 		"set": "Purple",
-		"color": Color(0.7, 0.3, 0.7)  # Purple
+		"color": Color(0.5, 0.2, 0.7)  # Magenta
 	},
 	{
 		"type": "planet",
@@ -379,7 +379,7 @@ const SPACE_INFO = [
 		"dataCost": 150,
 		"mortgage": 130,
 		"set": "Purple",
-		"color": Color(0.7, 0.3, 0.7)  # Purple
+		"color": Color(0.5, 0.2, 0.7)  # Magenta
 	},
 	{
 		"type": "property",
@@ -395,7 +395,7 @@ const SPACE_INFO = [
 		"dataCost": 150,
 		"mortgage": 140,
 		"set": "Purple",
-		"color": Color(0.7, 0.3, 0.7)  # Purple
+		"color": Color(0.5, 0.2, 0.7)  # Magenta
 	},
 	# Space 30 - Solar Storm (top-right corner)
 	{
@@ -420,7 +420,7 @@ const SPACE_INFO = [
 		"dataCost": 200,
 		"mortgage": 150,
 		"set": "Dark Purple",
-		"color": Color(0.5, 0.2, 0.7)  # Dark purple
+		"color": Color(0.7, 0.3, 0.7)  # Dark purple
 	},
 	{
 		"type": "card",
@@ -443,7 +443,7 @@ const SPACE_INFO = [
 		"dataCost": 200,
 		"mortgage": 150,
 		"set": "Dark Purple",
-		"color": Color(0.5, 0.2, 0.7)  # Dark purple
+		"color": Color(0.7, 0.3, 0.7)  # Dark purple
 	},
 	{
 		"type": "property",
@@ -459,7 +459,7 @@ const SPACE_INFO = [
 		"dataCost": 200,
 		"mortgage": 160,
 		"set": "Dark Purple",
-		"color": Color(0.5, 0.2, 0.7)  # Dark purple
+		"color": Color(0.7, 0.3, 0.7)  # Dark purple
 	},
 	{
 		"type": "instrument",
