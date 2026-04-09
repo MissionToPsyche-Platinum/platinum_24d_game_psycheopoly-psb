@@ -8,6 +8,8 @@ var _request_in_flight: bool = false
 
 var _last_request_time: int = 0
 const MIN_REQUEST_INTERVAL_MSEC: int = 2100 # ~2.1 seconds to stay under 30 requests/minute
+const DEFAULT_RATE_LIMIT_RETRY_SECONDS: float = 60.0
+var _rate_limit_until_msec: int = 0
 
 var _queued_follow_up_action_name: String = ""
 var _queued_follow_up_action_args: Dictionary = {}
@@ -70,7 +72,11 @@ func _on_buy_action_completed() -> void:
 	AiManager.ai_turn_end()
 
 func _on_trade_finished_continue() -> void:
-	_continue_after_action()
+	# Trade completion already resumes via AiManager.check_trade_completion().
+	# Only execute an explicit queued follow-up action here to avoid duplicate turn resumes.
+	if _execute_queued_follow_up_action():
+		return
+	_clear_queued_follow_up_action()
 
 func _extract_reason(action_dict: Dictionary) -> String:
 	var reason_text := str(action_dict.get("reason", "")).strip_edges()
@@ -89,6 +95,65 @@ func _action_space_is_valid(space_index: int, valid_space_indexes: Array) -> boo
 		if int(raw_idx) == space_index:
 			return true
 	return false
+
+
+func _extract_retry_seconds_from_error_body(response_string: String) -> float:
+	var retry_seconds := DEFAULT_RATE_LIMIT_RETRY_SECONDS
+	var parsed := JSON.new()
+	if parsed.parse(response_string) != OK:
+		return retry_seconds
+
+	if typeof(parsed.data) != TYPE_DICTIONARY:
+		return retry_seconds
+
+	var root: Dictionary = parsed.data
+	if not root.has("error"):
+		return retry_seconds
+
+	var err_obj = root.get("error", {})
+	if typeof(err_obj) != TYPE_DICTIONARY:
+		return retry_seconds
+
+	var err: Dictionary = err_obj
+	var details = err.get("details", [])
+	if details is Array:
+		for raw_detail in details:
+			if typeof(raw_detail) != TYPE_DICTIONARY:
+				continue
+			var detail: Dictionary = raw_detail
+			if detail.has("retryDelay"):
+				var retry_raw := str(detail.get("retryDelay", "")).strip_edges()
+				if retry_raw.ends_with("s"):
+					retry_raw = retry_raw.substr(0, retry_raw.length() - 1)
+				var parsed_seconds := float(retry_raw)
+				if parsed_seconds > 0.0:
+					retry_seconds = parsed_seconds
+					break
+
+	return retry_seconds
+
+
+func _set_rate_limit_cooldown(response_string: String) -> void:
+	var retry_seconds := _extract_retry_seconds_from_error_body(response_string)
+	if retry_seconds <= 0.0:
+		retry_seconds = DEFAULT_RATE_LIMIT_RETRY_SECONDS
+
+	_rate_limit_until_msec = Time.get_ticks_msec() + int(ceil(retry_seconds * 1000.0))
+	AiManager.set_llm_temporary_bypass(true)
+	print("AiController: Hit rate limit. Temporarily bypassing LLM for %.1f seconds." % retry_seconds)
+
+
+func _is_rate_limit_active() -> bool:
+	if _rate_limit_until_msec <= 0:
+		return false
+
+	if Time.get_ticks_msec() >= _rate_limit_until_msec:
+		_rate_limit_until_msec = 0
+		AiManager.set_llm_temporary_bypass(false)
+		print("AiController: Rate-limit cooldown ended. Resuming LLM decisions.")
+		return false
+
+	return true
 
 
 func _accumulate_group_counts_for_prompt(group_counts: Dictionary, player_name: String, properties) -> void:
@@ -192,6 +257,10 @@ func _load_env():
 # }
 func take_turn(game_state_dictionary: Dictionary):
 	_clear_queued_follow_up_action()
+
+	if _is_rate_limit_active():
+		AiManager.execute_temporary_fallback()
+		return
 
 	if _request_in_flight:
 		print("AiController: Request already in flight. Ignoring duplicate AI turn request.")
@@ -385,7 +454,17 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 		
 	if response_code != 200:
 		print("AiController: API Request failed! HTTP Code: ", response_code)
-		print(body.get_string_from_utf8())
+		var error_body = body.get_string_from_utf8()
+		print(error_body)
+		if response_code == 429:
+			_set_rate_limit_cooldown(error_body)
+			if _is_evaluating_trade:
+				_resolve_trade_fallback()
+			elif _is_evaluating_auction:
+				_resolve_auction_fallback()
+			else:
+				AiManager.execute_temporary_fallback()
+			return
 		AiManager.execute_fallback()
 		return
 		
@@ -435,6 +514,7 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 							
 							if _is_evaluating_trade:
 								_is_evaluating_trade = false
+								_clear_queued_follow_up_action()
 								var normalized_trade_action := str(function_name).to_lower().strip_edges()
 								if normalized_trade_action == "accept_trade" or normalized_trade_action == "accept":
 									AiManager.ai_trade_accept.emit()
@@ -445,6 +525,7 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 									_resolve_trade_fallback()
 							elif _is_evaluating_auction:
 								_is_evaluating_auction = false
+								_clear_queued_follow_up_action()
 								if function_name == "auction_bid":
 									var amount = int(args.get("amount", 0))
 									AiManager.ai_auction_bid.emit(amount)
@@ -652,6 +733,10 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	_pending_trade_offer = trade_offer.duplicate(true)
 	print("AiController: Evaluating trade offer...")
 
+	if _is_rate_limit_active():
+		_resolve_trade_fallback()
+		return
+
 	if _request_in_flight:
 		print("AiController: Request already in flight during trade evaluation. Rejecting trade by fallback.")
 		_resolve_trade_fallback()
@@ -710,6 +795,10 @@ func evaluate_auction(state_dict: Dictionary, auction_data: Dictionary):
 	_is_evaluating_auction = true
 	_pending_auction_data = auction_data
 	print("AiController: Evaluating auction...")
+
+	if _is_rate_limit_active():
+		_resolve_auction_fallback()
+		return
 
 	if _request_in_flight:
 		print("AiController: Request already in flight during auction evaluation. Passing by fallback.")

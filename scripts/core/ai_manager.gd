@@ -188,6 +188,35 @@ func _ready() -> void:
 var _fallback_state: String = ""
 var _last_space_num: int = -1
 var _bankruptcy_amount: int = 0
+var _llm_temporary_bypass: bool = false
+
+func set_llm_temporary_bypass(enabled: bool) -> void:
+	_llm_temporary_bypass = enabled
+
+
+func is_llm_temporarily_bypassed() -> bool:
+	return _llm_temporary_bypass
+
+
+func execute_temporary_fallback() -> void:
+	print("AiManager: LLM temporarily unavailable. Using classic AI fallback from state: ", _fallback_state)
+
+	match _fallback_state:
+		"bankruptcy":
+			ai_bankruptcy_resolve(_bankruptcy_amount)
+		"jail":
+			ai_jail_decision()
+		"start":
+			ai_turn_start()
+		"mid":
+			ai_turn_mid()
+		"lands":
+			ai_lands_on_space(_last_space_num)
+		"unowned":
+			ai_lands_on_unowned_property(_last_space_num)
+		_:
+			print("AiManager: Unknown temporary fallback state. Ending turn.")
+			ai_turn_end()
 
 func execute_fallback() -> void:
 	print("AiManager: LLM failed or disabled. Permanently falling back to decision tree from state: ", _fallback_state)
@@ -818,7 +847,7 @@ func _run_llm_ai_turn() -> void:
 
 # Actions that should occur at the start of the AI player's turn
 func ai_turn_start() -> void:
-	if GameState.use_llm_ai:
+	if GameState.use_llm_ai and not _llm_temporary_bypass:
 		var llm_acting_ai := _begin_ai_turn_context()
 		if not _is_same_ai_turn(llm_acting_ai):
 			return
@@ -929,7 +958,7 @@ func ai_lands_on_space(space_num: int) -> void:
 				ai_pay.emit(space_num)
 			else:
 				await ai_lands_on_unowned_property(space_num)
-				if GameState.use_llm_ai:
+				if GameState.use_llm_ai and not _llm_temporary_bypass:
 					return
 
 		"CardSpace":
@@ -977,7 +1006,7 @@ func ai_card_resolve(card_num: int) -> void:
 
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:
-	if GameState.use_llm_ai:
+	if GameState.use_llm_ai and not _llm_temporary_bypass:
 		_fallback_state = "unowned"
 		_last_space_num = space_num
 		_run_llm_ai_turn()
@@ -1008,7 +1037,7 @@ func ai_lands_on_unowned_property(space_num: int) -> void:
 
 # AI should attempt to not go bankrupt through mortgaging properties and selling upgrades, make it do that here. 
 func ai_bankruptcy_resolve(amount: int) -> void:
-	if GameState.use_llm_ai:
+	if GameState.use_llm_ai and not _llm_temporary_bypass:
 		_bankruptcy_amount = amount
 		_fallback_state = "bankruptcy"
 		_run_llm_ai_turn()
@@ -1046,7 +1075,7 @@ func ai_bankruptcy_resolve(amount: int) -> void:
 		ai_declare_bankruptcy.emit()
 
 func continue_llm_bankruptcy() -> void:
-	if GameState.use_llm_ai and _fallback_state == "bankruptcy":
+	if GameState.use_llm_ai and not _llm_temporary_bypass and _fallback_state == "bankruptcy":
 		# Ensure the board changes had time to propagate logically before polling the API again
 		await get_tree().create_timer(0.5).timeout
 		_run_llm_ai_turn()
@@ -1071,7 +1100,7 @@ func update_valid_mid_turn_targets() -> void:
 
 # AI should whether to trade or not here
 func ai_turn_mid() -> void:
-	if GameState.use_llm_ai:
+	if GameState.use_llm_ai and not _llm_temporary_bypass:
 		var current_player := GameController.get_current_player()
 		if current_player != null and current_player.is_in_jail:
 			# If AI already rolled and is still jailed, the turn is effectively over.
@@ -1312,7 +1341,7 @@ func ai_trade_decision(trade_offer: Dictionary) -> void:
 
 	var enriched_trade_offer: Dictionary = _build_trade_offer_context(trade_offer, player_idx)
 
-	if GameState.use_llm_ai:
+	if GameState.use_llm_ai and not _llm_temporary_bypass:
 		if _llm_ai_controller:
 			var state_dict = get_ai_game_state(player_idx)
 			_llm_ai_controller.evaluate_trade(enriched_trade_offer, state_dict)
