@@ -43,7 +43,10 @@ var validDowngrades: Array[int] = [] # holds the space numbers of downgradable p
 var validMortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable properties
 
-func _initialize_property_multipliers(player: AiPlayerState) -> void:
+func _initialize_property_multipliers(player) -> void:
+	if not (player is AiPlayerState):
+		return
+
 	for i in range(GameState.board.size()):
 		if GameState.board[i] is Ownable:
 			player.base_property_value_multipliers.append(1.1 + 0.4 * randf()) # TODO: set this based on difficulty, with a bit of variance between different properties/sets
@@ -53,7 +56,10 @@ func _initialize_property_multipliers(player: AiPlayerState) -> void:
 		player.master_property_value_multiplier = 1.2
 
 
-func _update_property_multipliers(player: AiPlayerState) -> void:
+func _update_property_multipliers(player) -> void:
+	if not (player is AiPlayerState):
+		return
+
 	var totalOwnedSpaces = 0 # total number of spaces owned by players across the board
 	var AIOwnedSpaces = 0 # total number of spaces owned by the AI
 	var upgradableSpaces = 0 # total number of spaces able to be upgraded by the AI
@@ -113,7 +119,10 @@ func _update_property_multipliers(player: AiPlayerState) -> void:
 	#	print(GameState.board[i]._space_name, ": ", _calculate_AI_property_value(player, i))
 	
 
-func _calculate_AI_property_value(player: AiPlayerState, space_num: int) -> float:
+func _calculate_AI_property_value(player, space_num: int) -> float:
+	if not (player is AiPlayerState):
+		return 0
+
 	if (GameState.board[space_num] is Ownable):
 		return player.current_property_value_multipliers[space_num] * player.master_property_value_multiplier * GameState.board[space_num]._initial_price
 	else:
@@ -231,7 +240,10 @@ func _on_auction_ended_reset_targets(_winner_index: int, _winning_bid: int, _spa
 	_auction_max_bid_by_player.clear()
 
 
-func _ensure_ai_valuation_model(player: AiPlayerState) -> void:
+func _ensure_ai_valuation_model(player) -> void:
+	if not (player is AiPlayerState):
+		return
+
 	if player.base_property_value_multipliers.is_empty():
 		_initialize_property_multipliers(player)
 	else:
