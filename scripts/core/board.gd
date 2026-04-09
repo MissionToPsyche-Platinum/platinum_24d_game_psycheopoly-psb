@@ -272,6 +272,10 @@ func _ready() -> void:
 		GameController.player_sent_to_jail.connect(_on_player_sent_to_jail)
 
 	# AI action feedback is handled via transaction_logged (see _on_transaction_logged)
+	if not AiManager.ai_trade_accept.is_connected(_on_ai_trade_accepted):
+		AiManager.ai_trade_accept.connect(_on_ai_trade_accepted)
+	if not AiManager.ai_trade_reject.is_connected(_on_ai_trade_rejected):
+		AiManager.ai_trade_reject.connect(_on_ai_trade_rejected)
 
 	# Start the game (deferred to ensure all UI components are ready)
 	call_deferred("_start_game_deferred")
@@ -1888,6 +1892,18 @@ func _on_doubles_rolled() -> void:
 			notification_popup.show_notification("Doubles!", "Go for Launch! Move forward.")
 		else:
 			notification_popup.show_notification("Doubles!", "Roll again.")
+
+
+func _on_ai_trade_accepted() -> void:
+	if ai_action_toast and ai_action_toast.has_method("show_toast"):
+		var ai_name := AiManager.get_last_trade_decision_player_name()
+		ai_action_toast.show_toast("%s accepted the trade offer." % ai_name)
+
+
+func _on_ai_trade_rejected() -> void:
+	if ai_action_toast and ai_action_toast.has_method("show_toast"):
+		var ai_name := AiManager.get_last_trade_decision_player_name()
+		ai_action_toast.show_toast("%s rejected the trade offer." % ai_name)
 		
 
 func _on_colorblind_mode_changed(enabled: bool) -> void:

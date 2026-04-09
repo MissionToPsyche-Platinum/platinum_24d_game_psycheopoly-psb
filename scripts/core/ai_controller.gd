@@ -300,10 +300,14 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 							
 							if _is_evaluating_trade:
 								_is_evaluating_trade = false
-								if function_name == "accept_trade":
+								var normalized_trade_action := str(function_name).to_lower().strip_edges()
+								if normalized_trade_action == "accept_trade" or normalized_trade_action == "accept":
 									AiManager.ai_trade_accept.emit()
-								else:
+								elif normalized_trade_action == "reject_trade" or normalized_trade_action == "reject":
 									AiManager.ai_trade_reject.emit()
+								else:
+									print("AiController: Unexpected trade action '", function_name, "'. Rejecting trade by fallback.")
+									_resolve_trade_fallback()
 							elif _is_evaluating_auction:
 								_is_evaluating_auction = false
 								if function_name == "auction_bid":
@@ -459,7 +463,7 @@ var _pending_auction_data: Dictionary = {}
 func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	_clear_queued_follow_up_action()
 	_is_evaluating_trade = true
-	_pending_trade_offer = trade_offer
+	_pending_trade_offer = trade_offer.duplicate(true)
 	print("AiController: Evaluating trade offer...")
 
 	if _request_in_flight:
@@ -480,13 +484,25 @@ func evaluate_trade(trade_offer: Dictionary, state_dict: Dictionary):
 	current_time = Time.get_ticks_msec()
 	_last_request_time = current_time
 
+	var offered_value := int(trade_offer.get("offered_total_ai_estimated_value", trade_offer.get("offered_total_board_value", trade_offer.get("offer_cash", 0))))
+	var requested_value := int(trade_offer.get("requested_total_ai_estimated_value", trade_offer.get("requested_total_board_value", trade_offer.get("request_cash", 0))))
+	var net_value := offered_value - requested_value
+
 	var prompt_text = "You are playing a Monopoly-style board game and received a trade offer.\n"
 	prompt_text += "You are playing as " + str(state_dict.get("player_name", "AI")) + " (Player ID: " + str(state_dict.get("player_index", -1)) + ").\n"
 	prompt_text += "Here is the current game state:\n"
 	prompt_text += JSON.stringify(state_dict, "\t")
 	prompt_text += "\nTrade details:\n"
 	prompt_text += JSON.stringify(trade_offer, "\t")
-	prompt_text += "\nDO you accept this trade? You MUST output ONLY raw JSON formatted exactly like this:\n"
+	prompt_text += "\nInterpretation: offering_player gives offered_* assets TO target_player (you), and target_player gives requested_* assets back.\n"
+	prompt_text += "Value summary from your perspective (AI estimate): receive=" + str(offered_value) + ", give=" + str(requested_value) + ", net=" + str(net_value) + ".\n"
+	prompt_text += "Use trade_direction_note only as a hint; do NOT follow it blindly.\n"
+	prompt_text += "Cross-check the raw fields (offering_player, target_player, offer_cash, request_cash, offered_spaces, requested_spaces) before deciding.\n"
+	prompt_text += "If trade_direction_note conflicts with raw fields or values, trust raw fields and treat the offer as risky.\n"
+	prompt_text += "Use evaluation_summary and group_trade_impacts to assess this offer.\n"
+	prompt_text += "Consider cash liquidity after trade, mortgaged/upgraded assets, and whether either player completes or breaks a group.\n"
+	prompt_text += "Make your best strategic decision from this perspective only (you are target_player).\n"
+	prompt_text += "Do you accept this trade? You MUST output ONLY raw JSON formatted exactly like this:\n"
 	prompt_text += '{"action": "accept_trade", "reason": "<short rationale>"}\nOR\n{"action": "reject_trade", "reason": "<short rationale>"}\n'
 	prompt_text += 'The "reason" field is required and must be one concise sentence (max 20 words).\n'
 	prompt_text += 'Do not include any explanation or markdown formatting.\n'

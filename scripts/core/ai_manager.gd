@@ -36,6 +36,7 @@ var rng
 
 var _auction_target_space_num: int = -1
 var _auction_max_bid_by_player: Dictionary = {}
+var _last_trade_decision_player_index: int = -1
 
 var validUpgrades: Array[int] = [] # holds the space numbers of upgradable properties
 var validDowngrades: Array[int] = [] # holds the space numbers of downgradable properties
@@ -425,8 +426,163 @@ func _build_trade_offer_context(trade_offer: Dictionary, ai_player_idx: int) -> 
 	offer_data["requested_total_board_value"] = requested_board_total
 	offer_data["offered_total_ai_estimated_value"] = offered_estimated_total
 	offer_data["requested_total_ai_estimated_value"] = requested_estimated_total
+	offer_data["trade_direction_note"] = "offering_player gives offered_* assets to target_player; target_player gives requested_* assets in return"
+
+	var offered_mortgaged_count := 0
+	var requested_mortgaged_count := 0
+	var offered_upgraded_count := 0
+	var requested_upgraded_count := 0
+
+	for raw_detail in offered_property_details:
+		if typeof(raw_detail) != TYPE_DICTIONARY:
+			continue
+		var detail: Dictionary = raw_detail
+		if bool(detail.get("is_mortgaged", false)):
+			offered_mortgaged_count += 1
+		if int(detail.get("current_upgrades", 0)) > 0:
+			offered_upgraded_count += 1
+
+	for raw_detail in requested_property_details:
+		if typeof(raw_detail) != TYPE_DICTIONARY:
+			continue
+		var detail: Dictionary = raw_detail
+		if bool(detail.get("is_mortgaged", false)):
+			requested_mortgaged_count += 1
+		if int(detail.get("current_upgrades", 0)) > 0:
+			requested_upgraded_count += 1
+
+	var offering_player_idx := int(offer_data.get("offering_player", -1))
+	var target_player_idx := int(offer_data.get("target_player", ai_player_idx))
+	var offer_cash := int(offer_data.get("offer_cash", 0))
+	var request_cash := int(offer_data.get("request_cash", 0))
+	var target_balance_before := 0
+	var offering_balance_before := 0
+
+	if target_player_idx >= 0 and target_player_idx < GameState.players.size():
+		target_balance_before = int(GameState.players[target_player_idx].balance)
+
+	if offering_player_idx >= 0 and offering_player_idx < GameState.players.size():
+		offering_balance_before = int(GameState.players[offering_player_idx].balance)
+
+	offer_data["evaluation_summary"] = {
+		"target_player_index": target_player_idx,
+		"target_player_name": GameState.get_player_display_name(target_player_idx),
+		"offering_player_index": offering_player_idx,
+		"offering_player_name": GameState.get_player_display_name(offering_player_idx),
+		"you_receive_cash": offer_cash,
+		"you_pay_cash": request_cash,
+		"net_cash_change": offer_cash - request_cash,
+		"you_receive_total_ai_estimated_value": offered_estimated_total,
+		"you_give_total_ai_estimated_value": requested_estimated_total,
+		"net_ai_estimated_value": offered_estimated_total - requested_estimated_total,
+		"you_receive_total_board_value": offered_board_total,
+		"you_give_total_board_value": requested_board_total,
+		"net_board_value": offered_board_total - requested_board_total,
+		"you_receive_mortgaged_assets": offered_mortgaged_count,
+		"you_give_mortgaged_assets": requested_mortgaged_count,
+		"you_receive_upgraded_assets": offered_upgraded_count,
+		"you_give_upgraded_assets": requested_upgraded_count,
+		"you_balance_before": target_balance_before,
+		"you_balance_after": target_balance_before + offer_cash - request_cash,
+		"offering_player_balance_before": offering_balance_before,
+		"offering_player_balance_after": offering_balance_before - offer_cash + request_cash
+	}
+
+	offer_data["group_trade_impacts"] = _build_trade_group_impacts(offered_spaces, requested_spaces, target_player_idx, offering_player_idx)
 
 	return offer_data
+
+
+func _count_owned_spaces_for_player(member_space_indexes: Array, player_idx: int) -> int:
+	var owned_count := 0
+	for raw_space_idx in member_space_indexes:
+		var space_idx := int(raw_space_idx)
+		if space_idx < 0 or space_idx >= GameState.board.size():
+			continue
+		var space = GameState.board[space_idx]
+		if space is Ownable and space._is_owned and int(space._player_owner) == player_idx:
+			owned_count += 1
+	return owned_count
+
+
+func _count_traded_spaces_in_group(space_indexes: Array, member_space_indexes: Array) -> int:
+	var member_lookup: Dictionary = {}
+	for raw_member_idx in member_space_indexes:
+		member_lookup[int(raw_member_idx)] = true
+
+	var traded_count := 0
+	for raw_space_idx in space_indexes:
+		if member_lookup.has(int(raw_space_idx)):
+			traded_count += 1
+
+	return traded_count
+
+
+func _append_trade_group_if_missing(space_idx: int, groups: Dictionary) -> void:
+	if space_idx < 0 or space_idx >= GameState.board.size():
+		return
+
+	var space = GameState.board[space_idx]
+	if not (space is Ownable):
+		return
+
+	var group_name := _get_property_group_name(space)
+	var monopoly_equivalent := _get_monopoly_equivalent(space)
+	var group_key := group_name + "|" + monopoly_equivalent
+
+	if groups.has(group_key):
+		return
+
+	var members = _get_property_group_members(space_idx, space)
+	groups[group_key] = {
+		"group_key": group_key,
+		"group_name": group_name,
+		"monopoly_equivalent": monopoly_equivalent,
+		"member_space_indexes": members,
+		"group_size": members.size()
+	}
+
+
+func _build_trade_group_impacts(offered_spaces: Array, requested_spaces: Array, ai_player_idx: int, offering_player_idx: int) -> Array:
+	var relevant_groups: Dictionary = {}
+
+	for raw_space_idx in offered_spaces:
+		_append_trade_group_if_missing(int(raw_space_idx), relevant_groups)
+
+	for raw_space_idx in requested_spaces:
+		_append_trade_group_if_missing(int(raw_space_idx), relevant_groups)
+
+	var impacts: Array = []
+	for group_key in relevant_groups.keys():
+		var group_data: Dictionary = relevant_groups[group_key]
+		var members: Array = group_data.get("member_space_indexes", [])
+		var group_size := int(group_data.get("group_size", members.size()))
+
+		var ai_owned_before := _count_owned_spaces_for_player(members, ai_player_idx)
+		var offering_owned_before := _count_owned_spaces_for_player(members, offering_player_idx)
+
+		var ai_receives_in_group := _count_traded_spaces_in_group(offered_spaces, members)
+		var ai_gives_in_group := _count_traded_spaces_in_group(requested_spaces, members)
+
+		var ai_owned_after := clampi(ai_owned_before + ai_receives_in_group - ai_gives_in_group, 0, group_size)
+		var offering_owned_after := clampi(offering_owned_before - ai_receives_in_group + ai_gives_in_group, 0, group_size)
+
+		impacts.append({
+			"group_key": str(group_data.get("group_key", group_key)),
+			"group_name": str(group_data.get("group_name", "Unknown")),
+			"monopoly_equivalent": str(group_data.get("monopoly_equivalent", "none")),
+			"group_size": group_size,
+			"ai_owned_before": ai_owned_before,
+			"ai_owned_after": ai_owned_after,
+			"offering_player_owned_before": offering_owned_before,
+			"offering_player_owned_after": offering_owned_after,
+			"ai_completes_group": ai_owned_after == group_size and ai_owned_before < group_size,
+			"ai_breaks_group": ai_owned_before == group_size and ai_owned_after < group_size,
+			"offering_player_completes_group": offering_owned_after == group_size and offering_owned_before < group_size,
+			"offering_player_breaks_group": offering_owned_before == group_size and offering_owned_after < group_size
+		})
+
+	return impacts
 
 
 func _get_auction_pressure_bonus(player_index: int, space_num: int) -> int:
@@ -1042,27 +1198,26 @@ func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) ->
 	ai_auction_bid.emit(chosen_increment)
 # AI should decide whether to accept or decline a trade here
 func ai_trade_decision(trade_offer: Dictionary) -> void:
+	_last_trade_decision_player_index = -1
+	var player_idx := int(trade_offer.get("target_player", -1))
+	if player_idx < 0 or player_idx >= GameState.players.size():
+		ai_trade_reject.emit()
+		return
+
+	_last_trade_decision_player_index = player_idx
+
+	var enriched_trade_offer: Dictionary = _build_trade_offer_context(trade_offer, player_idx)
+
 	if GameState.use_llm_ai:
 		if _llm_ai_controller:
-			var player_idx = trade_offer.get("target_player", -1)
-			if player_idx != -1:
-				var state_dict = get_ai_game_state(player_idx)
-				var enriched_trade_offer = _build_trade_offer_context(trade_offer, player_idx)
-				_llm_ai_controller.evaluate_trade(enriched_trade_offer, state_dict)
-				return
-			
-	var player = trade_offer.get("target_player", -1)
-	var value_offered = trade_offer.get("offer_cash", 0)
-	var offered_spaces = trade_offer.get("offered_spaces", [])
-	for i in range(offered_spaces.size()):
-		value_offered += _calculate_AI_property_value(GameState.players[player], offered_spaces[i])
-		
-	var value_requested = trade_offer.get("request_cash", 0)
-	var requested_spaces = trade_offer.get("requested_spaces", [])
-	for i in range(requested_spaces.size()):
-		value_requested += _calculate_AI_property_value(GameState.players[player], requested_spaces[i])
-		
-	if (value_offered > value_requested):
+			var state_dict = get_ai_game_state(player_idx)
+			_llm_ai_controller.evaluate_trade(enriched_trade_offer, state_dict)
+			return
+
+	var value_offered := int(enriched_trade_offer.get("offered_total_ai_estimated_value", enriched_trade_offer.get("offered_total_board_value", 0)))
+	var value_requested := int(enriched_trade_offer.get("requested_total_ai_estimated_value", enriched_trade_offer.get("requested_total_board_value", 0)))
+
+	if value_offered > value_requested:
 		ai_trade_accept.emit()
 	else:
 		ai_trade_reject.emit()
@@ -1081,3 +1236,13 @@ func _is_same_ai_turn(expected_player_index: int) -> bool:
 	if expected_player_index >= GameState.players.size():
 		return false
 	return GameState.players[expected_player_index].player_is_ai
+
+
+func get_last_trade_decision_player_index() -> int:
+	return _last_trade_decision_player_index
+
+
+func get_last_trade_decision_player_name() -> String:
+	if _last_trade_decision_player_index >= 0 and _last_trade_decision_player_index < GameState.players.size():
+		return GameState.get_player_display_name(_last_trade_decision_player_index)
+	return "AI"
