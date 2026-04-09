@@ -91,6 +91,77 @@ func _action_space_is_valid(space_index: int, valid_space_indexes: Array) -> boo
 	return false
 
 
+func _accumulate_group_counts_for_prompt(group_counts: Dictionary, player_name: String, properties) -> void:
+	if not (properties is Array):
+		return
+
+	for raw_prop in properties:
+		if typeof(raw_prop) != TYPE_DICTIONARY:
+			continue
+
+		var prop: Dictionary = raw_prop
+		var group_name := str(prop.get("group_name", "None"))
+		var monopoly_equivalent := str(prop.get("monopoly_equivalent", "none"))
+		var group_size := int(prop.get("group_size", 0))
+		if group_name == "None" or monopoly_equivalent == "none" or group_size <= 0:
+			continue
+
+		var group_key := group_name + "|" + monopoly_equivalent
+		if not group_counts.has(group_key):
+			group_counts[group_key] = {
+				"group_name": group_name,
+				"monopoly_equivalent": monopoly_equivalent,
+				"group_size": group_size,
+				"by_player": {}
+			}
+
+		var entry: Dictionary = group_counts[group_key]
+		var by_player: Dictionary = entry.get("by_player", {})
+		by_player[player_name] = int(by_player.get(player_name, 0)) + 1
+		entry["by_player"] = by_player
+		group_counts[group_key] = entry
+
+
+func _build_group_snapshot_prompt_text(game_state_dictionary: Dictionary) -> String:
+	var group_counts: Dictionary = {}
+	var my_name := str(game_state_dictionary.get("player_name", "AI"))
+	_accumulate_group_counts_for_prompt(group_counts, my_name, game_state_dictionary.get("owned_properties", []))
+
+	var opponents = game_state_dictionary.get("opponents", [])
+	if opponents is Array:
+		for raw_opp in opponents:
+			if typeof(raw_opp) != TYPE_DICTIONARY:
+				continue
+			var opp: Dictionary = raw_opp
+			var opp_name := str(opp.get("name", "Opponent"))
+			_accumulate_group_counts_for_prompt(group_counts, opp_name, opp.get("owned_properties", []))
+
+	if group_counts.is_empty():
+		return "Group ownership snapshot: no ownable-group ownership data available."
+
+	var lines: Array[String] = []
+	var group_keys: Array = group_counts.keys()
+	group_keys.sort()
+	for raw_key in group_keys:
+		var group_key := str(raw_key)
+		var entry: Dictionary = group_counts[group_key]
+		var group_name := str(entry.get("group_name", "Unknown"))
+		var monopoly_equivalent := str(entry.get("monopoly_equivalent", "none"))
+		var group_size := int(entry.get("group_size", 0))
+		var by_player: Dictionary = entry.get("by_player", {})
+
+		var player_parts: Array[String] = []
+		var player_names: Array = by_player.keys()
+		player_names.sort()
+		for raw_name in player_names:
+			var pname := str(raw_name)
+			player_parts.append(pname + "=" + str(int(by_player[pname])) + "/" + str(group_size))
+
+		lines.append("- " + group_name + " (" + monopoly_equivalent + ", size " + str(group_size) + "): " + ", ".join(player_parts))
+
+	return "Group ownership snapshot (current):\n" + "\n".join(lines)
+
+
 func _ready():
 	_load_env()
 	# Create and configure the HTTPRequest node dynamically
@@ -232,16 +303,18 @@ func take_turn(game_state_dictionary: Dictionary):
 			prompt_text += '- Allowed: "unmortgage_property" using an index from "valid_unmortgages" only.\n'
 		if can_propose_trade:
 			actionable_count += 1
+			prompt_text += _build_group_snapshot_prompt_text(game_state_dictionary) + "\n"
 			prompt_text += '- Allowed: "propose_trade" only with a target_player_index listed in "trade_targets".\n'
+			prompt_text += '- IMPORTANT payload meaning: offered_properties/offer_cash are assets YOU give away; requested_properties/request_cash are assets YOU receive.\n'
 			prompt_text += '- When proposing a trade, include at least one non-zero cash flow or one property in offered/requested lists.\n'
 			prompt_text += '- Prefer proposing trade when it improves your long-term position or completes/blocks a group.\n'
 			prompt_text += '- Avoid same-group swaps unless they increase your net group ownership.\n'
 			prompt_text += '- Be cautious about trades that complete an opponent group without clear compensation.\n'
+			prompt_text += '- Use the group ownership snapshot above to verify before/after group counts for both players.\n'
 
 		if actionable_count == 0:
 			prompt_text += '- No buy/trade/property-management actions are currently available.\n'
 
-		prompt_text += '- "end_turn" is always allowed.\n'
 		prompt_text += '- Do not output actions that are not explicitly allowed above.\n\n'
 		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
 
@@ -270,7 +343,7 @@ func take_turn(game_state_dictionary: Dictionary):
 		if can_buy_here:
 			prompt_text += 'Example: {"action": "buy_property", "args": {"space_index": <int>}, "reason": "...", "next_action": {"action": "end_turn", "reason": "..."}}\n'
 		elif can_propose_trade:
-			prompt_text += 'Example: {"action": "propose_trade", "args": {"target_player_index": 2, "offer_cash": 100, "request_cash": 0, "offered_properties": [], "requested_properties": [14]}, "reason": "...", "next_action": {"action": "end_turn", "reason": "..."}}\n'
+			prompt_text += 'Example: {"action": "propose_trade", "args": {"target_player_index": 2, "offer_cash": 100, "request_cash": 0, "offered_properties": [], "requested_properties": [14]}, "reason": "I pay cash to receive a property that improves my group position.", "next_action": {"action": "end_turn", "reason": "..."}}\n'
 		else:
 			prompt_text += 'Example: {"action": "end_turn", "reason": "..."}\n'
 		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
