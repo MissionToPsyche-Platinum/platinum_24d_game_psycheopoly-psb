@@ -88,7 +88,7 @@ func _ready():
 	_load_env()
 	# Create and configure the HTTPRequest node dynamically
 	http_request = HTTPRequest.new()
-	http_request.timeout = 25.0
+	http_request.timeout = 40.0
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
 
