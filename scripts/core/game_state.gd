@@ -61,9 +61,10 @@ var game_active: bool = false
 var colorblind_mode: bool = false
 
 # Setup selections (filled by GameSetupScreen before starting board)
-# Each: { "name": String, "color_index": int, "token": String }
+# Each human: { "name": String, "color_index": int, "token": String }
 var setup_humans: Array[Dictionary] = []
 var setup_human_count: int = 1
+var setup_ai_names: Array[String] = []
 
 # Tracks whether each player is still in the game
 var player_active: Array[bool] = []
@@ -129,6 +130,7 @@ func _setup_players() -> void:
 
 	for i in range(player_count):
 		var player
+
 		# Apply human config if provided
 		if i < setup_humans.size():
 			player = PlayerState.new()
@@ -151,13 +153,19 @@ func _setup_players() -> void:
 
 			player.player_token_name = human_token
 			player.player_is_ai = false
+
 		else:
 			# AI player
 			player = AiPlayerState.new()
 			player.player_id = i
 			player.balance = 1500
 			player.difficulty = GameState.difficulty # set the difficulty of the AI on AI creation
-			player.player_name = "AI " + str(i + 1)
+
+			var ai_index := i - setup_humans.size()
+			if ai_index >= 0 and ai_index < setup_ai_names.size():
+				player.player_name = str(setup_ai_names[ai_index]).strip_edges()
+			else:
+				player.player_name = "CPU %d (AI)" % (ai_index + 1)
 
 			# AI randomly chooses an unused token if possible
 			var ai_token := _get_random_available_token(used_tokens)
@@ -183,10 +191,11 @@ func _setup_players() -> void:
 	start_match_stats()
 
 
-func apply_setup(total_players: int, humans: Array[Dictionary]) -> void:
+func apply_setup(total_players: int, humans: Array[Dictionary], ai_names: Array[String]) -> void:
 	player_count = total_players
 	setup_humans = humans.duplicate(true)
 	setup_human_count = setup_humans.size()
+	setup_ai_names = ai_names.duplicate()
 
 	current_player_index = 0
 	game_active = false

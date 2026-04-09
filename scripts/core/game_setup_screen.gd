@@ -14,7 +14,8 @@ const MAX_PLAYERS := 6
 
 # Some space themed names for players to choose from. Will add more, just something to get started
 const NAME_POOL := [
-	"Nova", "Atlas", "Orion", "Vega", "Luna", "Helios", "Titan", "Cosmo", "Phoenix", "Voyager", "Odyssey", "Pathfinder", "Artemis"
+	"Nova", "Atlas", "Orion", "Vega", "Luna", "Helios", "Titan",
+	"Cosmo", "Phoenix", "Voyager", "Odyssey", "Pathfinder", "Artemis"
 ]
 
 # Token choices (keeps the SAME internal index order as your old color system)
@@ -63,6 +64,7 @@ var human_configs: Array = []
 
 
 func _ready() -> void:
+	randomize()
 	AudioManager.play_music("menu", 12.0, 0.15) # won't restart if already playing
 	_build_total_players_dropdown()
 	_build_human_players_dropdown()
@@ -234,7 +236,6 @@ func _create_human_row(player_index: int) -> HBoxContainer:
 			if token_opt.get_item_text(i) == saved_token:
 				selected_token_index = i
 				break
-				
 	elif saved_color_id >= 0:
 		for i in range(1, token_opt.item_count):
 			if token_opt.get_item_id(i) == saved_color_id:
@@ -419,5 +420,46 @@ func _apply_setup_to_gamestate() -> void:
 			"token": str(cfg.get("token", "")).strip_edges()
 		})
 
-	GameState.apply_setup(total_players, humans_for_game)
-	print("APPLY SETUP -> total:", total_players, " humans_for_game:", humans_for_game)
+	var ai_names: Array[String] = []
+	var used_names := _collect_used_human_names()
+	var ai_count := total_players - human_players
+
+	for i in range(ai_count):
+		var ai_name := _get_random_ai_name(used_names)
+		ai_names.append(ai_name)
+		used_names.append(ai_name)
+
+	GameState.apply_setup(total_players, humans_for_game, ai_names)
+	print("APPLY SETUP -> total:", total_players, " humans_for_game:", humans_for_game, " ai_names:", ai_names)
+
+
+func _collect_used_human_names() -> Array[String]:
+	var used_names: Array[String] = []
+
+	for cfg in human_configs:
+		var chosen_name := str(cfg.get("name", "")).strip_edges()
+		if chosen_name != "" and not used_names.has(chosen_name):
+			used_names.append(chosen_name)
+
+	return used_names
+
+
+func _get_random_ai_name(used_names: Array[String]) -> String:
+	var available_names: Array[String] = []
+
+	for base_name in NAME_POOL:
+		var ai_display_name := "%s (AI)" % base_name
+		if not used_names.has(base_name) and not used_names.has(ai_display_name):
+			available_names.append(base_name)
+
+	if available_names.is_empty():
+		var counter := 1
+		while true:
+			var fallback_base := "CPU %d" % counter
+			var fallback_display := "%s (AI)" % fallback_base
+			if not used_names.has(fallback_base) and not used_names.has(fallback_display):
+				return fallback_display
+			counter += 1
+
+	var chosen_base := available_names[randi() % available_names.size()]
+	return "%s (AI)" % chosen_base

@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://cnotif_popup_scene1"]
+[gd_scene load_steps=5 format=3 uid="uid://bw43uxsuf5gc3"]
 
-[ext_resource type="Script" uid="uid://cnotif_popup_script1" path="res://scripts/ui/notification_popup.gd" id="1_notif"]
+[ext_resource type="Script" uid="uid://oy7ig58p1hbe" path="res://scripts/ui/notification_popup.gd" id="1_notif"]
 [ext_resource type="FontFile" uid="uid://bsp5euc03804b" path="res://assets/fonts/PixelOperator8.ttf" id="2_font"]
 [ext_resource type="FontFile" uid="uid://owxfk1xj8tvy" path="res://assets/fonts/PixelOperator8-Bold.ttf" id="3_font_bold"]
 
@@ -45,7 +45,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="Panel" parent="CenterContainer"]
-custom_minimum_size = Vector2(400, 260)
+custom_minimum_size = Vector2(520, 320)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
@@ -84,7 +84,6 @@ custom_minimum_size = Vector2(40, 10)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 14
-text = ""
 horizontal_alignment = 1
 autowrap_mode = 3
 

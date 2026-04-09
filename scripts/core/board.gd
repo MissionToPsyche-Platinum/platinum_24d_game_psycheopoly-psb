@@ -29,6 +29,7 @@ var highlight_layer: TileMapLayer = null
 var pending_card_player_index: int = -1
 var pending_card_space_num: int = -1
 var pending_card_followup_movement: bool = false
+var pending_landing_resolution: bool = false
 
 
 @onready var board_tilemap: Node = $TileMap # reference to tilemap so we can implement the colorblind mode.
@@ -706,8 +707,8 @@ func _on_piece_movement_finished(space_num: int) -> void:
 	# If this movement came from a card, the follow-up movement has now completed.
 	# Clear the flag here so doubles logic is not released too early, but future
 	# action_completed calls can behave normally again after this landing resolves.
-	if pending_card_followup_movement:
-		pending_card_followup_movement = false
+	#if pending_card_followup_movement:
+	#	pending_card_followup_movement = false
 
 	var player_name := get_player_log_name(GameState.current_player_index)
 	var default_space_name := "Space %d" % space_num
@@ -847,9 +848,9 @@ func _start_auction(space_num: int) -> void:
 
 	# Show the auction popup
 	if auction_popup:
-		auction_popup.visible = true
 		auction_popup.show_popup(space_num)
-
+		auction_popup.set_turn_interaction_enabled(false)
+		
 	# Start auction system:
 	# - starting bid = $0
 	# - starting player = whoever triggered the auction (current turn owner)
@@ -867,20 +868,27 @@ func _on_auction_bid_increment_requested(amount: int) -> void:
 
 
 func _on_auction_turn_changed(player_index: int) -> void:
+	if auction_popup == null:
+		return
+
 	if player_index < 0 or player_index >= GameState.players.size():
+		auction_popup.set_turn_interaction_enabled(false)
 		return
 
 	var player_name := GameState.get_player_display_name(player_index)
 	print("Auction turn:", player_name)
 
-	if auction_popup:
-		# update the “current bidder” line with the REAL name
-		if auction_popup.has_method("set_current_bidder"):
-			auction_popup.call("set_current_bidder", player_name)
+	# Update popup text
+	if auction_popup.has_method("set_current_bidder"):
+		auction_popup.call("set_current_bidder", player_name)
 
-		# keep status consistent
-		if auction_popup.has_method("set_status"):
-			auction_popup.call("set_status", "Waiting for " + player_name + "…")
+	if auction_popup.has_method("set_status"):
+		auction_popup.call("set_status", "Waiting for " + player_name + "…")
+
+	# Enable controls only when the current auction participant is human
+	var current_player: PlayerState = GameState.players[player_index]
+	var is_human_turn: bool = not current_player.player_is_ai
+	auction_popup.set_turn_interaction_enabled(is_human_turn)
 
 
 func _on_auction_bid_updated(high_bid: int, high_bidder_index: int) -> void:
@@ -1328,6 +1336,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 
 	# Move the piece
 	var old_space: int = int(current_piece.board_space)
+	pending_landing_resolution = true
 	current_piece.move_forward(total)
 
 	# Re-layout pieces on the space we left so stacks look correct
@@ -1352,6 +1361,7 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 		GameController.release_player_from_jail(GameState.current_player_index)
 
 		var old_space: int = int(current_piece.board_space)
+		pending_landing_resolution = true
 		current_piece.move_forward(total)
 		update_piece_layouts_at(old_space)
 
@@ -1370,6 +1380,7 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 		GameController.release_player_from_jail(GameState.current_player_index)
 
 		var old_space: int = int(current_piece.board_space)
+		pending_landing_resolution = true
 		current_piece.move_forward(total)
 		update_piece_layouts_at(old_space)
 
@@ -1393,6 +1404,7 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 
 func _card_forward_movement(move_spaces: int) -> void:
 	pending_card_followup_movement = true
+	pending_landing_resolution = true
 
 	# Move the current player's piece forward to the correct space
 	if current_piece:
@@ -1404,6 +1416,7 @@ func _card_forward_movement(move_spaces: int) -> void:
 
 func _card_teleport_movement(space_location: int) -> void:
 	pending_card_followup_movement = true
+	pending_landing_resolution = true
 
 	if current_piece:
 		var old_space: int = int(current_piece.board_space)
@@ -1590,6 +1603,37 @@ func _on_bankruptcy_declared() -> void:
 		bankruptcy_popup.hide_popup()
 
 	log_event("%s was removed from the game." % debtor_name)
+
+	# Bankruptcy notification popup
+	if notification_popup:
+		var title := "%s Declared Bankruptcy" % debtor_name
+
+		var payment_target_text := creditor_name
+		var transfer_text := ""
+
+		if creditor >= 0 and creditor < GameState.players.size():
+			transfer_text = "Remaining assets were transferred to %s and %s was removed from the game." % [
+				creditor_name,
+				debtor_name
+			]
+		else:
+			payment_target_text = "the Bank"
+			transfer_text = "Remaining assets were returned to the Bank and %s was removed from the game." % debtor_name
+
+		var reason_text := reason.strip_edges()
+		if reason_text == "":
+			reason_text = "an unpaid debt"
+
+		var body := "%s could not pay $%d to %s for %s.\n\n%s" % [
+			debtor_name,
+			amount,
+			payment_target_text,
+			reason_text,
+			transfer_text
+		]
+
+		notification_popup.show_notification(title, body)
+		await notification_popup.dismissed
 
 	_clear_pending_bankruptcy()
 
@@ -1841,14 +1885,16 @@ func _on_action_completed() -> void:
 	if not p:
 		return
 
-	# If a chance/community-style card is still causing follow-up movement,
-	# do not clear doubles/rolled state yet. The destination landing still
-	# needs to resolve as part of the same turn.
-	if pending_card_followup_movement:
-		return
+	# The current landing / popup / forced move flow is now done.
+	pending_landing_resolution = false
 
-	# If they rolled doubles, allow another roll by clearing has_rolled
-	# (DiceRollPanel should re-enable the Roll button automatically)
+	# If a chance/community-style card caused forced follow-up movement,
+	# this action_completed means the destination landing has NOW resolved.
+	if pending_card_followup_movement:
+		pending_card_followup_movement = false
+
+	# If they rolled doubles, allow another roll only after the full
+	# landing/action flow is finished.
 	if p.last_roll_was_doubles:
 		p.has_rolled = false
 		p.last_roll_was_doubles = false

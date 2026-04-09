@@ -1,33 +1,18 @@
 extends Control
 
-# ---------------------------
-# Signals
-# ---------------------------
 signal dice_rolled(die1: int, die2: int, total: int, is_doubles: bool)
 signal doubles_rolled()
 
-# ---------------------------
-# Visuals (dice faces)
-# ---------------------------
 @export var dice_faces: Array[Texture2D] = []
 
-# ---------------------------
-# Timing for the roll animation
-# ---------------------------
 @export var roll_duration: float = 0.75
 @export var tick_interval_start: float = 0.06
 @export var tick_interval_end: float = 0.12
 @export var change_both_each_tick: bool = true
 
-# ---------------------------
-# Pop animation (landing feel)
-# ---------------------------
 @export var pop_scale: float = 1.08
 @export var pop_time: float = 0.08
 
-# ---------------------------
-# Sound polish
-# ---------------------------
 @export var roll_sfx_min_gap: float = 0.10
 @export var result_sfx_delay: float = 0.08
 @export var result_pitch_min: float = 0.96
@@ -50,6 +35,17 @@ var _last_roll_sfx_time := -999.0
 var _roll_text_idle := "Roll Dice"
 var _roll_text_rolling := "Rolling..."
 
+var pulse_tween: Tween = null
+
+var normal_stylebox: StyleBoxFlat = null
+var hover_stylebox: StyleBoxFlat = null
+var pressed_stylebox: StyleBoxFlat = null
+var focus_stylebox: StyleBoxFlat = null
+var disabled_stylebox: StyleBoxFlat = null
+
+const BORDER_DIM := Color("2a5f99")
+const BORDER_BRIGHT := Color("5aaaf5")
+
 
 func _ready() -> void:
 	rng.randomize()
@@ -64,8 +60,11 @@ func _ready() -> void:
 	if roll_button and roll_button.text != "":
 		_roll_text_idle = roll_button.text
 
-	roll_button.pressed.connect(_on_roll_pressed)
-	AiManager.ai_dice_roll.connect(roll_dice)
+	if roll_button and not roll_button.pressed.is_connected(_on_roll_pressed):
+		roll_button.pressed.connect(_on_roll_pressed)
+
+	if not AiManager.ai_dice_roll.is_connected(roll_dice):
+		AiManager.ai_dice_roll.connect(roll_dice)
 
 	if GameController:
 		if not GameController.turn_started.is_connected(_on_turn_started):
@@ -77,7 +76,74 @@ func _ready() -> void:
 		if not GameController.current_player_changed.is_connected(_on_current_player_changed):
 			GameController.current_player_changed.connect(_on_current_player_changed)
 
+	_setup_roll_button_styles()
+	set_process(true)
 	_update_button_states()
+
+
+func _process(_delta: float) -> void:
+	_update_button_states()
+
+
+func _setup_roll_button_styles() -> void:
+	if not roll_button:
+		return
+
+	var base_style := roll_button.get_theme_stylebox("normal")
+
+	if base_style is StyleBoxFlat:
+		normal_stylebox = (base_style as StyleBoxFlat).duplicate()
+	else:
+		normal_stylebox = StyleBoxFlat.new()
+		normal_stylebox.bg_color = Color(0.15, 0.15, 0.18, 1.0)
+		normal_stylebox.corner_radius_top_left = 10
+		normal_stylebox.corner_radius_top_right = 10
+		normal_stylebox.corner_radius_bottom_left = 10
+		normal_stylebox.corner_radius_bottom_right = 10
+
+	# Force a visible border even if the original theme had none
+	normal_stylebox.border_width_left = 2
+	normal_stylebox.border_width_top = 2
+	normal_stylebox.border_width_right = 2
+	normal_stylebox.border_width_bottom = 2
+
+	hover_stylebox = normal_stylebox.duplicate()
+	pressed_stylebox = normal_stylebox.duplicate()
+	focus_stylebox = normal_stylebox.duplicate()
+	disabled_stylebox = normal_stylebox.duplicate()
+
+	# Force border widths on all states too
+	hover_stylebox.border_width_left = 2
+	hover_stylebox.border_width_top = 2
+	hover_stylebox.border_width_right = 2
+	hover_stylebox.border_width_bottom = 2
+
+	pressed_stylebox.border_width_left = 2
+	pressed_stylebox.border_width_top = 2
+	pressed_stylebox.border_width_right = 2
+	pressed_stylebox.border_width_bottom = 2
+
+	focus_stylebox.border_width_left = 2
+	focus_stylebox.border_width_top = 2
+	focus_stylebox.border_width_right = 2
+	focus_stylebox.border_width_bottom = 2
+
+	disabled_stylebox.border_width_left = 2
+	disabled_stylebox.border_width_top = 2
+	disabled_stylebox.border_width_right = 2
+	disabled_stylebox.border_width_bottom = 2
+
+	normal_stylebox.border_color = BORDER_DIM
+	hover_stylebox.border_color = BORDER_DIM
+	pressed_stylebox.border_color = BORDER_DIM
+	focus_stylebox.border_color = BORDER_DIM
+	disabled_stylebox.border_color = BORDER_DIM
+
+	roll_button.add_theme_stylebox_override("normal", normal_stylebox)
+	roll_button.add_theme_stylebox_override("hover", hover_stylebox)
+	roll_button.add_theme_stylebox_override("pressed", pressed_stylebox)
+	roll_button.add_theme_stylebox_override("focus", focus_stylebox)
+	roll_button.add_theme_stylebox_override("disabled", disabled_stylebox)
 
 
 func _on_roll_pressed() -> void:
@@ -94,6 +160,7 @@ func roll_dice() -> void:
 		return
 
 	is_rolling = true
+	_stop_pulse()
 
 	AudioManager.duck_music(-20.0, 0.12)
 
@@ -132,7 +199,6 @@ func roll_dice() -> void:
 
 	var is_doubles := (final1 == final2)
 
-	# Keep TOTAL clean (no doubles text here)
 	if total_label:
 		total_label.text = "TOTAL: %d" % total
 
@@ -147,10 +213,8 @@ func roll_dice() -> void:
 
 	is_rolling = false
 
-	# Notify listeners (like Board) that the roll is finished
 	dice_rolled.emit(final1, final2, total, is_doubles)
 
-	# NEW: notify Board that doubles happened so it can show a popup toast
 	if is_doubles:
 		doubles_rolled.emit()
 
@@ -218,7 +282,84 @@ func _on_current_player_changed(_player) -> void:
 func _update_button_states() -> void:
 	var current_player = GameController.get_current_player()
 	if not current_player:
+		_apply_roll_button_state(false)
 		return
 
-	if roll_button:
-		roll_button.disabled = current_player.has_rolled or is_rolling or current_player.player_is_ai
+	var can_roll := true
+
+	if current_player.player_is_ai:
+		can_roll = false
+	elif current_player.has_rolled:
+		can_roll = false
+	elif is_rolling:
+		can_roll = false
+	elif _is_board_busy_resolving_turn():
+		can_roll = false
+
+	_apply_roll_button_state(can_roll)
+
+
+func _apply_roll_button_state(can_roll: bool) -> void:
+	if not roll_button:
+		return
+
+	roll_button.disabled = not can_roll
+
+	if can_roll:
+		_start_pulse()
+	else:
+		_stop_pulse()
+
+
+func _is_board_busy_resolving_turn() -> bool:
+	var board = get_tree().current_scene
+	if board == null:
+		return false
+
+	if "pending_landing_resolution" in board and bool(board.pending_landing_resolution):
+		return true
+
+	if "pending_card_followup_movement" in board and bool(board.pending_card_followup_movement):
+		return true
+
+	return false
+
+
+func _start_pulse() -> void:
+	if normal_stylebox == null:
+		return
+
+	if pulse_tween and pulse_tween.is_valid():
+		return
+
+	_set_button_border_color(BORDER_DIM)
+
+	pulse_tween = create_tween()
+	pulse_tween.set_loops()
+
+	pulse_tween.tween_method(_set_button_border_color, BORDER_DIM, BORDER_BRIGHT, 0.8) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	pulse_tween.tween_method(_set_button_border_color, BORDER_BRIGHT, BORDER_DIM, 0.8) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _stop_pulse() -> void:
+	if pulse_tween and pulse_tween.is_valid():
+		pulse_tween.kill()
+	pulse_tween = null
+
+	_set_button_border_color(BORDER_DIM)
+
+
+func _set_button_border_color(color: Color) -> void:
+	if normal_stylebox:
+		normal_stylebox.border_color = color
+	if hover_stylebox:
+		hover_stylebox.border_color = color
+	if pressed_stylebox:
+		pressed_stylebox.border_color = color
+	if focus_stylebox:
+		focus_stylebox.border_color = color
+	if disabled_stylebox:
+		disabled_stylebox.border_color = BORDER_DIM

@@ -12,6 +12,7 @@ signal pass_requested
 signal bid_increment_requested(amount: int)
 
 var current_space_num: int = -1
+var interaction_enabled: bool = false
 
 # ============================
 # Node References
@@ -34,7 +35,7 @@ var current_space_num: int = -1
 @onready var high_bid_label: Label = %HighBidLabel
 @onready var status_label: Label = %StatusLabel
 
-# Buttons (still path-based, but these rarely move)
+# Buttons
 @onready var buttons_row: HBoxContainer = vbox.get_node("ButtonsRow")
 @onready var details_btn: Button = buttons_row.get_node("DetailsButton")
 @onready var bid_btn: Button = buttons_row.get_node("BidButton")
@@ -59,14 +60,17 @@ func _ready() -> void:
 	if bid_controls:
 		bid_controls.visible = false
 
+	# Start with bidding controls disabled until auction turn says otherwise
+	set_turn_interaction_enabled(false)
+
 	details_btn.pressed.connect(_on_details_pressed)
 	pass_btn.pressed.connect(_on_pass_pressed)
 	bid_btn.pressed.connect(_on_bid_pressed)
 
-	AiManager.ai_auction_pass.connect(_on_pass_pressed)
+	AiManager.ai_auction_pass.connect(_on_ai_pass_requested)
 	AiManager.ai_auction_bid.connect(_ai_bid_pressed)
 
-	# Bid increment buttons (only if row exists)
+	# Bid increment buttons
 	if bid_1:
 		bid_1.text = "+$1"
 		bid_1.pressed.connect(func(): _emit_bid_increment(1, bid_1))
@@ -90,19 +94,45 @@ func _on_details_pressed() -> void:
 	_play_click()
 	emit_signal("details_requested")
 
+
 func _on_pass_pressed() -> void:
+	# Human input only
+	if not interaction_enabled:
+		return
+
 	_play_click()
+	if bid_controls:
+		bid_controls.visible = false
 	emit_signal("pass_requested")
 
+
 func _on_bid_pressed() -> void:
+	# Human input only
+	if not interaction_enabled:
+		return
+
 	_play_click()
 	if bid_controls:
 		bid_controls.visible = !bid_controls.visible
 
+
+func _on_ai_pass_requested() -> void:
+	# AI action should bypass local human button lock
+	if bid_controls:
+		bid_controls.visible = false
+	emit_signal("pass_requested")
+
+
 func _ai_bid_pressed(amount: int) -> void:
+	# AI action should bypass local human button lock
 	emit_signal("bid_increment_requested", amount)
 
+
 func _emit_bid_increment(amount: int, from_button: Control) -> void:
+	# Human input only
+	if not interaction_enabled:
+		return
+
 	# SFX: bid accepted
 	if sfx_bid_ok and sfx_bid_ok.stream:
 		_play_ui(sfx_bid_ok, 0.98, 1.05)
@@ -114,8 +144,10 @@ func _emit_bid_increment(amount: int, from_button: Control) -> void:
 
 	emit_signal("bid_increment_requested", amount)
 
+
 func _play_click() -> void:
 	_play_ui(sfx_click, 0.95, 1.05)
+
 
 func _play_ui(player: AudioStreamPlayer, pitch_min := 0.97, pitch_max := 1.03) -> void:
 	if player and player.stream:
@@ -136,6 +168,9 @@ func show_popup(space_num: int) -> void:
 		bid_controls.visible = false
 
 	current_space_num = space_num
+
+	# Default to disabled until the board/auction manager explicitly enables the current bidder
+	set_turn_interaction_enabled(false)
 
 	var space_info: Dictionary = SpaceDataRef.get_space_info(space_num)
 	if space_info.is_empty():
@@ -182,9 +217,12 @@ func hide_popup() -> void:
 	if bid_controls:
 		bid_controls.visible = false
 	current_space_num = -1
+	set_turn_interaction_enabled(false)
+
 
 func set_current_bidder(bidder_name: String) -> void:
 	current_bidder_label.text = "Current Bidder: " + bidder_name
+
 
 func set_high_bid(amount: int, bidder_name: String) -> void:
 	# - Before the first bid, show "Starting Bid" instead of "Highest Bid"
@@ -201,6 +239,25 @@ func set_status(text: String) -> void:
 	status_label.text = text
 
 
+func set_turn_interaction_enabled(enabled: bool) -> void:
+	interaction_enabled = enabled
+
+	# Details can stay available; bidding controls cannot
+	bid_btn.disabled = not enabled
+	pass_btn.disabled = not enabled
+
+	if bid_1:
+		bid_1.disabled = not enabled
+	if bid_10:
+		bid_10.disabled = not enabled
+	if bid_50:
+		bid_50.disabled = not enabled
+
+	# If controls become disabled, collapse the increment row
+	if not enabled and bid_controls:
+		bid_controls.visible = false
+
+
 # ============================
 # Colorblind Mode Support
 # ============================
@@ -209,6 +266,7 @@ func _on_colorblind_mode_changed(_enabled: bool) -> void:
 	# If the popup is showing a valid property, refresh the symbol immediately
 	if current_space_num >= 0:
 		_update_colorblind_symbol(current_space_num)
+
 
 func _update_colorblind_symbol(space_num: int) -> void:
 	if not color_symbol or not color_symbol_shadow:
