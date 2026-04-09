@@ -441,6 +441,18 @@ func execute_action(action_name: String, args: Dictionary):
 			AiManager.ai_trade_create.emit(GameState.current_player_index, target_idx, offer_cash, request_cash, offer_props, req_props)
 
 		"end_turn":
+			var current_player = GameController.get_current_player()
+			if current_player != null and current_player.is_in_jail and not current_player.has_rolled:
+				print("AiController: Invalid end_turn while jailed before escape attempt. Coercing to jail action.")
+				_clear_queued_follow_up_action()
+				if current_player.go_for_launch_cards > 0:
+					AiManager.ai_jail_card.emit(GameState.current_player_index)
+				elif current_player.balance >= 50:
+					AiManager.ai_jail_pay.emit(GameState.current_player_index)
+				else:
+					AiManager.ai_jail_roll_sequence()
+				return
+
 			print("AiController: Executing action: ending turn")
 			_clear_queued_follow_up_action()
 			AiManager.ai_turn_end()

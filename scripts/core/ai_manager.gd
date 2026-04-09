@@ -744,6 +744,9 @@ func ai_turn_start() -> void:
 		
 		var current_player = GameController.get_current_player()
 		if current_player.is_in_jail:
+			# Guard against stale roll state leaking into a new jailed turn.
+			if current_player.has_rolled:
+				current_player.has_rolled = false
 			_fallback_state = "jail"
 			_run_llm_ai_turn()
 			return
@@ -988,6 +991,16 @@ func update_valid_mid_turn_targets() -> void:
 # AI should whether to trade or not here
 func ai_turn_mid() -> void:
 	if GameState.use_llm_ai:
+		var current_player := GameController.get_current_player()
+		if current_player != null and current_player.is_in_jail:
+			# If AI already rolled and is still jailed, the turn is effectively over.
+			if current_player.has_rolled:
+				ai_turn_end()
+			else:
+				_fallback_state = "jail"
+				_run_llm_ai_turn()
+			return
+
 		_fallback_state = "mid"
 		_run_llm_ai_turn()
 		return
