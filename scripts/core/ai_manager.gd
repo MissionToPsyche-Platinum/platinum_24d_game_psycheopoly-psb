@@ -681,21 +681,42 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 			if all_owned_properties.has(owner_idx):
 				all_owned_properties[owner_idx].append(_build_property_context(p_space_idx, curr_player_idx))
 
+	var my_tradeable_spaces = GameController.get_tradeable_space_indexes(curr_player_idx)
+	if not (my_tradeable_spaces is Array):
+		my_tradeable_spaces = []
+	var has_trade_offer_assets: bool = curr_player.balance > 0 or my_tradeable_spaces.size() > 0
+
 	var opponents = []
+	var trade_targets = []
 	for i in range(GameState.players.size()):
 		var p = GameState.players[i]
 		var bankrupt = p.is_bankrupt if "is_bankrupt" in p else false
 		if p != curr_player and not bankrupt:
+			var opponent_tradeable_spaces = GameController.get_tradeable_space_indexes(i)
+			if not (opponent_tradeable_spaces is Array):
+				opponent_tradeable_spaces = []
+
 			opponents.append({
 				"player_index": i,
 				"name": p.player_name,
 				"balance": p.balance,
 				"space_index": p.board_space,
-				"owned_properties": all_owned_properties[i]
+				"owned_properties": all_owned_properties[i],
+				"tradeable_space_indexes": opponent_tradeable_spaces
 			})
+
+			var opponent_has_trade_assets: bool = p.balance > 0 or opponent_tradeable_spaces.size() > 0
+			if has_trade_offer_assets and opponent_has_trade_assets:
+				trade_targets.append({
+					"player_index": i,
+					"name": p.player_name,
+					"balance": p.balance,
+					"tradeable_space_indexes": opponent_tradeable_spaces
+				})
 
 	var owed = _bankruptcy_amount if _fallback_state == "bankruptcy" else 0
 	var recent_previous_turn_events: Array[String] = _get_recent_previous_turn_events(8)
+	var can_propose_trade = has_trade_offer_assets and trade_targets.size() > 0
 
 	# Pass difficulty setting in the prompt
 	return {
@@ -717,17 +738,46 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		"valid_upgrades_to_sell": validDowngrades,
 		"valid_mortgages": validMortgages,
 		"valid_unmortgages": validUnmortgages,
+		"your_tradeable_space_indexes": my_tradeable_spaces,
+		"trade_targets": trade_targets,
+		"can_propose_trade": can_propose_trade,
 		"owned_properties": all_owned_properties[curr_player_idx],
 		"can_buy_property_here": can_buy,
 		"opponents": opponents,
 		"recent_previous_turn_events": recent_previous_turn_events
 	}
 
+
+func _state_array_has_values(state_dict: Dictionary, key: String) -> bool:
+	var raw_value = state_dict.get(key, [])
+	return raw_value is Array and raw_value.size() > 0
+
+
+func _llm_mid_turn_has_valid_actions(state_dict: Dictionary) -> bool:
+	if bool(state_dict.get("can_buy_property_here", false)):
+		return true
+	if _state_array_has_values(state_dict, "valid_upgrades"):
+		return true
+	if _state_array_has_values(state_dict, "valid_upgrades_to_sell"):
+		return true
+	if _state_array_has_values(state_dict, "valid_mortgages"):
+		return true
+	if _state_array_has_values(state_dict, "valid_unmortgages"):
+		return true
+	if bool(state_dict.get("can_propose_trade", false)):
+		return true
+	return false
+
 func _run_llm_ai_turn() -> void:
 	_begin_ai_turn_context()
 	update_valid_mid_turn_targets()
 	var curr_player_idx = GameState.current_player_index
 	var state_dict = get_ai_game_state(curr_player_idx)
+
+	if _fallback_state == "mid" and not _llm_mid_turn_has_valid_actions(state_dict):
+		print("AiManager: No valid LLM mid-turn actions. Ending turn without calling LLM.")
+		ai_turn_end()
+		return
 	
 	if _llm_ai_controller:
 		_llm_ai_controller.take_turn(state_dict)

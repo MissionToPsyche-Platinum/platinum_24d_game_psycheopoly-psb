@@ -84,6 +84,12 @@ func _extract_reason(action_dict: Dictionary) -> String:
 		reason_text = reason_text.substr(0, 240) + "..."
 	return reason_text
 
+func _action_space_is_valid(space_index: int, valid_space_indexes: Array) -> bool:
+	for raw_idx in valid_space_indexes:
+		if int(raw_idx) == space_index:
+			return true
+	return false
+
 func _ready():
 	_load_env()
 	# Create and configure the HTTPRequest node dynamically
@@ -192,25 +198,78 @@ func take_turn(game_state_dictionary: Dictionary):
 		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	else:
+		var can_buy_here := bool(game_state_dictionary.get("can_buy_property_here", false))
+		var valid_upgrades = game_state_dictionary.get("valid_upgrades", [])
+		var valid_upgrades_to_sell = game_state_dictionary.get("valid_upgrades_to_sell", [])
+		var valid_mortgages = game_state_dictionary.get("valid_mortgages", [])
+		var valid_unmortgages = game_state_dictionary.get("valid_unmortgages", [])
+		var trade_targets = game_state_dictionary.get("trade_targets", [])
+		var can_propose_trade: bool = bool(game_state_dictionary.get("can_propose_trade", false)) and (trade_targets is Array) and trade_targets.size() > 0
+
+		var has_upgrade_options: bool = (valid_upgrades is Array) and valid_upgrades.size() > 0
+		var has_sell_upgrade_options: bool = (valid_upgrades_to_sell is Array) and valid_upgrades_to_sell.size() > 0
+		var has_mortgage_options: bool = (valid_mortgages is Array) and valid_mortgages.size() > 0
+		var has_unmortgage_options: bool = (valid_unmortgages is Array) and valid_unmortgages.size() > 0
+
+		var actionable_count := 0
 		prompt_text += 'RULES:\n'
-		prompt_text += '- If "can_buy_property_here" is true, you should consider "buy_property".\n'
-		prompt_text += '- You can also do ONE property management action per response if valid options exist in game state:\n'
-		prompt_text += '  - "upgrade_property" using "valid_upgrades"\n'
-		prompt_text += '  - "sell_upgrade" using "valid_upgrades_to_sell"\n'
-		prompt_text += '  - "mortgage_property" using "valid_mortgages"\n'
-		prompt_text += '  - "unmortgage_property" using "valid_unmortgages"\n'
-		prompt_text += '- You can optionally propose a trade to another player using "propose_trade".\n'
-		prompt_text += '- If you do not want to or cannot buy a property, trade, or do property management, you MUST choose "end_turn".\n\n'
+		prompt_text += '- You MUST choose exactly ONE action from the allowed list below.\n'
+		if can_buy_here:
+			actionable_count += 1
+			prompt_text += '- Allowed: "buy_property" at current_space_index (only if it is purchasable and unowned).\n'
+		if has_upgrade_options:
+			actionable_count += 1
+			prompt_text += '- Allowed: "upgrade_property" using an index from "valid_upgrades" only.\n'
+		if has_sell_upgrade_options:
+			actionable_count += 1
+			prompt_text += '- Allowed: "sell_upgrade" using an index from "valid_upgrades_to_sell" only.\n'
+		if has_mortgage_options:
+			actionable_count += 1
+			prompt_text += '- Allowed: "mortgage_property" using an index from "valid_mortgages" only.\n'
+		if has_unmortgage_options:
+			actionable_count += 1
+			prompt_text += '- Allowed: "unmortgage_property" using an index from "valid_unmortgages" only.\n'
+		if can_propose_trade:
+			actionable_count += 1
+			prompt_text += '- Allowed: "propose_trade" only with a target_player_index listed in "trade_targets".\n'
+			prompt_text += '- When proposing a trade, include at least one non-zero cash flow or one property in offered/requested lists.\n'
+			prompt_text += '- Prefer proposing trade when it improves your long-term position or completes/blocks a group.\n'
+
+		if actionable_count == 0:
+			prompt_text += '- No buy/trade/property-management actions are currently available.\n'
+
+		prompt_text += '- "end_turn" is always allowed.\n'
+		prompt_text += '- Do not output actions that are not explicitly allowed above.\n\n'
 		prompt_text += 'You MUST output ONLY raw JSON formatted exactly like this:\n'
-		prompt_text += '{"action": "buy_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
-		prompt_text += '\nOR\n{"action": "propose_trade", "args": {"target_player_index": <int>, "offer_cash": <int>, "request_cash": <int>, "offered_properties": [<int>], "requested_properties": [<int>]}, "reason": "<short rationale>"}'
-		prompt_text += '\nOR\n{"action": "upgrade_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
-		prompt_text += '\nOR\n{"action": "sell_upgrade", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
-		prompt_text += '\nOR\n{"action": "mortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
-		prompt_text += '\nOR\n{"action": "unmortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}'
-		prompt_text += '\nOR\n{"action": "end_turn", "reason": "<short rationale>"}'
+
+		var output_examples: Array[String] = []
+		if can_buy_here:
+			output_examples.append('{"action": "buy_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}')
+		if can_propose_trade:
+			output_examples.append('{"action": "propose_trade", "args": {"target_player_index": <int>, "offer_cash": <int>, "request_cash": <int>, "offered_properties": [<int>], "requested_properties": [<int>]}, "reason": "<short rationale>"}')
+		if has_upgrade_options:
+			output_examples.append('{"action": "upgrade_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}')
+		if has_sell_upgrade_options:
+			output_examples.append('{"action": "sell_upgrade", "args": {"space_index": <int>}, "reason": "<short rationale>"}')
+		if has_mortgage_options:
+			output_examples.append('{"action": "mortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}')
+		if has_unmortgage_options:
+			output_examples.append('{"action": "unmortgage_property", "args": {"space_index": <int>}, "reason": "<short rationale>"}')
+
+		output_examples.append('{"action": "end_turn", "reason": "<short rationale>"}')
+
+		for i in range(output_examples.size()):
+			if i > 0:
+				prompt_text += '\nOR\n'
+			prompt_text += output_examples[i]
+
 		prompt_text += '\nOptional: include "next_action" as a second step ONLY if it does not require new board info or player input.\n'
-		prompt_text += 'Example: {"action": "buy_property", "args": {"space_index": <int>}, "reason": "...", "next_action": {"action": "end_turn", "reason": "..."}}\n'
+		if can_buy_here:
+			prompt_text += 'Example: {"action": "buy_property", "args": {"space_index": <int>}, "reason": "...", "next_action": {"action": "end_turn", "reason": "..."}}\n'
+		elif can_propose_trade:
+			prompt_text += 'Example: {"action": "propose_trade", "args": {"target_player_index": 2, "offer_cash": 100, "request_cash": 0, "offered_properties": [], "requested_properties": [14]}, "reason": "...", "next_action": {"action": "end_turn", "reason": "..."}}\n'
+		else:
+			prompt_text += 'Example: {"action": "end_turn", "reason": "..."}\n'
 		prompt_text += '\nThe "reason" field is required and must be one concise sentence (max 20 words).\n'
 		prompt_text += '\nDo not include any explanation or markdown formatting.\n'
 	# 2. Construct the core content for the API request
@@ -359,6 +418,11 @@ func execute_action(action_name: String, args: Dictionary):
 
 		"mortgage_property":
 			var space_index = int(args.get("space_index", -1))
+			if not _action_space_is_valid(space_index, AiManager.validMortgages):
+				print("AiController: Invalid mortgage_property space index for current state: ", space_index)
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
 			print("AiController: Executing action: mortgage property at space index ", space_index)
 			AiManager.ai_property_mortgage(space_index)
 			if _queued_follow_up_action_name != "":
@@ -370,6 +434,11 @@ func execute_action(action_name: String, args: Dictionary):
 
 		"sell_upgrade":
 			var space_index = int(args.get("space_index", -1))
+			if not _action_space_is_valid(space_index, AiManager.validDowngrades):
+				print("AiController: Invalid sell_upgrade space index for current state: ", space_index)
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
 			print("AiController: Executing action: sell upgrade at space index ", space_index)
 			AiManager.ai_sells_upgrade(space_index)
 			if _queued_follow_up_action_name != "":
@@ -381,12 +450,22 @@ func execute_action(action_name: String, args: Dictionary):
 
 		"upgrade_property":
 			var space_index = int(args.get("space_index", -1))
+			if not _action_space_is_valid(space_index, AiManager.validUpgrades):
+				print("AiController: Invalid upgrade_property space index for current state: ", space_index)
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
 			print("AiController: Executing action: upgrade property at space index ", space_index)
 			AiManager.ai_property_upgrade(space_index)
 			call_deferred("_continue_after_action")
 
 		"unmortgage_property":
 			var space_index = int(args.get("space_index", -1))
+			if not _action_space_is_valid(space_index, AiManager.validUnmortgages):
+				print("AiController: Invalid unmortgage_property space index for current state: ", space_index)
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
 			print("AiController: Executing action: unmortgage property at space index ", space_index)
 			AiManager.ai_property_unmortgage(space_index)
 			call_deferred("_continue_after_action")
@@ -431,6 +510,25 @@ func execute_action(action_name: String, args: Dictionary):
 			if args.has("requested_properties"):
 				for p in args["requested_properties"]:
 					req_props.append(int(p))
+
+			var current_player_idx := GameState.current_player_index
+			if target_idx < 0 or target_idx >= GameState.players.size() or target_idx == current_player_idx:
+				print("AiController: Invalid propose_trade target player index: ", target_idx)
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
+
+			if offer_cash < 0 or request_cash < 0:
+				print("AiController: Invalid propose_trade cash values. offer_cash=", offer_cash, " request_cash=", request_cash)
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
+
+			if offer_cash == 0 and request_cash == 0 and offer_props.is_empty() and req_props.is_empty():
+				print("AiController: Invalid propose_trade payload with no exchanged assets.")
+				_clear_queued_follow_up_action()
+				call_deferred("_resume_ai_turn")
+				return
 
 			print("AiController: Proposing trade to player ", target_idx, " offering $", offer_cash, " props:", offer_props, " for $", request_cash, " props:", req_props)
 
