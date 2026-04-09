@@ -602,7 +602,7 @@ func _on_turn_started(player_index: int) -> void:
 	if turn_log_panel and turn_log_panel.has_method("add_turn_header"):
 		turn_log_panel.add_turn_header(player_index, player_name, turn_number, is_new_round)
 	else:
-			log_event("Turn %d - %s's turn" % [turn_number, player_name])
+		log_event("Turn %d - %s's turn" % [turn_number, player_name])
 
 	if current_piece != null and is_instance_valid(current_piece):
 		if current_piece.space_changed.is_connected(_on_piece_space_changed):
@@ -630,11 +630,36 @@ func _on_turn_started(player_index: int) -> void:
 		ai_turn_banner.show_banner(current_player.player_name)
 
 	if current_player and current_player.is_in_jail:
+		# At the start of the 3rd jail turn, the player has already used 2 attempts.
+		if int(current_player.turns_in_jail) >= 2:
+			if current_player.player_is_ai == false:
+				if notification_popup:
+					notification_popup.show_notification(
+						"Launch Pad Release",
+						"This is your third turn in the Launch Pad. $50 Will be deducted from your account and you will be released. You may now roll normally"
+					)
+					await notification_popup.dismissed
+
+			var paid := GameController.request_payment(player_index, 50, "Launch Permit")
+			if not paid:
+				log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
+				GameController.turn_setup_complete.emit(player_index)
+				return
+
+			log_event("%s paid $50 to leave the Launch Pad on the third turn." % player_name)
+			GameController.release_player_from_jail(player_index)
+
+			# Now the player is out of jail and can take a normal roll this turn.
+			current_player.has_rolled = false
+			GameController.turn_setup_complete.emit(player_index)
+			return
+
+		# Normal jail flow for turns 1 and 2 only
 		current_player.has_rolled = true # Disable regular rolling temporarily
 		if jail_popup and jail_popup.has_method("show_for_player") and current_player.player_is_ai == false:
 			jail_popup.show_for_player(player_index)
-	GameController.turn_setup_complete.emit(player_index)
 
+	GameController.turn_setup_complete.emit(player_index)
 
 func _on_turn_ended(player_index: int) -> void:
 	print("Board: Turn ended for player ", player_index)
@@ -787,6 +812,9 @@ func _start_auction(space_num: int) -> void:
 	if space_action_popup:
 		space_action_popup.hide()
 
+	# If an AI toast is currently showing, let it finish before opening auction
+	await _wait_for_ai_toast_before_popup()
+
 	# Make sure auction popup is fully ready (prevents null @onready fields)
 	if auction_popup and not auction_popup.is_node_ready():
 		await auction_popup.ready
@@ -891,7 +919,7 @@ func _on_auction_ended(winner_index: int, winning_bid: int, _space_num: int, _pr
 			auction_popup.set_status(winner_name + " wins for $" + str(winning_bid) + "!")
 
 		# Let players read it
-		await get_tree().create_timer(2.5).timeout
+		await get_tree().create_timer(1.4).timeout
 		auction_popup.hide_popup()
 
 	# tell the game flow we’re done with this action and move on.
@@ -1276,15 +1304,24 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 			if current_player.doubles_count == 3:
 				print("Rolled 3 doubles! Go to jail.")
 				log_event("%s rolled doubles three times and was sent to the Launch Pad." % roller_name)
+
+				
+				# This is not a normal doubles extra-roll anymore.
+				# Clear doubles state now so action_completed does not re-enable rolling.
+				current_player.last_roll_was_doubles = false
+				current_player.doubles_count = 0
+				current_player.has_rolled = true
+
 				GameController.send_player_to_jail(GameState.current_player_index)
 				_card_teleport_movement(10) # Jail space
 				GameController.emit_signal("player_rolled", current_player)
-				# _on_player_sent_to_jail handles the notification and action_completed
-				if (current_player.player_is_ai == true):
+
+				if current_player.player_is_ai == true:
 					AiManager.handle_doubles_jail()
 				else:
 					# For humans, end turn after going to jail
 					GameController.end_turn()
+
 				return
 		else:
 			current_player.doubles_count = 0
@@ -1302,7 +1339,7 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> void:
 	player.turns_in_jail += 1
 	player.has_rolled = true
-	# Doubles out of jail do not grant an extra turn, so we reset flags
+	# Doubles out of jail do not grant an extra turn
 	player.last_roll_was_doubles = false
 	player.doubles_count = 0
 
@@ -1310,37 +1347,45 @@ func _handle_jail_roll(player: PlayerState, total: int, is_doubles: bool) -> voi
 
 	if is_doubles:
 		log_event("%s rolled doubles in the Launch Pad and left it." % player_name)
-
 		print("Rolled doubles! Escaped jail.")
 
 		GameController.release_player_from_jail(GameState.current_player_index)
 
-		# Move the rolled amount
 		var old_space: int = int(current_piece.board_space)
 		current_piece.move_forward(total)
 		update_piece_layouts_at(old_space)
+
+	elif player.turns_in_jail >= 3:
+		# On the 3rd jail turn, the player is forced to pay and then move normally,
+		# regardless of whether the roll was doubles.
+		print("3rd turn in jail. Forced to pay $50 bail and leave.")
+		log_event("%s paid $50 to leave the Launch Pad on the third turn." % player_name)
+
+		var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
+		if not paid:
+			log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
+			GameController.emit_signal("player_rolled", player)
+			return
+
+		GameController.release_player_from_jail(GameState.current_player_index)
+
+		var old_space: int = int(current_piece.board_space)
+		current_piece.move_forward(total)
+		update_piece_layouts_at(old_space)
+
 	else:
-		if player.turns_in_jail == 3:
-			print("3rd turn in jail without doubles. Forced to pay $50 bail.")
-			log_event("%s did not roll doubles on their final Launch Pad turn and must pay $50 to leave." % player_name)
+		print("Did not roll doubles. Stay in jail.")
+		log_event("%s did not roll doubles and remains on the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
 
-			var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
-			if not paid:
-				log_event("%s could not afford the $50 Launch Permit and may go bankrupt." % player_name)
-			else:
-				log_event("%s paid $50 to leave the Launch Pad after failing to roll doubles." % player_name)
+		if player.player_is_ai == false and notification_popup:
+			notification_popup.show_notification(
+				"Failed to Roll Doubles",
+				"You did not roll doubles. You will remain in the Launch Pad for another turn."
+			)
+			await notification_popup.dismissed
 
-			GameController.release_player_from_jail(GameState.current_player_index)
-
-			var old_space: int = int(current_piece.board_space)
-			current_piece.move_forward(total)
-			update_piece_layouts_at(old_space)
-		else:
-			print("Did not roll doubles. Stay in jail.")
-			log_event("%s did not roll doubles and remains on the Launch Pad (%d/3 attempts used)." % [player_name, player.turns_in_jail])
-
-			# Don't move, turn effectively over. Need to simulate action completed so End Turn button enables.
-			GameController.action_completed.emit()
+		# Turn ends still in jail
+		GameController.action_completed.emit()
 
 	GameController.emit_signal("player_rolled", player)
 
@@ -1506,65 +1551,48 @@ func _on_bankruptcy_declared() -> void:
 		push_warning("Board: invalid eliminated player during bankruptcy.")
 		return
 
-	# Capture names BEFORE we clear anything
 	var debtor_name := get_player_log_name(eliminated_player)
 	var creditor_name := "the Bank"
 
 	if creditor >= 0 and creditor < GameState.players.size():
 		creditor_name = get_player_log_name(creditor)
 
-	# -------------------------
-	# Turn Log: bankruptcy declaration
-	# -------------------------
 	if creditor >= 0 and creditor < GameState.players.size():
 		log_event("%s declared bankruptcy to %s." % [debtor_name, creditor_name])
 	else:
 		log_event("%s declared bankruptcy to the Bank." % debtor_name)
 
-	# Optional detail line (nice for clarity in the log)
 	if amount > 0 and reason.strip_edges() != "":
 		log_event("%s could not pay $%d for %s." % [debtor_name, amount, reason])
 	elif amount > 0:
 		log_event("%s could not pay $%d." % [debtor_name, amount])
 
-
-	# Capture net worth beforethe assets/cash are transferred away
 	var debtor := GameState.players[eliminated_player]
 	if debtor != null and debtor.net_worth_before_bankruptcy < 0:
 		debtor.net_worth_before_bankruptcy = int(GameState.get_player_final_net_worth(eliminated_player))
-	
-	# Resolve transfer of assets/cash before elimination
-	_resolve_bankruptcy_transfer(eliminated_player, creditor)
 
-	# Log asset transfer result
+	_resolve_bankruptcy_transfer(eliminated_player, creditor)
 
 	if creditor >= 0 and creditor < GameState.players.size():
 		log_event("%s's remaining assets were transferred to %s." % [debtor_name, creditor_name])
 	else:
 		log_event("%s's remaining assets were returned to the Bank." % debtor_name)
 
-	# Mark player inactive in GameState
-
 	if eliminated_player >= 0 and eliminated_player < GameState.player_active.size():
 		GameState.player_active[eliminated_player] = false
 
-	# Visually remove their piece from board
 	if eliminated_player >= 0 and eliminated_player < pieces.size():
 		if is_instance_valid(pieces[eliminated_player]):
 			pieces[eliminated_player].queue_free()
 		pieces[eliminated_player] = null
 
-	# Hide bankruptcy UI
 	if bankruptcy_popup:
 		bankruptcy_popup.hide_popup()
 
-	# Final elimination log
 	log_event("%s was removed from the game." % debtor_name)
 
 	_clear_pending_bankruptcy()
 
-
-	# Check win condition
 	var active_count := 0
 	var last_active := -1
 	for i in range(GameState.player_active.size()):
@@ -1574,12 +1602,11 @@ func _on_bankruptcy_declared() -> void:
 
 	if active_count == 1:
 		log_event("%s wins the game!" % get_player_log_name(last_active))
+		GameController.action_completed.emit()
 		_show_win_screen(last_active)
 		return
 
-
-	# Advance turn immediately so we never land on a bankrupt player
-
+	GameController.action_completed.emit()
 	call_deferred("_advance_after_bankruptcy")
 
 func enter_bankruptcy(debtor_idx: int, creditor_idx: int, amount: int, reason: String) -> void:
@@ -1943,7 +1970,7 @@ func _setup_pause_menu() -> void:
 	if pause_menu.has_signal("how_to_play_requested"):
 		pause_menu.how_to_play_requested.connect(_on_pause_how_to_play_requested)
 		
-		
+
 func _on_pause_settings_requested() -> void:
 	if pause_menu:
 		pause_menu.hide_menu_only()
@@ -1953,6 +1980,18 @@ func _on_pause_settings_requested() -> void:
 			settings_menu.open()
 		else:
 			settings_menu.show()
+			
+			
+func _on_pause_quit_requested() -> void:
+	if pause_menu:
+		pause_menu.set_paused(false)
+
+	# Reset persistent singleton state before leaving the board
+	if GameState and GameState.has_method("reset_for_new_game"):
+		GameState.reset_for_new_game()
+
+	_cleanup_root_ui()
+	call_deferred("_go_to_start_menu")
 		
 		
 func _setup_settings_menu() -> void:
@@ -2007,12 +2046,6 @@ func _on_game_rules_closed() -> void:
 	if pause_menu and is_instance_valid(pause_menu):
 		pause_menu.show_menu_only()
 
-func _on_pause_quit_requested() -> void:
-	if pause_menu:
-		pause_menu.set_paused(false)
-
-	_cleanup_root_ui()
-	call_deferred("_go_to_start_menu")
 	
 func _on_pause_how_to_play_requested() -> void:
 	print("Board: How to Play requested")
@@ -2038,24 +2071,63 @@ func _go_to_game_setup_screen() -> void:
 
 
 func _cleanup_root_ui() -> void:
-	# Free CanvasLayers / root-level UI added by Board
+	# Hide popups first
+	if space_action_popup and is_instance_valid(space_action_popup):
+		space_action_popup.hide()
+
+	if trade_popup and is_instance_valid(trade_popup):
+		trade_popup.hide()
+
+	if auction_popup and is_instance_valid(auction_popup):
+		auction_popup.hide()
+
+	if property_details_popup and is_instance_valid(property_details_popup):
+		property_details_popup.hide()
+
+	if bankruptcy_popup and is_instance_valid(bankruptcy_popup):
+		bankruptcy_popup.hide()
+
+	if assets_popup and is_instance_valid(assets_popup):
+		assets_popup.hide()
+
+	if notification_popup and is_instance_valid(notification_popup):
+		notification_popup.hide()
+
+	if jail_popup and is_instance_valid(jail_popup):
+		jail_popup.hide()
+
+	if end_game_popup and is_instance_valid(end_game_popup):
+		end_game_popup.hide()
+
+	if match_stats_popup and is_instance_valid(match_stats_popup):
+		match_stats_popup.hide()
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.hide()
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.hide()
+
+	# Free root UI layers added by Board
 	var names_to_remove := [
-	"DiceRollLayer",
-	"MoneyHUDLayer",
-	"PlayerNameHUDLayer",
-	"PlayerPropertiesPreviewLayer",
-	"EndTurnButtonLayer",
-	"PauseMenuLayer",
-	"SettingsMenuLayer",
-	"EndGamePopupLayer",
-	"MatchStatsPopupLayer"
-]
+		"DiceRollLayer",
+		"MoneyHUDLayer",
+		"PlayerNameHUDLayer",
+		"PlayerPropertiesPreviewLayer",
+		"EndTurnButtonLayer",
+		"PauseMenuLayer",
+		"SettingsMenuLayer",
+		"EndGamePopupLayer",
+		"MatchStatsPopupLayer",
+		"AiTurnBannerLayer",
+		"AiActionToastLayer",
+		"GameRulesPopupLayer"
+	]
 
 	for child in get_tree().root.get_children():
 		if child.name in names_to_remove:
 			child.queue_free()
 
-	# Free root-added popups/panels that are instantiated directly
 	if space_info_panel and is_instance_valid(space_info_panel):
 		space_info_panel.queue_free()
 		space_info_panel = null
@@ -2111,8 +2183,26 @@ func _cleanup_root_ui() -> void:
 	if match_stats_popup_layer and is_instance_valid(match_stats_popup_layer):
 		match_stats_popup_layer.queue_free()
 		match_stats_popup_layer = null
-		
-		
+
+	if game_rules_popup and is_instance_valid(game_rules_popup):
+		game_rules_popup.queue_free()
+		game_rules_popup = null
+
+	if game_rules_popup_layer and is_instance_valid(game_rules_popup_layer):
+		game_rules_popup_layer.queue_free()
+		game_rules_popup_layer = null
+
+	if player_properties_preview and is_instance_valid(player_properties_preview):
+		player_properties_preview.queue_free()
+		player_properties_preview = null
+
+	if ai_turn_banner and is_instance_valid(ai_turn_banner):
+		ai_turn_banner.hide()
+		ai_turn_banner = null
+
+	if ai_action_toast and is_instance_valid(ai_action_toast):
+		ai_action_toast.hide()
+		ai_action_toast = null
 		
 func _spawn_colorblind_symbols() -> void:
 	if not has_node("ColorBlindSymbols"):
@@ -2476,3 +2566,54 @@ func _show_board_ui_after_rules() -> void:
 
 	if turn_log_panel and is_instance_valid(turn_log_panel):
 		turn_log_panel.show()
+
+func _wait_for_ai_toast_before_popup() -> void:
+	var current_player := GameController.get_current_player()
+
+	if current_player == null:
+		return
+
+	if not current_player.player_is_ai:
+		return
+
+	if ai_action_toast and is_instance_valid(ai_action_toast) and ai_action_toast.has_method("wait_until_finished"):
+		await ai_action_toast.wait_until_finished()
+
+
+	
+	#This UI panel still showing up in start menu if player quits with it visible in game, creating func to help resolve.
+func _force_remove_player_properties_preview_everywhere() -> void:
+	var nodes_to_remove: Array[Node] = []
+
+	for node in get_tree().root.find_children("*", "", true, false):
+		if node == null or not is_instance_valid(node):
+			continue
+
+		var should_remove := false
+		var node_name := str(node.name)
+
+		if node_name == "PlayerPropertiesPreview" or node_name == "PlayerPropertiesPreviewLayer":
+			should_remove = true
+
+		var script = node.get_script()
+		if script is Script:
+			var script_path := str(script.resource_path).to_lower()
+			if "playerpropertiespreview" in script_path or "player_properties_preview" in script_path:
+				should_remove = true
+
+		if should_remove:
+			nodes_to_remove.append(node)
+
+			var parent = node.get_parent()
+			if parent and is_instance_valid(parent):
+				var parent_name := str(parent.name)
+				if parent_name == "PlayerPropertiesPreviewLayer" and not nodes_to_remove.has(parent):
+					nodes_to_remove.append(parent)
+
+	for node in nodes_to_remove:
+		if node and is_instance_valid(node):
+			if node is CanvasItem:
+				node.hide()
+			node.queue_free()
+
+	player_properties_preview = null

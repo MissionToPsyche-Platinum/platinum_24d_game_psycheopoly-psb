@@ -22,8 +22,10 @@ const MENU_FADE_IN := 0.25
 
 
 func _ready() -> void:
-	_connect_signals()
+	_cleanup_leftover_board_popups()
 
+	_connect_signals()
+	
 	# Build SettingsMenu after the tree is stable
 	call_deferred("_setup_settings_menu")
 	
@@ -255,3 +257,59 @@ func _on_credits_closed() -> void:
 
 	if credits_btn:
 		credits_btn.grab_focus()
+		
+func _cleanup_leftover_board_ui() -> void:
+	var root := get_tree().root
+
+	var names_to_remove := [
+		"PlayerPropertiesPreviewLayer",
+		"DiceRollLayer",
+		"MoneyHUDLayer",
+		"PlayerNameHUDLayer",
+		"EndTurnButtonLayer",
+		"PauseMenuLayer",
+		"SettingsMenuLayer",
+		"AiTurnBannerLayer",
+		"AiActionToastLayer",
+		"GameRulesPopupLayer",
+		"EndGamePopupLayer",
+		"MatchStatsPopupLayer"
+	]
+
+	for child in root.get_children():
+		if child.name in names_to_remove:
+			if child is CanvasItem:
+				child.hide()
+			child.queue_free()
+
+	var stray_names := [
+		"PlayerPropertiesPreview",
+		"AssetsPopup",
+		"PropertyDetailsPopup"
+	]
+
+	for node_name in stray_names:
+		var stray = root.find_child(node_name, true, false)
+		while stray and is_instance_valid(stray):
+			if stray is CanvasItem:
+				stray.hide()
+			stray.queue_free()
+			stray = root.find_child(node_name, true, false)
+
+func _cleanup_leftover_board_popups() -> void:
+	var root := get_tree().root
+	var nodes_to_remove: Array[Node] = []
+
+	for node in root.find_children("*", "", true, false):
+		if node == null or not is_instance_valid(node):
+			continue
+
+		var node_name := str(node.name)
+		if node_name == "PropertiesDetailPopup" or node_name == "AssetsPopup" or node_name == "PlayerPropertiesPreview":
+			nodes_to_remove.append(node)
+
+	for node in nodes_to_remove:
+		if node and is_instance_valid(node):
+			if node is CanvasItem:
+				node.hide()
+			node.queue_free()

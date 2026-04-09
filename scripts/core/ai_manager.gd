@@ -192,30 +192,56 @@ func ai_turn_start() -> void:
 		ai_turn_mid()
 
 # Specifically handles the case where the AI rolls doubles 3 times in a row, since this path leads to ai never landing on a space
-func handle_doubles_jail():
-	GameController.get_current_player().last_roll_was_doubles = false
-	GameController.get_current_player().has_rolled = true
-	ai_turn_mid()
+func handle_doubles_jail() -> void:
+	var current_player = GameController.get_current_player()
+	if current_player == null:
+		return
+
+	current_player.last_roll_was_doubles = false
+	current_player.doubles_count = 0
+	current_player.has_rolled = true
+
+	active_ai_player_index = -1
+	GameController.end_turn()
 
 
 # AI should choose between rolling, paying, and using a card here
-func ai_jail_decision():
+func ai_jail_decision() -> void:
 	print("AI Manager: AI makes jail decision")
 	var current_player = GameController.get_current_player()
+	if current_player == null:
+		return
 
-	# Attempt to roll for doubles if still early in jail (< 2 turns)
-	if current_player.turns_in_jail < 2:
-		ai_jail_roll.emit(GameState.current_player_index)
-		await get_tree().process_frame  # Let jail popup process before rolling
+	# Third jail turn:
+	# AI must pay $50 to leave immediately, then roll normally for the turn.
+	if current_player.turns_in_jail >= 2:
+		var paid := GameController.request_payment(GameState.current_player_index, 50, "Launch Permit")
+		if not paid:
+			return
+
+		GameController.release_player_from_jail(GameState.current_player_index)
+		current_player.has_rolled = false
+
 		await _ai_pause("pre_roll")
-		ai_dice_roll.emit()  # Actually trigger the dice roll
-		await GameController.player_rolled
-		if current_player.is_in_jail: # move on to middle of turn if still in jail, otherwise landing on a property will trigger first
-			ai_turn_mid()
-	elif GameController.get_current_player().go_for_launch_cards > 0:
-		ai_jail_card.emit(GameState.current_player_index)
-	else:
-		ai_jail_pay.emit(GameState.current_player_index)
+		if not _is_same_ai_turn(active_ai_player_index):
+			return
+
+		ai_dice_roll.emit()
+		return
+
+	# Turns 1 and 2: try to roll doubles to get out
+	ai_jail_roll.emit(GameState.current_player_index)
+	await get_tree().process_frame
+	await _ai_pause("pre_roll")
+
+	if not _is_same_ai_turn(active_ai_player_index):
+		return
+
+	ai_dice_roll.emit()
+	await GameController.player_rolled
+
+	if current_player.is_in_jail:
+		ai_turn_mid()
 
 
 
@@ -248,11 +274,17 @@ func ai_lands_on_space(space_num: int) -> void:
 	match gname:
 		"PropertySpace", "InstrumentSpace", "PlanetSpace":
 			if property._is_owned == true:
-				if current_player.balance > GameController.calculate_rent(GameState.board[space_num]):
-					ai_pay.emit(space_num)
-				else:
-					ai_pay.emit(space_num)
+				var rent_owed := GameController.calculate_rent(GameState.board[space_num])
+				var needs_bankruptcy_flow: bool = current_player.balance < rent_owed
+
+				print("AI DEBUG: owned space landed on, emitting ai_pay for space ", space_num)
+				ai_pay.emit(space_num)
+
+				# Only wait if this payment was going to trigger bankruptcy handling.
+				if needs_bankruptcy_flow:
+					print("AI DEBUG: waiting for action_completed after bankruptcy-risk rent payment")
 					await GameController.action_completed
+					print("AI DEBUG: action_completed received after bankruptcy-risk rent payment")
 			else:
 				await ai_lands_on_unowned_property(space_num)
 
@@ -264,11 +296,38 @@ func ai_lands_on_space(space_num: int) -> void:
 			return
 
 		"ExpenseSpace":
+			var space_info = SpaceData.get_space_info(space_num)
+			var amount_owed := int(space_info.get("amount", 0))
+			var needs_bankruptcy_flow: bool = current_player.balance < amount_owed
+
+			print("AI DEBUG: expense space landed on, emitting ai_pay for space ", space_num)
 			ai_pay.emit(space_num)
+
+			# Only wait if this expense was going to trigger bankruptcy handling.
+			if needs_bankruptcy_flow:
+				print("AI DEBUG: waiting for action_completed after bankruptcy-risk expense payment")
+				await GameController.action_completed
+				print("AI DEBUG: action_completed received after bankruptcy-risk expense payment")
 
 		"SpecialSpace":
 			if space_num == 30:
+				print("AI DEBUG: landed on Solar Storm, moving to Launch Pad")
 				ai_move.emit(space_num)
+
+				# Let the board finish the transport / jail state update first.
+				await get_tree().process_frame
+
+				if not _is_same_ai_turn(acting_ai):
+					return
+
+				var updated_player = GameController.get_current_player()
+				if updated_player != null and updated_player.is_in_jail:
+					print("AI DEBUG: AI was sent to Launch Pad, ending turn immediately")
+					ai_turn_end()
+					return
+
+				return
+			# Space 10 ("just visiting"/Launch Pad tile) should fall through normally.
 
 		"GameSpace":
 			if space_num == 20:
@@ -278,8 +337,8 @@ func ai_lands_on_space(space_num: int) -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
+	print("AI DEBUG: entering ai_turn_mid from ai_lands_on_space")
 	ai_turn_mid()
-	
 
 func ai_card_resolve(card_num: int) -> void:
 	var acting_ai := active_ai_player_index
@@ -294,11 +353,25 @@ func ai_card_resolve(card_num: int) -> void:
 	if not current_player.has_rolled and not current_player.is_in_jail:
 		return
 
-	if card_num not in range(18, 33):
-		ai_turn_mid()
-	elif card_num in range(32, 33):
-		ai_turn_mid()
+	print("AI DEBUG: ai_card_resolve called for card ", card_num)
 
+	# Jail cards: turn should end through the jail flow, not mid-turn logic
+	if current_player.is_in_jail:
+		print("AI DEBUG: card resolution left AI in Launch Pad, ending turn")
+		ai_turn_end()
+		return
+
+	# Movement cards shouldnt  resume the turn here.
+	# Let the follow-up movement finish and let the destination landing handle continuation.
+	if card_num in range(18, 34):
+		print("AI DEBUG: movement card resolved, waiting for destination landing")
+		return
+
+	# Non-movement cards can continue the turn immediately
+	print("AI DEBUG: non-movement card resolved, continuing AI turn")
+	ai_turn_mid()
+	
+	
 # AI should choose between purchasing and auctioning here
 func ai_lands_on_unowned_property(space_num: int) -> void:
 	var acting_ai := active_ai_player_index
@@ -475,30 +548,52 @@ func ai_create_trade_offer(buying: bool) -> void:
 		target_player += 1
 		
 	var receivablePropeties: Array[int] = []
-	if (buying):
+	if buying:
 		for i in range(GameState.players.size()):
-			if (i != current_player):
+			if i != current_player:
 				receivablePropeties.append_array(GameController.get_tradeable_space_indexes(i))
 		receivablePropeties.sort_custom(_sort_by_multiplier)
-		if (receivablePropeties.size() > 0):
-			receivingProperties.append(receivablePropeties[0])	
+
+		if receivablePropeties.size() > 0:
+			receivingProperties.append(receivablePropeties[0])
 			target_player = GameState.board[receivingProperties[0]]._player_owner
-		var maxOffer = min(GameController.get_current_player().balance, _calculate_AI_property_value(GameState.players[current_player], receivingProperties[0]))
-		offeringCash = randi_range(maxOffer / 2, maxOffer)
+
+			var maxOffer = min(
+				GameController.get_current_player().balance,
+				_calculate_AI_property_value(GameState.players[current_player], receivingProperties[0])
+			)
+			offeringCash = randi_range(maxOffer / 2, maxOffer)
 	else:
 		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
 		offerablePropeties.sort_custom(_sort_by_multiplier)
-		if (offerablePropeties.size() > 0):
+
+		if offerablePropeties.size() > 0:
 			offeringProperties.append(offerablePropeties[offerablePropeties.size() - 1])
-		
-		var propertyValue = _calculate_AI_property_value(GameState.players[current_player], offeringProperties[0])
-		if (propertyValue < GameState.players[target_player].balance):
-			receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
-		else:
-			receivingCash = GameState.players[current_player]
+
+			var propertyValue = _calculate_AI_property_value(GameState.players[current_player], offeringProperties[0])
+			if propertyValue < GameState.players[target_player].balance:
+				receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
+			else:
+				receivingCash = GameState.players[target_player].balance
 			
-	if (offeringProperties.size() > 0 || receivingProperties.size() > 0):
-		ai_trade_create.emit(current_player, target_player, offeringCash, receivingCash, offeringProperties, receivingProperties) # only create offer is AI is trading a property
+	if offeringProperties.size() > 0 or receivingProperties.size() > 0:
+		if not _is_same_ai_turn(current_player):
+			return
+
+		# Give the AI action toast time to finish before the trade popup is requested
+		await get_tree().create_timer(2.9, true).timeout
+
+		if not _is_same_ai_turn(current_player):
+			return
+
+		ai_trade_create.emit(
+			current_player,
+			target_player,
+			offeringCash,
+			receivingCash,
+			offeringProperties,
+			receivingProperties
+		) # only create offer if AI is trading a property
 	else:
 		ai_turn_post_trade()
 
