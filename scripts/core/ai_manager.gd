@@ -340,6 +340,7 @@ func _build_property_context(space_num: int, ai_player_idx: int) -> Dictionary:
 			"space_index": space_num,
 			"asset_type": "special",
 			"name": "Unknown",
+			"color": "None",
 			"board_price": 0,
 			"ai_estimated_value": 0,
 			"monopoly_equivalent": "none",
@@ -353,6 +354,7 @@ func _build_property_context(space_num: int, ai_player_idx: int) -> Dictionary:
 			"space_index": space_num,
 			"asset_type": "non_ownable",
 			"name": space._space_name,
+			"color": "None",
 			"board_price": 0,
 			"ai_estimated_value": 0,
 			"monopoly_equivalent": "none",
@@ -365,6 +367,7 @@ func _build_property_context(space_num: int, ai_player_idx: int) -> Dictionary:
 		"space_index": space_num,
 		"asset_type": "property",
 		"name": space._space_name,
+		"color": _get_property_group_name(space),
 		"is_mortgaged": space._is_mortgaged,
 		"is_owned": space._is_owned,
 		"owner_index": space._player_owner,
@@ -401,6 +404,7 @@ func _build_trade_offer_context(trade_offer: Dictionary, ai_player_idx: int) -> 
 				"space_index": space_idx,
 				"asset_type": "special",
 				"name": "Go For Launch Card",
+				"color": "Cards",
 				"board_price": 50,
 				"ai_estimated_value": 60,
 				"monopoly_equivalent": "none",
@@ -422,6 +426,7 @@ func _build_trade_offer_context(trade_offer: Dictionary, ai_player_idx: int) -> 
 				"space_index": space_idx,
 				"asset_type": "special",
 				"name": "Go For Launch Card",
+				"color": "Cards",
 				"board_price": 50,
 				"ai_estimated_value": 60,
 				"monopoly_equivalent": "none",
@@ -700,6 +705,10 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 	var my_tradeable_spaces = GameController.get_tradeable_space_indexes(curr_player_idx)
 	if not (my_tradeable_spaces is Array):
 		my_tradeable_spaces = []
+	var my_tradeable_properties: Array = []
+	for raw_space_idx in my_tradeable_spaces:
+		my_tradeable_properties.append(_build_property_context(int(raw_space_idx), curr_player_idx))
+
 	var has_trade_offer_assets: bool = curr_player.balance > 0 or my_tradeable_spaces.size() > 0
 
 	var opponents = []
@@ -711,6 +720,9 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 			var opponent_tradeable_spaces = GameController.get_tradeable_space_indexes(i)
 			if not (opponent_tradeable_spaces is Array):
 				opponent_tradeable_spaces = []
+			var opponent_tradeable_properties: Array = []
+			for raw_space_idx in opponent_tradeable_spaces:
+				opponent_tradeable_properties.append(_build_property_context(int(raw_space_idx), curr_player_idx))
 
 			opponents.append({
 				"player_index": i,
@@ -718,7 +730,8 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 				"balance": p.balance,
 				"space_index": p.board_space,
 				"owned_properties": all_owned_properties[i],
-				"tradeable_space_indexes": opponent_tradeable_spaces
+				"tradeable_space_indexes": opponent_tradeable_spaces,
+				"tradeable_properties": opponent_tradeable_properties
 			})
 
 			var opponent_has_trade_assets: bool = p.balance > 0 or opponent_tradeable_spaces.size() > 0
@@ -727,7 +740,8 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 					"player_index": i,
 					"name": p.player_name,
 					"balance": p.balance,
-					"tradeable_space_indexes": opponent_tradeable_spaces
+					"tradeable_space_indexes": opponent_tradeable_spaces,
+					"tradeable_properties": opponent_tradeable_properties
 				})
 
 	var owed = _bankruptcy_amount if _fallback_state == "bankruptcy" else 0
@@ -755,6 +769,7 @@ func get_ai_game_state(curr_player_idx: int) -> Dictionary:
 		"valid_mortgages": validMortgages,
 		"valid_unmortgages": validUnmortgages,
 		"your_tradeable_space_indexes": my_tradeable_spaces,
+		"your_tradeable_properties": my_tradeable_properties,
 		"trade_targets": trade_targets,
 		"can_propose_trade": can_propose_trade,
 		"owned_properties": all_owned_properties[curr_player_idx],
