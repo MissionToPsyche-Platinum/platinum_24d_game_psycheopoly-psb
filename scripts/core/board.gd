@@ -1113,14 +1113,108 @@ func _on_property_details_closed() -> void:
 	if auction_popup:
 		auction_popup.visible = true
 
+func _is_blocking_popup_open() -> bool:
+	var blockers = [
+		space_action_popup,
+		trade_popup,
+		auction_popup,
+		property_details_popup,
+		bankruptcy_popup,
+		assets_popup,
+		jail_popup,
+		notification_popup,
+		pause_menu,
+		settings_menu,
+		game_rules_popup,
+		end_game_popup,
+		match_stats_popup
+	]
+
+	for popup in blockers:
+		if popup != null and is_instance_valid(popup) and popup.visible:
+			return true
+
+	return false
+
+
+func _clear_selected_tile() -> void:
+	if highlight_layer == null:
+		selected_tile = Vector2i(-1, -1)
+		is_tile_selected = false
+		return
+
+	if is_tile_selected and selected_tile != Vector2i(-1, -1):
+		highlight_layer.erase_cell(selected_tile)
+
+	selected_tile = Vector2i(-1, -1)
+	is_tile_selected = false
+
+
+func _restore_hover_highlight_if_needed() -> void:
+	if highlight_layer == null:
+		return
+
+	if hovered_tile != Vector2i(-1, -1) and hovered_tile != selected_tile:
+		highlight_layer.set_cell(hovered_tile, 1, HOVER_TILE)
+		
+		
+func _is_mouse_over_any_ui() -> bool:
+	var hovered_control := get_viewport().gui_get_hovered_control()
+	if hovered_control == null:
+		return false
+
+	var ui_nodes := [
+		turn_log_panel,
+		space_info_panel,
+		dice_roll_ui,
+		money_hud,
+		player_name_hud,
+		player_properties_preview,
+		end_turn_button,
+		space_action_popup,
+		trade_popup,
+		auction_popup,
+		property_details_popup,
+		bankruptcy_popup,
+		assets_popup,
+		jail_popup,
+		notification_popup,
+		pause_menu,
+		settings_menu,
+		game_rules_popup,
+		end_game_popup,
+		match_stats_popup
+	]
+
+	for ui_node in ui_nodes:
+		if ui_node != null and is_instance_valid(ui_node):
+			if ui_node is Node and ui_node.is_ancestor_of(hovered_control):
+				return true
+
+	return false
+	
 
 func _input(event: InputEvent) -> void:
 	if get_tree().paused:
 		return
 
+	# Do not allow board interaction while blocking popups are open
+	if _is_blocking_popup_open():
+		if hovered_tile != Vector2i(-1, -1) and hovered_tile != selected_tile:
+			highlight_layer.erase_cell(hovered_tile)
+		hovered_tile = Vector2i(-1, -1)
+		return
+
+	# If the mouse is over any UI control, do not process board hover/click logic.
+	# This prevents clicks on Upgrade / buttons / panels from clearing tile selection.
+	if _is_mouse_over_any_ui():
+		if hovered_tile != Vector2i(-1, -1) and hovered_tile != selected_tile:
+			highlight_layer.erase_cell(hovered_tile)
+		hovered_tile = Vector2i(-1, -1)
+		return
+
 	# If the mouse is over the Turn Log UI, do not allow board hover/click handling.
 	if turn_log_panel and turn_log_panel.has_method("is_mouse_over_ui") and turn_log_panel.is_mouse_over_ui():
-		# Clear hover highlight while hovering over the turn log area
 		if hovered_tile != Vector2i(-1, -1) and hovered_tile != selected_tile:
 			highlight_layer.erase_cell(hovered_tile)
 		hovered_tile = Vector2i(-1, -1)
@@ -1130,6 +1224,7 @@ func _input(event: InputEvent) -> void:
 		_handle_mouse_motion(event)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_handle_mouse_click(event)
+
 
 
 func _handle_mouse_motion(_event: InputEventMouseMotion) -> void:
@@ -1164,52 +1259,48 @@ func _handle_mouse_click(event: InputEventMouseButton) -> void:
 	if not tile_map_layer or not space_info_panel:
 		return
 
-	# Get the tile coordinates under the mouse
 	var mouse_pos = get_global_mouse_position()
 	var tile_coords = tile_map_layer.local_to_map(mouse_pos)
 
-	# Check if this is a valid board tile
+	# Clicking off the board should clear the current tile selection.
+	# UI clicks should already be blocked earlier in _input().
 	if not _is_valid_board_tile(tile_coords):
+		_clear_selected_tile()
+		_restore_hover_highlight_if_needed()
+
+		if current_piece:
+			space_info_panel.update_space_display(current_piece.board_space)
 		return
 
 	# Debug quick teleport: Shift + Left Click
 	if event.shift_pressed:
-		var space_num := _get_space_from_tile_coords(tile_coords)
-		if space_num >= 0 and current_piece:
-			print("DEBUG: Quick teleporting piece to space ", space_num)
-			current_piece.teleport_to_space(space_num)
+		var debug_space_num := _get_space_from_tile_coords(tile_coords)
+		if debug_space_num >= 0 and current_piece:
+			print("DEBUG: Quick teleporting piece to space ", debug_space_num)
+			current_piece.teleport_to_space(debug_space_num)
 			return
 
 	# If clicking the same tile, deselect it
 	if is_tile_selected and tile_coords == selected_tile:
-		# Deselect
-		is_tile_selected = false
-		highlight_layer.erase_cell(selected_tile)
-		selected_tile = Vector2i(-1, -1)
+		_clear_selected_tile()
+		_restore_hover_highlight_if_needed()
 
-		# Restore hover highlight if mouse is still over a tile
-		if hovered_tile != Vector2i(-1, -1):
-			highlight_layer.set_cell(hovered_tile, 1, HOVER_TILE)
-
-		# Show player's current position info
 		if current_piece:
 			space_info_panel.update_space_display(current_piece.board_space)
-	else:
-		# Clear previous selection
-		if is_tile_selected and selected_tile != Vector2i(-1, -1):
-			highlight_layer.erase_cell(selected_tile)
+		return
 
-		# Select new tile
-		selected_tile = tile_coords
-		is_tile_selected = true
+	# Clear previous selection
+	_clear_selected_tile()
 
-		# Show selected highlight
-		highlight_layer.set_cell(selected_tile, 1, SELECTED_TILE)
+	# Select new tile
+	selected_tile = tile_coords
+	is_tile_selected = true
+	highlight_layer.set_cell(selected_tile, 1, SELECTED_TILE)
 
-		# Update space info panel with selected tile's info
-		var space_num := _get_space_from_tile_coords(tile_coords)
-		if space_num >= 0:
-			space_info_panel.update_space_display(space_num)
+	# Update space info panel with selected tile's info
+	var space_num := _get_space_from_tile_coords(tile_coords)
+	if space_num >= 0:
+		space_info_panel.update_space_display(space_num)
 
 
 func _is_valid_board_tile(coords: Vector2i) -> bool:

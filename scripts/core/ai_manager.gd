@@ -248,21 +248,37 @@ func ai_jail_decision() -> void:
 # Controls logic for AI players landing on spaces, then moves the AI to the middle of its turn
 func ai_lands_on_space(space_num: int) -> void:
 	var acting_ai := active_ai_player_index
+	print("AI DEBUG: ai_lands_on_space called for space %d" % space_num)
+	print("AI DEBUG: active_ai_player_index=%s current_player_index=%s" % [
+		str(acting_ai),
+		str(GameState.current_player_index)
+	])
+
 	if not _is_same_ai_turn(acting_ai):
+		print("AI DEBUG: ai_lands_on_space RETURNED - not same AI turn")
 		return
 
 	var current_player = GameController.get_current_player()
 	if current_player == null:
+		print("AI DEBUG: ai_lands_on_space RETURNED - current_player is null")
 		return
+
+	print("AI DEBUG: ai_lands_on_space state | has_rolled=%s is_in_jail=%s balance=%s" % [
+		str(current_player.has_rolled),
+		str(current_player.is_in_jail),
+		str(current_player.balance)
+	])
 
 	# A real landing should only be resolved after has_rolled is true.
 	if not current_player.has_rolled and not current_player.is_in_jail:
+		print("AI DEBUG: ai_lands_on_space RETURNED - has_rolled is false and player not in jail")
 		return
 
 	print("AI Manager: AI lands on space")
 
 	await _ai_pause("after_landing")
 	if not _is_same_ai_turn(acting_ai):
+		print("AI DEBUG: ai_lands_on_space RETURNED after pause - not same AI turn")
 		return
 
 	var property = GameState.board[space_num]
@@ -271,13 +287,15 @@ func ai_lands_on_space(space_num: int) -> void:
 	if scr != null:
 		gname = scr.get_global_name()
 
+	print("AI DEBUG: landing space type = %s | space_num = %d" % [gname, space_num])
+
 	match gname:
 		"PropertySpace", "InstrumentSpace", "PlanetSpace":
 			if property._is_owned == true:
 				var rent_owed := GameController.calculate_rent(GameState.board[space_num])
 				var needs_bankruptcy_flow: bool = current_player.balance < rent_owed
 
-				print("AI DEBUG: owned space landed on, emitting ai_pay for space ", space_num)
+				print("AI DEBUG: owned space landed on, emitting ai_pay for space %d" % space_num)
 				ai_pay.emit(space_num)
 
 				# Only wait if this payment was going to trigger bankruptcy handling.
@@ -286,11 +304,14 @@ func ai_lands_on_space(space_num: int) -> void:
 					await GameController.action_completed
 					print("AI DEBUG: action_completed received after bankruptcy-risk rent payment")
 			else:
+				print("AI DEBUG: unowned property/instrument/planet at space %d" % space_num)
 				await ai_lands_on_unowned_property(space_num)
 
 		"CardSpace":
+			print("AI DEBUG: landed on CardSpace %d" % space_num)
 			await _ai_pause("card_draw")
 			if not _is_same_ai_turn(acting_ai):
+				print("AI DEBUG: ai_lands_on_space RETURNED before card draw - not same AI turn")
 				return
 			ai_draw_card.emit(space_num)
 			return
@@ -300,7 +321,7 @@ func ai_lands_on_space(space_num: int) -> void:
 			var amount_owed := int(space_info.get("amount", 0))
 			var needs_bankruptcy_flow: bool = current_player.balance < amount_owed
 
-			print("AI DEBUG: expense space landed on, emitting ai_pay for space ", space_num)
+			print("AI DEBUG: expense space landed on, emitting ai_pay for space %d" % space_num)
 			ai_pay.emit(space_num)
 
 			# Only wait if this expense was going to trigger bankruptcy handling.
@@ -318,6 +339,7 @@ func ai_lands_on_space(space_num: int) -> void:
 				await get_tree().process_frame
 
 				if not _is_same_ai_turn(acting_ai):
+					print("AI DEBUG: ai_lands_on_space RETURNED after Solar Storm move - not same AI turn")
 					return
 
 				var updated_player = GameController.get_current_player()
@@ -335,6 +357,7 @@ func ai_lands_on_space(space_num: int) -> void:
 				GameController.credit(acting_ai, space_info.get("amount", 0))
 
 	if not _is_same_ai_turn(acting_ai):
+		print("AI DEBUG: ai_lands_on_space RETURNED before ai_turn_mid - not same AI turn")
 		return
 
 	print("AI DEBUG: entering ai_turn_mid from ai_lands_on_space")
@@ -525,9 +548,37 @@ func ai_turn_post_trade() -> void:
 # sorts the properties from highest multiplier -> lowest
 func _sort_by_multiplier(a: int, b: int) -> bool:
 	var current_player = GameController.get_current_player()
-	if (current_player.current_property_value_multipliers[a] > current_player.current_property_value_multipliers[b]):
+	if current_player == null:
+		return false
+
+	var multipliers: Array = current_player.current_property_value_multipliers
+	if multipliers == null:
+		return false
+
+	var max_index: int = multipliers.size() - 1
+	var a_valid: bool = a >= 0 and a <= max_index
+	var b_valid: bool = b >= 0 and b <= max_index
+
+	if a_valid and not b_valid:
+		return true
+	if not a_valid and b_valid:
+		return false
+	if not a_valid and not b_valid:
+		return a < b
+
+	if multipliers[a] > multipliers[b]:
 		return true
 	return false
+
+
+func _filter_valid_board_property_ids(property_ids: Array[int]) -> Array[int]:
+	var results: Array[int] = []
+
+	for property_id in property_ids:
+		if property_id >= 0 and property_id < GameState.board.size():
+			results.append(property_id)
+
+	return results
 	
 
 
@@ -552,6 +603,8 @@ func ai_create_trade_offer(buying: bool) -> void:
 		for i in range(GameState.players.size()):
 			if i != current_player:
 				receivablePropeties.append_array(GameController.get_tradeable_space_indexes(i))
+
+		receivablePropeties = _filter_valid_board_property_ids(receivablePropeties)
 		receivablePropeties.sort_custom(_sort_by_multiplier)
 
 		if receivablePropeties.size() > 0:
@@ -565,6 +618,8 @@ func ai_create_trade_offer(buying: bool) -> void:
 			offeringCash = randi_range(maxOffer / 2, maxOffer)
 	else:
 		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
+
+		offerablePropeties = _filter_valid_board_property_ids(offerablePropeties)
 		offerablePropeties.sort_custom(_sort_by_multiplier)
 
 		if offerablePropeties.size() > 0:
@@ -667,20 +722,22 @@ func ai_auction_decision(player_index: int, highest_bid: int, space_num: int) ->
 		ai_auction_bid.emit(1)
 	else:
 		ai_auction_pass.emit()
+
 # AI should decide whether to accept or decline a trade here
 func ai_trade_decision(trade_offer: Dictionary) -> void:
 	var player = trade_offer.get("target_player", -1)
 
-
 	var value_offered = trade_offer.get("offer_cash", 0)
 	var offered_spaces = trade_offer.get("offered_spaces", [])
 	for i in range(offered_spaces.size()):
-		value_offered += _calculate_AI_property_value(GameState.players[player], offered_spaces[i])
+		if offered_spaces[i] >= 0 and offered_spaces[i] < GameState.board.size():
+			value_offered += _calculate_AI_property_value(GameState.players[player], offered_spaces[i])
 		
 	var value_requested = trade_offer.get("request_cash", 0)
 	var requested_spaces = trade_offer.get("requested_spaces", [])
 	for i in range(requested_spaces.size()):
-		value_requested += _calculate_AI_property_value(GameState.players[player], requested_spaces[i])
+		if requested_spaces[i] >= 0 and requested_spaces[i] < GameState.board.size():
+			value_requested += _calculate_AI_property_value(GameState.players[player], requested_spaces[i])
 		
 	if (value_offered > value_requested):
 		ai_trade_accept.emit()
