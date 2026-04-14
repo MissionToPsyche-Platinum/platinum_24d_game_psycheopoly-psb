@@ -311,10 +311,10 @@ func ai_lands_on_space(space_num: int) -> void:
 		str(current_player.balance)
 	])
 
-	# A real landing should only be resolved after has_rolled is true.
-	if not current_player.has_rolled and not current_player.is_in_jail:
-		print("AI DEBUG: ai_lands_on_space RETURNED - has_rolled is false and player not in jail")
-		return
+	# A real landing should only be resolved after has_rolled is true. ## This is not true, rolling doubles should still resolve the space landing
+	#if not current_player.has_rolled and not current_player.is_in_jail:
+	#	print("AI DEBUG: ai_lands_on_space RETURNED - has_rolled is false and player not in jail")
+	#	return
 
 	print("AI Manager: AI lands on space")
 
@@ -629,6 +629,19 @@ func _filter_valid_board_property_ids(property_ids: Array[int]) -> Array[int]:
 
 	return results
 	
+func _filter_out_properties_with_upgrades(property_ids: Array[int]) -> Array[int]:
+	var results: Array[int] = []
+	for property_id in property_ids:
+		if GameState.board[property_id] is not PropertySpace:
+			results.append(property_id)
+		else:
+			var upgrades = false
+			for property in GameController._get_property_set(GameState.board[property_id]):
+				if (property._current_upgrades > 0):
+					upgrades = true
+			if (!upgrades):
+				results.append(property_id)
+	return results
 
 
 # AI should decide what to trade here
@@ -654,6 +667,7 @@ func ai_create_trade_offer(buying: bool) -> void:
 				receivablePropeties.append_array(GameController.get_tradeable_space_indexes(i))
 
 		receivablePropeties = _filter_valid_board_property_ids(receivablePropeties)
+		receivablePropeties = _filter_out_properties_with_upgrades(receivablePropeties)
 		receivablePropeties.sort_custom(_sort_by_multiplier)
 
 		if receivablePropeties.size() > 0:
@@ -673,6 +687,7 @@ func ai_create_trade_offer(buying: bool) -> void:
 		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
 
 		offerablePropeties = _filter_valid_board_property_ids(offerablePropeties)
+		offerablePropeties = _filter_out_properties_with_upgrades(offerablePropeties)
 		offerablePropeties.sort_custom(_sort_by_multiplier)
 
 		if offerablePropeties.size() > 0:
@@ -700,6 +715,8 @@ func ai_create_trade_offer(buying: bool) -> void:
 		if not _is_same_ai_turn(current_player):
 			return
 
+		print("AI TRADE ATTEMPT, Current player: ", current_player, "Target: ",target_player, "Offering Cash: ", offeringCash, "Receiving Cash: ", receivingCash, "Offering Properties: ", offeringProperties, "Receiving Properties: ", receivingProperties)
+		
 		ai_trade_create.emit(
 			current_player,
 			target_player,
