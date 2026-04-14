@@ -24,7 +24,8 @@ signal closed
 @onready var close_button: Button = %CloseButton
 @onready var colorblind_check: CheckBox = %ColorblindCheck
 
-@onready var computer_difficulty_option: OptionButton = %ComputerDifficultyOption
+@onready var computer_difficulty_option: OptionButton = %DifficultyOption
+@onready var computer_difficulty_popup: PopupMenu = computer_difficulty_option.get_popup()
 
 var _last_master_volume: float = 80.0
 var _last_sfx_volume: float = 80.0
@@ -130,6 +131,8 @@ func _ready() -> void:
 	if not colorblind_check.toggled.is_connected(_on_colorblind_toggled):
 		colorblind_check.toggled.connect(_on_colorblind_toggled)
 
+	if not computer_difficulty_popup.index_pressed.is_connected(_on_difficulty_changed):
+		computer_difficulty_popup.index_pressed.connect(_on_difficulty_changed)
 
 
 # opwn and close menu for both pause menu and start screen
@@ -207,6 +210,9 @@ func _load_audio_settings_into_ui() -> void:
 	sfx_slider.editable = not is_muted
 	music_slider.editable = not is_muted
 
+
+func _on_difficulty_changed(index: int) -> void:
+	GameController.set_difficulty(computer_difficulty_option.get_item_text(index))
 
 # Slider handlers
 

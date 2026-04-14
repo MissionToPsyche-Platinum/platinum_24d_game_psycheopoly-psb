@@ -42,7 +42,33 @@ var validUnmortgages: Array[int] = [] # holds the space numbers of mortgagable p
 func _initialize_property_multipliers(player: AiPlayerState) -> void:
 	for i in range(GameState.board.size()):
 		if GameState.board[i] is Ownable:
-			player.base_property_value_multipliers.append(1.1 + 0.4 * randf()) # TODO: set this based on difficulty, with a bit of variance between different properties/sets
+			if (player.difficulty == "Hard"):
+				player.base_property_value_multipliers.append(1 + 0.2 * randf()) # Hard AI has lower variance, and more heavily values the properties around and after jail
+				if (i > 10 && i < 30):
+					player.base_property_value_multipliers[i] *= 1.2
+				if (i > 15 && i < 25):
+					player.base_property_value_multipliers[i] *= 1.2 # Further value is given to the properties 1-2 turns out from jail
+			elif (player.difficulty == "Easy"):
+				player.base_property_value_multipliers.append(0.4 + 0.6 * randf() + 0.6 * randf()) # Easy AI values properties less generally but has a much higher range
+			else:
+				player.base_property_value_multipliers.append(1.1 + 0.4 * randf())
+			
+			if (GameState.board[i] is InstrumentSpace): # Harder AI values instruments more heavily, and dislikes planets. Easy AI is the opposite
+				if (player.difficulty == "Easy"):
+					player.base_property_value_multipliers[i] *= 0.6
+				elif (player.difficulty == "Normal"):
+					player.base_property_value_multipliers[i] *= 1
+				elif (player.difficulty == "Hard"):
+					player.base_property_value_multipliers[i] *= 1.25
+				
+			if (GameState.board[i] is PlanetSpace):
+				if (player.difficulty == "Easy"):
+					player.base_property_value_multipliers[i] *= 1.3
+				elif (player.difficulty == "Normal"):
+					player.base_property_value_multipliers[i] *= 1
+				elif (player.difficulty == "Hard"):
+					player.base_property_value_multipliers[i] *= 0.7
+				
 		else:
 			player.base_property_value_multipliers.append(0)
 		player.current_property_value_multipliers.append(player.base_property_value_multipliers[i])
@@ -63,7 +89,11 @@ func _update_property_multipliers(player: AiPlayerState) -> void:
 				totalOwnedSpaces += 1
 				if (space._player_owner == player.player_id):
 					AIOwnedSpaces += 1
-					multiplier *= 1.2 # Ai values holding on to spaces it already has
+					if (player.difficulty != "Easy"):
+						multiplier *= 1.2 # Good AI values holding on to spaces it already has
+						
+			if (space.is_mortgaged()):
+				multiplier *= 0.6 # AI dislikes mortgages properties
 
 			if space is PropertySpace:
 				if (GameController._check_if_upgrade_is_valid(space, player.player_id)):
@@ -88,6 +118,18 @@ func _update_property_multipliers(player: AiPlayerState) -> void:
 					multiplier *= 0.8
 				elif (otherPlayerOwnedProperties == 2):
 					multiplier *= 0.6
+				
+				var easyUpgradeMultipliers: Array[float] = [1, 0.9, 0.85, 0.8, 0.75, 0.7] # This multiplier is also used for property upgrading, easy AI prefers upgrading unupgraded properties
+				var normalUpgradeMultipliers: Array[float] = [1, 1.1, 1.2, 1.3, 1.4, 1.5] # Normal AI prefers fully upgrading a set
+				var hardUpgradeMultipliers: Array[float] = [1, 1.3, 1.3, 1.3, 1.1, 1.1] # Hard AI prefers upgrading to the 3rd upgrade level
+
+				if (player.difficulty == "Easy"):
+					multiplier *= easyUpgradeMultipliers[space._current_upgrades]
+				elif (player.difficulty == "Normal"):
+					multiplier *= normalUpgradeMultipliers[space._current_upgrades]
+				elif (player.difficulty == "Hard"):
+					multiplier *= hardUpgradeMultipliers[space._current_upgrades]				
+				
 		player.current_property_value_multipliers[i] = multiplier
 	
 	var master_multiplier = 0.8
@@ -95,12 +137,12 @@ func _update_property_multipliers(player: AiPlayerState) -> void:
 	if (player.balance >= 500): # Ai is more likely to buy properties when it has a lot of money
 		master_multiplier += (player.balance - 500) / 2500.0
 
-	if (AIOwnedSpaces < totalOwnedSpaces / float(GameState.players.size())):
+	if (AIOwnedSpaces < totalOwnedSpaces / float(GameState.players.size())): # AI is more likely to buy properties when it has few properties
 		var difference = totalOwnedSpaces / float(GameState.players.size()) - AIOwnedSpaces
-		master_multiplier += difference / 10
+		master_multiplier += difference / 5.0
 	
-	# If AI has any spaces that can be upgraded, then AI should propritize upgrading them
-	if (upgradableSpaces > 0):
+	# If AI has any spaces that can be upgraded, then good AI should propritize upgrading them
+	if (upgradableSpaces > 0 && player.difficulty != "Easy"):
 		master_multiplier *= 0.5
 	
 	player.master_property_value_multiplier = master_multiplier
@@ -292,17 +334,18 @@ func ai_lands_on_space(space_num: int) -> void:
 	match gname:
 		"PropertySpace", "InstrumentSpace", "PlanetSpace":
 			if property._is_owned == true:
-				var rent_owed := GameController.calculate_rent(GameState.board[space_num])
-				var needs_bankruptcy_flow: bool = current_player.balance < rent_owed
+				if property._player_owner != active_ai_player_index:
+					var rent_owed := GameController.calculate_rent(GameState.board[space_num])
+					var needs_bankruptcy_flow: bool = current_player.balance < rent_owed
 
 				print("AI DEBUG: owned space landed on, emitting ai_pay for space %d" % space_num)
 				ai_pay.emit(space_num)
 
 				# Only wait if this payment was going to trigger bankruptcy handling.
-				if needs_bankruptcy_flow:
-					print("AI DEBUG: waiting for action_completed after bankruptcy-risk rent payment")
-					await GameController.action_completed
-					print("AI DEBUG: action_completed received after bankruptcy-risk rent payment")
+					if needs_bankruptcy_flow:
+						print("AI DEBUG: waiting for action_completed after bankruptcy-risk rent payment")
+						await GameController.action_completed
+						print("AI DEBUG: action_completed received after bankruptcy-risk rent payment")
 			else:
 				print("AI DEBUG: unowned property/instrument/planet at space %d" % space_num)
 				await ai_lands_on_unowned_property(space_num)
@@ -450,6 +493,8 @@ func ai_bankruptcy_resolve(amount: int) -> void:
 
 	if GameController.get_current_player().balance >= amount:
 		ai_pay_bankruptcy.emit()
+		await get_tree().process_frame
+		ai_turn_mid()
 	else:
 		ai_declare_bankruptcy.emit()
 	
@@ -510,35 +555,39 @@ func ai_turn_post_trade() -> void:
 	if not _is_same_ai_turn(acting_ai):
 		return
 
-	var decisionAttempts = 4
-	var randFloat = randf()
+	var player = GameState.players[active_ai_player_index]
 
-	while randFloat < decisionAttempts / 4.0:
+	update_valid_mid_turn_targets()
+
+	if validUnmortgages.size() > 0:
+		validUnmortgages.sort_custom(_sort_by_multiplier)
+		if (_calculate_AI_property_value(player, validUnmortgages[0]) / 0.6 > GameState.board[validUnmortgages[0]]._mortgage_value * 1.3):
+			ai_property_unmortgage(validUnmortgages[0])
+
+	var upgradeAttempts = 0
+	
+	if (player.difficulty == "Easy"):
+		upgradeAttempts = randi_range(0, 2)
+	
+	if (player.difficulty == "Normal"):
+		upgradeAttempts = randi_range(2, 5)
+		
+	if (player.difficulty == "Hard"):
+		upgradeAttempts = randi_range(7, 11)
+
+	while upgradeAttempts > 0:
 		if not _is_same_ai_turn(acting_ai):
 			return
 
 		update_valid_mid_turn_targets()
-		randFloat = randf()
 
-		if randFloat > 0.5:
-			if validUpgrades.size() > 0:
-				var randInt = randi_range(0, validUpgrades.size() - 1)
-				ai_property_upgrade(validUpgrades[randInt])
-		#elif (randFloat > 0.3):
-		#	if (validDowngrades.size() > 0):
-		#		var randInt = randi_range(0, validDowngrades.size() - 1)
-		#		ai_sells_upgrade(validDowngrades[randInt])
-		#elif (randFloat > 0.4):
-		#	if (validMortgages.size() > 0):
-		#		var randInt = randi_range(0, validMortgages.size() - 1)
-		#		ai_property_mortgage(validMortgages[randInt])
-		else:
-			if validUnmortgages.size() > 0:
-				var randInt = randi_range(0, validUnmortgages.size() - 1)
-				ai_property_unmortgage(validUnmortgages[randInt])
-
-		randFloat = randf()
-		decisionAttempts -= 1
+		if validUpgrades.size() > 0:
+			validUpgrades.sort_custom(_sort_by_multiplier)
+			ai_property_upgrade(validUpgrades[0])
+		upgradeAttempts -= 1
+		
+		if (player.balance <= randi_range(0, 600)):
+			upgradeAttempts -= 4
 
 	if not _is_same_ai_turn(acting_ai):
 		return
@@ -616,6 +665,10 @@ func ai_create_trade_offer(buying: bool) -> void:
 				_calculate_AI_property_value(GameState.players[current_player], receivingProperties[0])
 			)
 			offeringCash = randi_range(maxOffer / 2, maxOffer)
+			if (GameState.players[current_player].difficulty == "Easy"): # Easy AI offers more money in trade offers
+				offeringCash *= 1.6
+			if (GameState.players[current_player].difficulty == "Normal"): 
+				offeringCash *= 1.2
 	else:
 		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
 
@@ -626,12 +679,18 @@ func ai_create_trade_offer(buying: bool) -> void:
 			offeringProperties.append(offerablePropeties[offerablePropeties.size() - 1])
 
 			var propertyValue = _calculate_AI_property_value(GameState.players[current_player], offeringProperties[0])
-			if propertyValue < GameState.players[target_player].balance:
-				receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
-			else:
-				receivingCash = GameState.players[target_player].balance
+			receivingCash = randi_range(propertyValue, GameState.players[target_player].balance)
+
+			if (GameState.players[current_player].difficulty == "Easy"):
+				receivingCash *= 0.6 # Easy AI asks for less money in trades
+			if (GameState.players[current_player].difficulty == "Normal"):
+				receivingCash *= 0.9 
+				
+			if receivingCash > GameState.players[target_player].balance:
+				offeringProperties.clear() # cancel trade if other player doesn't have the money to pay
+				receivingCash = 0
 			
-	if offeringProperties.size() > 0 or receivingProperties.size() > 0:
+	if ((offeringProperties.size() > 0 or receivingProperties.size() > 0) && GameState.player_active[target_player]):
 		if not _is_same_ai_turn(current_player):
 			return
 
