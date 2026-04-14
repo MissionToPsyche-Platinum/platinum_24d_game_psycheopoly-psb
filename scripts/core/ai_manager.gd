@@ -338,8 +338,8 @@ func ai_lands_on_space(space_num: int) -> void:
 					var rent_owed := GameController.calculate_rent(GameState.board[space_num])
 					var needs_bankruptcy_flow: bool = current_player.balance < rent_owed
 
-				print("AI DEBUG: owned space landed on, emitting ai_pay for space %d" % space_num)
-				ai_pay.emit(space_num)
+					print("AI DEBUG: owned space landed on, emitting ai_pay for space %d" % space_num)
+					ai_pay.emit(space_num)
 
 				# Only wait if this payment was going to trigger bankruptcy handling.
 					if needs_bankruptcy_flow:
