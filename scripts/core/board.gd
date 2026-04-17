@@ -982,7 +982,12 @@ func _on_player_sent_to_jail(player_index: int) -> void:
 	var player_name := get_player_log_name(player_index)
 	log_event("%s was sent to the Launch Pad." % player_name)
 
-	if notification_popup && GameController.get_current_player().player_is_ai == false:
+	# Clear any pending movement / landing resolution flags so the next turn
+	# does not stay stuck in a "board busy" state.
+	pending_landing_resolution = false
+	pending_card_followup_movement = false
+
+	if notification_popup and GameController.get_current_player().player_is_ai == false:
 		notification_popup.show_notification("Sent to the Launch Pad!", "You have been sent to the Launch Pad.")
 		await notification_popup.dismissed
 

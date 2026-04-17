@@ -49,7 +49,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(560, 0)
+custom_minimum_size = Vector2(700, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_c6f8l")
 
@@ -82,7 +82,12 @@ autowrap_mode = 3
 [node name="HSeparator2" type="HSeparator" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="StatsLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="StatsScroll" type="ScrollContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 420)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StatsLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/StatsScroll"]
 custom_minimum_size = Vector2(440, 450)
 layout_mode = 2
 text = "Player 1
@@ -92,7 +97,6 @@ Earnings: $0    Net Worth: $1500
 Player 2
 Cash: $1500    Propterties: 0
 Earnings: $0    Net Worth: $1500"
-autowrap_mode = 3
 
 [node name="BackBtn" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

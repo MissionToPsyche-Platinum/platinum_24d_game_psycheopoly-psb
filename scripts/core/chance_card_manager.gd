@@ -139,9 +139,16 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 			card_resolved.emit(card_num)
 			return
 
-	elif card_num == 14: # pay each player 50
-		var pay_opponents = (player_count - 1) * 50
-		GameController.log_transaction("%s drew a card and paid each other player $50 (total $%d)." % [player_name, pay_opponents])
+	elif card_num == 14: # pay each active player 50
+		var active_opponents := 0
+		for i in range(player_count):
+			if i == current_player:
+				continue
+			if i >= 0 and i < GameState.player_active.size() and GameState.player_active[i]:
+				active_opponents += 1
+
+		var pay_opponents = active_opponents * 50
+		GameController.log_transaction("%s drew a card and paid each other active player $50 (total $%d)." % [player_name, pay_opponents])
 
 		if not GameController.request_payment(current_player, pay_opponents, "Chance card: pay each player"):
 			pending_card_player = -1
@@ -151,19 +158,62 @@ func resolve_card(card_num: int, money_value: int, movement_value: int, space_nu
 
 		var paid_player = (current_player + 1) % player_count
 		while paid_player != current_player:
+			# Skip eliminated / inactive players
+			if paid_player >= 0 and paid_player < GameState.player_active.size():
+				if not GameState.player_active[paid_player]:
+					paid_player = (paid_player + 1) % player_count
+					continue
+
+			# Extra safety: skip invalid/null players
+			if paid_player < 0 or paid_player >= GameState.players.size():
+				paid_player = (paid_player + 1) % player_count
+				continue
+
+			var target_player = GameState.players[paid_player]
+			if target_player == null:
+				paid_player = (paid_player + 1) % player_count
+				continue
+
+			# Skip bankrupt players too, if that flag exists
+			if "is_bankrupt" in target_player and target_player.is_bankrupt:
+				paid_player = (paid_player + 1) % player_count
+				continue
+
 			GameController.credit(paid_player, 50)
 			paid_player = (paid_player + 1) % player_count
 
 	elif card_num == 15: # earn 10 from each player
-		GameController.log_transaction("%s drew a card and is collecting $10 from each other player." % player_name)
+		GameController.log_transaction("%s drew a card and is collecting $10 from each other active player." % player_name)
 
 		var losing_player = (current_player + 1) % player_count
 		while losing_player != current_player:
+			# Skip eliminated / inactive players
+			if losing_player >= 0 and losing_player < GameState.player_active.size():
+				if not GameState.player_active[losing_player]:
+					losing_player = (losing_player + 1) % player_count
+					continue
+
+			# Extra safety: skip invalid/null players
+			if losing_player < 0 or losing_player >= GameState.players.size():
+				losing_player = (losing_player + 1) % player_count
+				continue
+
+			var target_player = GameState.players[losing_player]
+			if target_player == null:
+				losing_player = (losing_player + 1) % player_count
+				continue
+
+			# Skip bankrupt players too, if that flag exists on the player state
+			if "is_bankrupt" in target_player and target_player.is_bankrupt:
+				losing_player = (losing_player + 1) % player_count
+				continue
+
 			if not GameController.request_payment(losing_player, 10, "Chance card: pay another player", current_player):
 				pending_card_player = -1
 				pending_card_space = -1
 				card_resolved.emit(card_num)
 				return
+
 			losing_player = (losing_player + 1) % player_count
 
 	elif card_num == 16: # pay 45 per data point, pay 120 per discovery
