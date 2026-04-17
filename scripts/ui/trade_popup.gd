@@ -38,6 +38,7 @@ const DETAILS_COLUMN := 2
 const CHECKBOX_BG_COLOR := Color(0.1, 0.1, 0.1, 0.3) # Semi-transparent dark overlay
 const DETAILS_BG_COLOR := Color(0.22, 0.24, 0.30, 0.0) # Transparent for just text
 const DETAILS_TEXT_COLOR := Color(0.8, 0.8, 0.8, 1.0)
+const DISABLED_PROPERTY_TEXT_COLOR := Color(0.55, 0.55, 0.55, 1.0)
 const PROPERTY_DETAILS_POPUP_SCENE := preload("res://scenes/PropertyDetailsPopup.tscn")
 
 var _property_details_popup: CanvasLayer = null
@@ -134,11 +135,10 @@ func _set_review_mode(summary: String) -> void:
 	root_panel.custom_minimum_size = Vector2(760, 310)
 	
 	back_button.visible = not (GameState.players[_offering_player].player_is_ai)
-
-
 	
 	title_label.text = "Trade Review"
 	review_label.text = summary
+
 
 func _update_review_if_active() -> void:
 	if not _in_review_mode:
@@ -188,15 +188,38 @@ func _refresh_space_lists() -> void:
 		return
 
 	var target_player := _get_selected_target_player()
+
+	offer_cash_spin.max_value = max(0, GameController.get_player_balance(_offering_player))
+	offer_cash_spin.value = min(offer_cash_spin.value, offer_cash_spin.max_value)
+
+	if target_player >= 0:
+		request_cash_spin.max_value = max(0, GameController.get_player_balance(target_player))
+		request_cash_spin.value = min(request_cash_spin.value, request_cash_spin.max_value)
+	else:
+		request_cash_spin.max_value = 0
+		request_cash_spin.value = 0
+
 	var offered_spaces: Array[int] = GameController.get_tradeable_space_indexes(_offering_player)
 	for space_index in offered_spaces:
 		_add_space_item(offered_list, offered_root, space_index)
 
 	if target_player < 0:
 		return
+
 	var requested_spaces: Array[int] = GameController.get_tradeable_space_indexes(target_player)
 	for space_index in requested_spaces:
 		_add_space_item(requested_list, requested_root, space_index)
+
+
+func _is_space_trade_blocked_by_set_upgrades(space_index: int) -> bool:
+	if space_index < 0 or space_index >= GameState.board.size():
+		return false
+
+	if not (GameState.board[space_index] is PropertySpace):
+		return false
+
+	var property := GameState.board[space_index] as PropertySpace
+	return GameController._is_property_group_developed(property)
 
 
 func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> void:
@@ -228,30 +251,34 @@ func _add_space_item(list_node: Tree, root_item: TreeItem, space_index: int) -> 
 		and GameState.board[space_index] is Ownable \
 		and (GameState.board[space_index] as Ownable)._is_mortgaged
 
-	var has_upgrades := space_index < GameState.board.size() \
-		and GameState.board[space_index] is PropertySpace \
-		and (GameState.board[space_index] as PropertySpace)._current_upgrades > 0
+	var set_has_upgrades := _is_space_trade_blocked_by_set_upgrades(space_index)
+	var is_trade_blocked := set_has_upgrades
 
 	var item_label := _build_space_label(space_index)
 	if is_mortgaged:
 		item_label += " [MORTGAGED]"
-	if has_upgrades:
+	if is_trade_blocked:
 		item_label += " [HAS UPGRADES]"
 
 	tree_item.set_icon(PROPERTY_COLUMN, item_icon)
 	tree_item.set_text(PROPERTY_COLUMN, item_label)
+	tree_item.set_metadata(PROPERTY_COLUMN, space_index)
+
+	tree_item.set_editable(CHECKBOX_COLUMN, not is_trade_blocked)
+	tree_item.set_selectable(PROPERTY_COLUMN, not is_trade_blocked)
+
 	if is_mortgaged:
 		tree_item.set_custom_color(PROPERTY_COLUMN, Color(0.9, 0.2, 0.2, 1))
-	if has_upgrades:
-		tree_item.set_custom_color(PROPERTY_COLUMN, Color(0.9, 0.6, 0.2, 1))
-	tree_item.set_selectable(PROPERTY_COLUMN, not has_upgrades)
-	tree_item.set_metadata(PROPERTY_COLUMN, space_index)
+	elif is_trade_blocked:
+		tree_item.set_custom_color(PROPERTY_COLUMN, DISABLED_PROPERTY_TEXT_COLOR)
+	else:
+		tree_item.set_custom_color(PROPERTY_COLUMN, Color(1, 1, 1, 1))
+
 	tree_item.set_text(DETAILS_COLUMN, "...")
 	tree_item.set_selectable(DETAILS_COLUMN, false)
 	tree_item.set_text_alignment(DETAILS_COLUMN, HORIZONTAL_ALIGNMENT_CENTER)
 	tree_item.set_custom_bg_color(DETAILS_COLUMN, DETAILS_BG_COLOR, false)
 	tree_item.set_custom_color(DETAILS_COLUMN, DETAILS_TEXT_COLOR)
-
 
 
 func _build_space_label(space_index: int) -> String:
@@ -264,17 +291,13 @@ func _get_or_create_color_icon(space_info: Dictionary, space_index: int) -> Text
 	if _color_icon_cache == null:
 		_color_icon_cache = {}
 
-	
 	# Colorblind mode support:
-	
 	if SettingsManager.is_colorblind_enabled():
 		var symbol_texture: Texture2D = ColorblindHelpers.get_symbol_texture_for_space(space_index)
 		if symbol_texture != null:
 			return symbol_texture
 
-	
 	# Normal mode fallback: use colored square
-	
 	var color: Color = space_info.get("color", Color(0.7, 0.7, 0.7, 1.0))
 	var cache_key := "%0.3f_%0.3f_%0.3f_%0.3f" % [color.r, color.g, color.b, color.a]
 
@@ -305,7 +328,6 @@ func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
 			return
 
 		var clicked_column := tree.get_column_at_position(click_event.position)
-
 		var asset_id := int(clicked_item.get_metadata(PROPERTY_COLUMN))
 
 		# If clicking details, show popup only for real board properties
@@ -314,15 +336,14 @@ func _on_tree_gui_input(event: InputEvent, tree: Tree) -> void:
 				_show_property_details_popup(asset_id)
 			return
 
+		# Block interaction for disabled / grayed-out properties
+		if not clicked_item.is_editable(CHECKBOX_COLUMN):
+			return
+
 		# Otherwise, toggle checkbox (manual toggle to mimic "whole row" selection)
-		# However, if we click exactly on the checkbox column, the Tree might handle it automatically.
-		# But since we want the WHOLE row to act as a toggle, we can force it here.
-		# Note: If the native checkbox logic runs, this might flip it back.
-		# To avoid double-toggle on the checkbox column itself, we can skip manual toggle if column is 0.
-		# BUT wait, the user says "clicking anywhere".
-		# Let's try manually toggling only if it's NOT the checkbox column.
 		if clicked_column != CHECKBOX_COLUMN:
 			clicked_item.set_checked(CHECKBOX_COLUMN, not clicked_item.is_checked(CHECKBOX_COLUMN))
+
 		_update_review_if_active()
 
 
@@ -373,6 +394,7 @@ func _build_offer_from_ui() -> Dictionary:
 		"requested_spaces": _collect_selected_space_indices(requested_list),
 	}
 
+
 func _build_ai_offer(offering_player: int, receiving_player: int, offering_cash: int, receiving_cash: int, offering_properties: Array[int], receiving_properties: Array[int]) -> Dictionary:
 	return {
 		"offering_player": offering_player,
@@ -382,6 +404,7 @@ func _build_ai_offer(offering_player: int, receiving_player: int, offering_cash:
 		"offered_spaces": offering_properties,
 		"requested_spaces": receiving_properties,
 	}
+
 
 func _format_space_summary(space_indexes: Array) -> String:
 	if space_indexes.is_empty():
@@ -443,10 +466,12 @@ func _summarize_trade_offer(trade_offer: Dictionary) -> String:
 	lines.append("[/center]")
 	return "\n".join(lines)
 
+
 func _on_ai_submit(offering_player: int, receiving_player: int, offering_cash: int, receiving_cash: int, offering_properties: Array[int], receiving_properties: Array[int]) -> void:
 	show_for_current_player(offering_player)
 	var trade_offer := _build_ai_offer(offering_player, receiving_player, offering_cash, receiving_cash, offering_properties, receiving_properties)
 	_on_submit(trade_offer)
+
 
 func _on_submit_pressed() -> void:
 	var trade_offer := _build_offer_from_ui()
@@ -470,6 +495,7 @@ func _on_submit(trade_offer: Dictionary) -> void:
 	_set_review_mode(_summarize_trade_offer(trade_offer))
 	if (GameState.players[(int(trade_offer.get("target_player", -1)))].player_is_ai):
 		AiManager.ai_trade_decision(trade_offer)
+
 
 func _on_cancel_pressed() -> void:
 	hide_popup()
@@ -536,12 +562,14 @@ func _check_space_in_tree(tree: Tree, space_index: int) -> void:
 	while item != null:
 		var meta: Variant = item.get_metadata(PROPERTY_COLUMN) 
 		if typeof(meta) == TYPE_INT and int(meta) == space_index:
-			item.set_checked(CHECKBOX_COLUMN, true)
+			if item.is_editable(CHECKBOX_COLUMN):
+				item.set_checked(CHECKBOX_COLUMN, true)
 			item.select(PROPERTY_COLUMN) 
 			return
 
 		item = item.get_next()
 		
+
 func _get_space_names(space_indexes: Array) -> Array[String]:
 	var names: Array[String] = []
 

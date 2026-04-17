@@ -222,6 +222,17 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 		result.reason = "Trade players are invalid."
 		return result
 
+	var offer_cash: int = max(0, int(trade_offer.get("offer_cash", 0)))
+	var request_cash: int = max(0, int(trade_offer.get("request_cash", 0)))
+
+	if offer_cash > get_player_balance(offering_player):
+		result.reason = "You cannot offer more cash than you have."
+		return result
+
+	if request_cash > get_player_balance(target_player):
+		result.reason = "The other player cannot offer more cash than they have."
+		return result
+
 	var offered_spaces: Array = trade_offer.get("offered_spaces", [])
 	var requested_spaces: Array = trade_offer.get("requested_spaces", [])
 
@@ -233,9 +244,10 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 		elif not _is_space_tradeable_by_owner(space_index, offering_player):
 			result.reason = "You can only offer assets you own."
 			return result
-		elif _has_upgrades(space_index):
-			result.reason = "You cannot trade properties with upgrades."
-			return result
+		elif space_index >= 0 and space_index < GameState.board.size() and GameState.board[space_index] is PropertySpace:
+			if _is_property_group_developed(GameState.board[space_index] as PropertySpace):
+				result.reason = "You cannot trade properties from a set that has upgrades."
+				return result
 
 	var requested_card_count := 0
 	for entry in requested_spaces:
@@ -245,9 +257,10 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 		elif not _is_space_tradeable_by_owner(space_index, target_player):
 			result.reason = "Requested asset is not owned by the selected player."
 			return result
-		elif _has_upgrades(space_index):
-			result.reason = "You cannot trade properties with upgrades."
-			return result
+		elif space_index >= 0 and space_index < GameState.board.size() and GameState.board[space_index] is PropertySpace:
+			if _is_property_group_developed(GameState.board[space_index] as PropertySpace):
+				result.reason = "You cannot trade properties from a set that has upgrades."
+				return result
 
 	if offered_card_count > int(GameState.players[offering_player].go_for_launch_cards):
 		result.reason = "You do not own that many Go For Launch cards."
@@ -260,7 +273,6 @@ func validate_trade_offer(trade_offer: Dictionary) -> Dictionary:
 	result.ok = true
 	result.reason = "OK"
 	return result
-
 
 func execute_trade_offer(trade_offer: Dictionary) -> bool:
 	var validation := validate_trade_offer(trade_offer)
