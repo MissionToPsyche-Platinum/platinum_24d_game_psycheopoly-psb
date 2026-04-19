@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ddtlbnxccusb4"]
+
+[ext_resource type="Script" uid="uid://ss3wqta5j2pi" path="res://tests/test_ai_auction_decision.gd" id="1_hp0qf"]
+
+[node name="AiAuctionTestScene" type="Node2D"]
+script = ExtResource("1_hp0qf")

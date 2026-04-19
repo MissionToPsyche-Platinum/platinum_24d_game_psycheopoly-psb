@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bajhaigwd02f3"]
+
+[ext_resource type="Script" uid="uid://b4x02tyat23c7" path="res://tests/test_system_end_to_end.gd" id="1_qohhv"]
+
+[node name="EndToEnd" type="Node2D"]
+script = ExtResource("1_qohhv")
