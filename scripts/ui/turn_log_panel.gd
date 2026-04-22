@@ -17,7 +17,7 @@ const MAX_ENTRIES := 100
 # Panel layout values
 const PANEL_WIDTH := 455.0
 const PANEL_HEIGHT := 420.0
-const TOGGLE_TAB_WIDTH := 36.0
+const TOGGLE_TAB_WIDTH := 20.0
 const SLIDE_DURATION := 0.22
 
 var property_name_to_color: Dictionary = {}
@@ -37,6 +37,10 @@ var expanded_button_x: float = PANEL_WIDTH
 var collapsed_button_x: float = 0.0
 
 func _ready() -> void:
+	# Ensure the panel fully clears the left edge of the viewport
+	# even when this Control has a non-zero left offset.
+	collapsed_panel_x = -(PANEL_WIDTH + position.x + 8.0)
+
 	# Build dynamic property lookup tables from actual board data
 	_build_property_maps()
 

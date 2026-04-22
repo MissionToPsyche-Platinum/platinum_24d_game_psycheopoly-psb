@@ -101,6 +101,7 @@ texture = ExtResource("3_fbkij")
 layer = 10
 
 [node name="TurnLogPanel" parent="TurnLogLayer" instance=ExtResource("5_2mynd")]
-offset_top = 120.0
-offset_right = 406.0
-offset_bottom = 540.0
+offset_left = 10.0
+offset_top = 153.0
+offset_right = 416.0
+offset_bottom = 573.0

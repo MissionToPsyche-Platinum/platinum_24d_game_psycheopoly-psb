@@ -1,23 +1,56 @@
-[gd_scene load_steps=6 format=3 uid="uid://c5lych5ts73cc"]
+[gd_scene load_steps=8 format=3 uid="uid://c5lych5ts73cc"]
 
 [ext_resource type="Script" uid="uid://b5q8c1lhwvfrb" path="res://scripts/ui/turn_log_panel.gd" id="1_anuin"]
 [ext_resource type="AudioStream" uid="uid://r5ie8o5t2kfu" path="res://assets/audio/space_door_opening.wav" id="2_ahrjq"]
 [ext_resource type="AudioStream" uid="uid://v6xbs4i23mqw" path="res://assets/audio/space_door_close.wav" id="3_wc5kw"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ahrjq"]
-bg_color = Color(0.078431375, 0.09019608, 0.13333334, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wc5kw"]
-bg_color = Color(0.078431375, 0.09019608, 0.13333334, 1)
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.3019608, 0.6, 0.9019608, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wc5kw"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.4, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hover"]
+bg_color = Color(0.22, 0.22, 0.3, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.55, 0.7, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+bg_color = Color(0.1, 0.1, 0.15, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.6, 0.6, 0.75, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="TurnLogPanel" type="Control"]
 custom_minimum_size = Vector2(370, 420)
@@ -77,11 +110,13 @@ fit_content = true
 scroll_active = false
 
 [node name="ToggleButton" type="Button" parent="."]
-custom_minimum_size = Vector2(36, 36)
+custom_minimum_size = Vector2(20, 20)
 layout_mode = 0
 offset_left = 320.0
-offset_right = 356.0
+offset_right = 340.0
 offset_bottom = 420.0
 size_flags_horizontal = 0
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_wc5kw")
 text = ">"
