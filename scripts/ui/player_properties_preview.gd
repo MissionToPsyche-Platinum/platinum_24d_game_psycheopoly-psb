@@ -85,7 +85,7 @@ func _on_colorblind_mode_changed(_enabled: bool) -> void:
 
 func refresh_preview() -> void:
 	var current = GameController.get_current_player()
-	if current:
+	if current and not current.player_is_ai:
 		visible = true
 		_update_properties_display(current)
 	else:
