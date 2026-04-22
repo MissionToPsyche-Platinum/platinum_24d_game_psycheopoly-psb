@@ -88,6 +88,7 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="MainPanel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Turn History"
 
 [node name="ClearButton" type="Button" parent="MainPanel/MarginContainer/VBoxContainer/Header"]
