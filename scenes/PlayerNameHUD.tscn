@@ -27,7 +27,7 @@ script = ExtResource("1_script")
 layout_mode = 1
 offset_left = 10.0
 offset_top = 10.0
-offset_right = 166.0
+offset_right = 225.0
 offset_bottom = 50.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_player_name")
 
