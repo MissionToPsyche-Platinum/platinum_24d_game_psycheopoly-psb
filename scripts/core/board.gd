@@ -1417,7 +1417,11 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				current_player.has_rolled = true
 
 				GameController.send_player_to_jail(GameState.current_player_index)
-				_card_teleport_movement(10) # Jail space
+				if current_piece:
+					var old_space_jail: int = int(current_piece.board_space)
+					current_piece.teleport_to_space(10)
+					update_piece_layouts_at(old_space_jail)
+					update_piece_layouts_at(10)
 				GameController.emit_signal("player_rolled", current_player)
 
 				if current_player.player_is_ai == true:
