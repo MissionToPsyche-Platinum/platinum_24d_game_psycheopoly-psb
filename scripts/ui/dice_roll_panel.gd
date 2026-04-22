@@ -45,6 +45,7 @@ var disabled_stylebox: StyleBoxFlat = null
 
 const BORDER_DIM := Color("2a5f99")
 const BORDER_BRIGHT := Color("5aaaf5")
+const BORDER_HIDDEN := Color(0, 0, 0, 0)
 
 
 func _ready() -> void:
@@ -349,7 +350,7 @@ func _stop_pulse() -> void:
 		pulse_tween.kill()
 	pulse_tween = null
 
-	_set_button_border_color(BORDER_DIM)
+	_set_button_border_color(BORDER_HIDDEN)
 
 
 func _set_button_border_color(color: Color) -> void:
@@ -362,4 +363,4 @@ func _set_button_border_color(color: Color) -> void:
 	if focus_stylebox:
 		focus_stylebox.border_color = color
 	if disabled_stylebox:
-		disabled_stylebox.border_color = BORDER_DIM
+		disabled_stylebox.border_color = BORDER_HIDDEN
