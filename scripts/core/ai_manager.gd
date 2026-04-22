@@ -402,7 +402,8 @@ func ai_lands_on_space(space_num: int) -> void:
 	if not _is_same_ai_turn(acting_ai):
 		print("AI DEBUG: ai_lands_on_space RETURNED before ai_turn_mid - not same AI turn")
 		return
-
+		
+	GameController.action_completed.emit()
 	print("AI DEBUG: entering ai_turn_mid from ai_lands_on_space")
 	ai_turn_mid()
 
@@ -529,7 +530,7 @@ func ai_turn_mid() -> void:
 		return
 
 	var player = GameController.get_current_player()
-	if (player.master_property_value_multiplier > 1 && player.master_property_value_multiplier - randf() * 0.5 > 1):
+	if (player.master_property_value_multiplier > 1 && player.master_property_value_multiplier - randf() * 1 > 1):
 		ai_create_trade_offer(true)
 	elif(player.master_property_value_multiplier < 1 && player.master_property_value_multiplier - randf() * 1.5 < 0):
 		ai_create_trade_offer(false)
@@ -683,6 +684,7 @@ func ai_create_trade_offer(buying: bool) -> void:
 				offeringCash *= 1.6
 			if (GameState.players[current_player].difficulty == "Normal"): 
 				offeringCash *= 1.2
+			offeringCash = min(offeringCash, GameController.get_current_player().balance)
 	else:
 		var offerablePropeties: Array[int] = GameController.get_tradeable_space_indexes(current_player)
 
