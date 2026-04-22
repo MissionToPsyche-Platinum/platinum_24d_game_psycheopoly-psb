@@ -196,6 +196,8 @@ func _ready() -> void:
 		
 	if not GameController.transaction_logged.is_connected(_on_transaction_logged):
 		GameController.transaction_logged.connect(_on_transaction_logged)
+	if not AiManager.ai_response_logged.is_connected(_on_ai_response_logged):
+		AiManager.ai_response_logged.connect(_on_ai_response_logged)
 	if not GameController.player_money_changed.is_connected(_on_player_money_changed):
 		GameController.player_money_changed.connect(_on_player_money_changed)
 
@@ -2026,6 +2028,11 @@ func _on_colorblind_mode_changed(enabled: bool) -> void:
 	if space_info_panel and current_piece and not is_tile_selected:
 		space_info_panel.update_space_display(current_piece.board_space)
 	
+func _on_ai_response_logged(message: String) -> void:
+	if ai_action_toast and ai_action_toast.has_method("show_toast"):
+		ai_action_toast.show_toast(message)
+
+
 func _on_transaction_logged(message: String) -> void:
 	log_event(message)
 

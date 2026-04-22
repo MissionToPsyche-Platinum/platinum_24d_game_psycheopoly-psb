@@ -14,6 +14,11 @@ signal ai_auction_bid(amount: int, highest_bid: int)
 signal ai_trade_reject()
 signal ai_trade_accept()
 
+# Emitted when an AI takes an action outside its own turn (e.g. responding to
+# a trade offered by a human). Board listens to surface an AI action toast,
+# since the "current player is AI" check would otherwise skip it.
+signal ai_response_logged(message: String)
+
 signal ai_trade_create(offering_player: int, receiving_player: int, offering_cash: int, receiving_cash: int, offering_properties: Array[int], receiving_properties: Array[int])
 
 signal ai_jail_pay(current_player: int)
