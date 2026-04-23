@@ -507,9 +507,14 @@ func _on_back_pressed() -> void:
 
 func _on_reject_pressed() -> void:
 	if not _pending_offer.is_empty():
-		var offering_name := GameState.get_player_display_name(int(_pending_offer.get("offering_player", -1)))
-		var target_name := GameState.get_player_display_name(int(_pending_offer.get("target_player", -1)))
-		GameController.log_transaction("%s declined the trade offer from %s." % [target_name, offering_name])
+		var offering_index := int(_pending_offer.get("offering_player", -1))
+		var target_index := int(_pending_offer.get("target_player", -1))
+		var offering_name := GameState.get_player_display_name(offering_index)
+		var target_name := GameState.get_player_display_name(target_index)
+		var decline_message := "%s declined the trade offer from %s." % [target_name, offering_name]
+		GameController.log_transaction(decline_message)
+		if _is_ai_responding_to_human(offering_index, target_index):
+			AiManager.ai_response_logged.emit(decline_message)
 		GameController.trade_finished.emit()
 
 	status_label.text = "Trade rejected."
@@ -527,6 +532,15 @@ func _on_accept_pressed() -> void:
 		hide_popup()
 
 
+func _is_ai_responding_to_human(offering_index: int, target_index: int) -> bool:
+	if offering_index < 0 or offering_index >= GameState.players.size():
+		return false
+	if target_index < 0 or target_index >= GameState.players.size():
+		return false
+	return GameState.players[target_index].player_is_ai \
+		and not GameState.players[offering_index].player_is_ai
+
+
 func _on_trade_failed(reason: String) -> void:
 	if not visible:
 		return
@@ -536,7 +550,13 @@ func _on_trade_failed(reason: String) -> void:
 
 func _on_trade_completed(trade_offer: Dictionary) -> void:
 	# Turn log: accepted trade summary
-	GameController.log_transaction(_build_trade_log_summary(trade_offer))
+	var summary := _build_trade_log_summary(trade_offer)
+	GameController.log_transaction(summary)
+
+	var offering_index := int(trade_offer.get("offering_player", -1))
+	var target_index := int(trade_offer.get("target_player", -1))
+	if _is_ai_responding_to_human(offering_index, target_index):
+		AiManager.ai_response_logged.emit(summary)
 
 	if not visible:
 		return

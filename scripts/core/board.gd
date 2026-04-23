@@ -196,6 +196,8 @@ func _ready() -> void:
 		
 	if not GameController.transaction_logged.is_connected(_on_transaction_logged):
 		GameController.transaction_logged.connect(_on_transaction_logged)
+	if not AiManager.ai_response_logged.is_connected(_on_ai_response_logged):
+		AiManager.ai_response_logged.connect(_on_ai_response_logged)
 	if not GameController.player_money_changed.is_connected(_on_player_money_changed):
 		GameController.player_money_changed.connect(_on_player_money_changed)
 
@@ -1417,7 +1419,11 @@ func _on_dice_rolled(d1: int, d2: int, total: int, is_doubles: bool) -> void:
 				current_player.has_rolled = true
 
 				GameController.send_player_to_jail(GameState.current_player_index)
-				_card_teleport_movement(10) # Jail space
+				if current_piece:
+					var old_space_jail: int = int(current_piece.board_space)
+					current_piece.teleport_to_space(10)
+					update_piece_layouts_at(old_space_jail)
+					update_piece_layouts_at(10)
 				GameController.emit_signal("player_rolled", current_player)
 
 				if current_player.player_is_ai == true:
@@ -2022,6 +2028,11 @@ func _on_colorblind_mode_changed(enabled: bool) -> void:
 	if space_info_panel and current_piece and not is_tile_selected:
 		space_info_panel.update_space_display(current_piece.board_space)
 	
+func _on_ai_response_logged(message: String) -> void:
+	if ai_action_toast and ai_action_toast.has_method("show_toast"):
+		ai_action_toast.show_toast(message)
+
+
 func _on_transaction_logged(message: String) -> void:
 	log_event(message)
 
