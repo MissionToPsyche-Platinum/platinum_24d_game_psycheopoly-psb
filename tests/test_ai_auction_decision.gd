@@ -51,7 +51,7 @@ func setup_shared_state() -> void:
 	GameState.board.append(property)
 
 	# Load AI manager script
-	# CHANGE THIS PATH if your AI manager script lives somewhere else
+	
 	ai_manager = preload("res://scripts/core/ai_manager.gd").new()
 	add_child(ai_manager)
 

@@ -18,7 +18,7 @@ const NAME_POOL := [
 	"Cosmo", "Phoenix", "Voyager", "Odyssey", "Pathfinder", "Artemis"
 ]
 
-# Token choices (keeps the SAME internal index order as your old color system)
+# Token choices (keeps the same internal index order as the original color system)
 # 0 = Red    -> Satellite
 # 1 = Blue   -> Rocket
 # 2 = Green  -> UFO

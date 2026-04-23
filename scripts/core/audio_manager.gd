@@ -119,8 +119,7 @@ func play_music(key: String, volume_db := 0.0, fade_in := 0.0) -> void:
 
 
 # ==========================================================
-#  Optional: Backwards compatible stream-based calls
-#  (So you can still do play_ui_stream(preload(...)))
+#   Backwards compatible stream-based calls
 # ==========================================================
 func play_ui_stream(stream: AudioStream, pitch := 1.0, volume_db := 0.0) -> void:
 	_play_ui_stream(stream, pitch, volume_db)
@@ -237,7 +236,7 @@ func _set_bus_volume_linear(bus_name: String, linear: float) -> void:
 	var db := lerpf(-60.0, 0.0, linear)
 	AudioServer.set_bus_volume_db(idx, db)
 
-	# Optional: mute when at 0
+	# mute when at 0
 	AudioServer.set_bus_mute(idx, linear <= 0.001)
 
 func _get_bus_volume_linear(bus_name: String) -> float:
